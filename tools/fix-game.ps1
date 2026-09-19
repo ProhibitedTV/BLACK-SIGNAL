@@ -23,6 +23,7 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host ""
 Write-Host "[PASS] BLACK SIGNAL is repaired and ready to open."
 Write-Host "       District 12 is deployed to mapbank and bound to the existing Storyboard LEVEL node."
+Write-Host "       The project-local runtime city expander is installed for District 12."
 
 if ($Launch) {
     Write-Host "Launching GameGuru MAX through Steam..."
