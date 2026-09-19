@@ -27,14 +27,24 @@ if exist "%SRC_LST%" (
   copy /Y "%SRC_LST%" "%DST_LST%" >nul
 )
 
+git -C "%REPO%" add "gameguru/maps/BLACK SIGNAL - District 12.fpm"
+if exist "%DST_LST%" git -C "%REPO%" add "gameguru/maps/BLACK SIGNAL - District 12.lst"
+
 echo.
 echo District 12 synced back from GameGuru MAX.
 echo.
 
-git -C "%REPO%" add "gameguru/maps/BLACK SIGNAL - District 12.fpm"
-if exist "%DST_LST%" git -C "%REPO%" add "gameguru/maps/BLACK SIGNAL - District 12.lst"
+git -C "%REPO%" diff --cached --quiet -- "gameguru/maps/BLACK SIGNAL - District 12.fpm" "gameguru/maps/BLACK SIGNAL - District 12.lst"
+if not errorlevel 1 (
+  echo No District 12 map changes were detected.
+  echo Save the level in GameGuru MAX after making your set-dressing changes,
+  echo then run this script again.
+  echo.
+  endlocal
+  exit /b 0
+)
 
-echo Staged changes:
+echo Staged District 12 changes:
 git -C "%REPO%" status --short -- "gameguru/maps/BLACK SIGNAL - District 12.fpm" "gameguru/maps/BLACK SIGNAL - District 12.lst"
 echo.
 echo Review the staged map before committing.
