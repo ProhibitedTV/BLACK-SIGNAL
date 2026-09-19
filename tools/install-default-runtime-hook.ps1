@@ -45,6 +45,7 @@ if ($installedHash -ne $sourceHash) {
 
 $requiredModules = @(
     "bs_city_v3.lua",
+    "bs_city_details.lua",
     "bs_city_v2.lua",
     "bs_basin_city.lua",
     "bs_city_fabric.lua",
@@ -57,14 +58,18 @@ foreach ($module in $requiredModules) {
     }
 }
 
-$v3Source = Join-Path $sourceModules "bs_city_v3.lua"
-$v3Destination = Join-Path $destinationModules "bs_city_v3.lua"
-if ((Get-FileHash -Algorithm SHA256 $v3Source).Hash -ne (Get-FileHash -Algorithm SHA256 $v3Destination).Hash) {
-    throw "bs_city_v3.lua hash verification failed after copy."
+$verifiedModules = @("bs_city_v3.lua", "bs_city_details.lua")
+foreach ($module in $verifiedModules) {
+    $src = Join-Path $sourceModules $module
+    $dst = Join-Path $destinationModules $module
+    if ((Get-FileHash -Algorithm SHA256 $src).Hash -ne (Get-FileHash -Algorithm SHA256 $dst).Hash) {
+        throw "$module hash verification failed after copy."
+    }
 }
 
 Write-Host "[PASS] Installed BLACK SIGNAL runtime hook into default GameGuru scriptbank."
 Write-Host "       Hook: $destinationGameLoop"
 Write-Host "       Modules: $destinationModules"
-Write-Host "[PASS] Verified modular District 12 CITY V3 runtime module."
-Write-Host "       CITY V3 zones collision-safe parcels from authored roads, assembles varied modular facades and tower cores, and only activates when g_LevelFilename contains 'BLACK SIGNAL' or 'District 12'."
+Write-Host "[PASS] Verified modular District 12 CITY V3 and street-detail runtime modules."
+Write-Host "       CITY V3 builds collision-safe modular architecture first. DETAIL V1 then dresses sidewalks and service edges using available Cyberpunk Streets furniture exemplars."
+Write-Host "       Both only activate when g_LevelFilename contains 'BLACK SIGNAL' or 'District 12'."
