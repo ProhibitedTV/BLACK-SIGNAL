@@ -8,6 +8,9 @@ Thumbs.db
 **/_automatedbackups/
 **/_black_signal_deploy_backups/
 
+# Local BLACK SIGNAL repair state/backups
+.black-signal/
+
 # Curated BLACK SIGNAL source lives under gameguru/. When the repository root
 # is used as a GameGuru MAX Separate Project Folder, deploy helpers mirror the
 # production map and owned scripts into the runtime Files tree. Do not commit
