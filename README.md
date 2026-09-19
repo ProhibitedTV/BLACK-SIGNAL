@@ -21,7 +21,7 @@ A municipal systems technician enters an evacuated district that is still consum
 
 Cold morning haze, empty infrastructure, distant machinery, active advertising, long sightlines, sparse human presence, and small impossible details.
 
-## Source-of-truth layout
+## Repository layout
 
 ```text
 BLACK-SIGNAL/
@@ -29,14 +29,20 @@ BLACK-SIGNAL/
 ├── docs/                         # engine / CineGuru / repo conventions
 ├── film/                         # screenplay, shot lists, production notes
 ├── gameguru/
-│   ├── maps/                     # production FPM/LST files
-│   └── Files/                    # BLACK SIGNAL-owned GameGuru Files mirror
+│   ├── maps/                     # curated production FPM/LST source
+│   └── Files/                    # curated BLACK SIGNAL-owned GameGuru source
 │       └── scriptbank/user/black_signal/
 ├── tools/                        # validation, deploy and map round-trip helpers
-└── Files/                        # LEGACY broad project/export snapshot; not authoritative
+└── Files/                        # GameGuru MAX project/runtime tree from the Separate Project Folder
 ```
 
-Do **not** put new BLACK SIGNAL source into the top-level legacy `Files/` tree. Project-owned GameGuru files belong beneath `gameguru/Files/` using the same relative path they need beneath the local GameGuru MAX `Files` directory.
+The important distinction is **curated source vs MAX runtime state**:
+
+- `gameguru/` is the clean, reviewable source boundary for BLACK SIGNAL-owned maps/scripts.
+- top-level `Files/` is the GameGuru MAX project/runtime tree created by the project workflow. It contains `projectbank/BLACK SIGNAL/project203.dat` plus a broad mixture of MAX/runtime assets, so it is **not disposable**, but it is also **not the preferred place to author new hand-maintained source**.
+- deploy helpers can mirror the curated production map and owned scripts into the detected Separate Project Folder at runtime without creating duplicate Git source.
+
+Do not bulk-add new engine/DLC/marketplace material from top-level `Files/` to Git. Project-owned code should still be authored under `gameguru/Files/` and deployed into MAX.
 
 ## District 12
 
@@ -72,9 +78,18 @@ From PowerShell at the repository root:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\validate-repo.ps1
 powershell -ExecutionPolicy Bypass -File .\tools\deploy-gameguru-project.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-play-level.ps1
 ```
 
-The deployer targets the user-writable GameGuru MAX tree under `%USERPROFILE%\Documents\GameGuruApps\GameGuruMAX\Files`, backs up an existing District 12 map, deploys the production map, and copies only project-owned `gameguru/Files` content. It does not vendor or overwrite CineGuru or marketplace packs.
+The deployer:
+
+- materializes the Git LFS FPM;
+- deploys District 12 and BLACK SIGNAL-owned scripts to the default GameGuru MAX `Files` tree;
+- detects this repository's `Files/projectbank/BLACK SIGNAL/project203.dat` and, when present, also mirrors District 12 and owned scripts into the Separate Project Folder runtime tree;
+- does **not** rewrite `project203.dat` or automatically attach the level to the Storyboard;
+- does **not** vendor CineGuru or marketplace packs.
+
+For the first play-test, load `BLACK SIGNAL - District 12.fpm` directly in the Level Editor. If Test/Play works there, add the existing level to the BLACK SIGNAL Storyboard and save the project.
 
 After saving a District 12 edit in GameGuru MAX:
 
@@ -92,4 +107,4 @@ The first production target remains **Shot 001 — CURRENT POPULATION: ZERO** on
 - `gameguru/maps/DISTRICT-12-ARRIVAL-BOULEVARD.md`
 - `film/production/DISTRICT-12-ASSET-AUDIT.md`
 
-The repository is now structured to support that work; the next milestone is a real in-engine set-dressing and CineGuru camera pass.
+The repository is structured to support that work; the next milestone is a real in-engine set-dressing and CineGuru camera pass.
