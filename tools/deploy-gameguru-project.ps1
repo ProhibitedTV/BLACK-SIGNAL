@@ -6,8 +6,33 @@ param(
 $ErrorActionPreference = "Stop"
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
+function Test-LfsPointer([string]$Path) {
+    if (-not (Test-Path $Path)) { return $false }
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $buffer = New-Object byte[] 200
+        $count = $stream.Read($buffer, 0, $buffer.Length)
+        $text = [System.Text.Encoding]::ASCII.GetString($buffer, 0, $count)
+        return $text.StartsWith("version https://git-lfs.github.com/spec/v1")
+    }
+    finally {
+        $stream.Dispose()
+    }
+}
+
 if (-not (Test-Path $GameGuruFiles)) {
     throw "GameGuru MAX user Files directory was not found: $GameGuruFiles"
+}
+
+# FPMs are versioned through Git LFS. A normal Git clone can contain only the
+# tiny pointer text if LFS smudging was skipped, which GameGuru MAX cannot load.
+# Try to materialize the production map before validating or copying it.
+$git = Get-Command git -ErrorAction SilentlyContinue
+if ($git) {
+    & git -C $repo lfs pull --include="gameguru/maps/*.fpm"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "git lfs pull failed. Deployment will continue only if the FPM is already materialized."
+    }
 }
 
 if (-not $SkipValidation) {
@@ -24,6 +49,15 @@ $listSource = Join-Path $repo "gameguru\maps\$listName"
 $mapbank = Join-Path $GameGuruFiles "mapbank"
 $mapDestination = Join-Path $mapbank $mapName
 $listDestination = Join-Path $mapbank $listName
+
+if (-not (Test-Path $mapSource)) {
+    throw "District 12 source map is missing: $mapSource"
+}
+
+$sourceInfo = Get-Item $mapSource
+if ((Test-LfsPointer $mapSource) -or $sourceInfo.Length -lt 1MB) {
+    throw "District 12 is not a materialized GameGuru FPM ($($sourceInfo.Length) bytes). Run 'git lfs pull --include=\"gameguru/maps/*.fpm\"' and deploy again."
+}
 
 New-Item -ItemType Directory -Force -Path $mapbank | Out-Null
 
@@ -63,5 +97,14 @@ if (Test-Path $cineGuru) {
 }
 
 Write-Host ""
-Write-Host "Open 'BLACK SIGNAL - District 12' in GameGuru MAX."
+Write-Host "Running play-level readiness diagnostics..."
+& (Join-Path $PSScriptRoot "diagnose-play-level.ps1") -GameGuruFiles $GameGuruFiles
+if ($LASTEXITCODE -ne 0) {
+    throw "Play-level diagnostics failed. Fix the reported problem before opening MAX."
+}
+
+Write-Host ""
+Write-Host "IMPORTANT: deploying an FPM does not add it to the BLACK SIGNAL Storyboard/project."
+Write-Host "For the isolation test, load 'BLACK SIGNAL - District 12.fpm' directly in the Level Editor."
+Write-Host "Once Test/Play works, add that existing level to the Storyboard and save the project."
 Write-Host "Use CineGuru for cinematic cameras/actors/triggers and BLACK SIGNAL scripts for project-specific metadata/glue."
