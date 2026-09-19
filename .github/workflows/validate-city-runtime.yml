@@ -6,6 +6,7 @@ on:
       - 'gameguru/Files/scriptbank/**'
       - 'gameguru/maps/BLACK SIGNAL - District 12.lst'
       - 'tools/validate-repo.ps1'
+      - 'tools/audit-cyberpunk-detail-assets.ps1'
       - '.github/workflows/validate-city-runtime.yml'
   push:
     branches: [ main ]
@@ -13,6 +14,8 @@ on:
       - 'gameguru/Files/scriptbank/**'
       - 'gameguru/maps/BLACK SIGNAL - District 12.lst'
       - 'tools/validate-repo.ps1'
+      - 'tools/audit-cyberpunk-detail-assets.ps1'
+      - '.github/workflows/validate-city-runtime.yml'
 
 jobs:
   validate:
@@ -32,6 +35,25 @@ jobs:
           set -euo pipefail
           find gameguru/Files/scriptbank/user/black_signal -type f -name '*.lua' -print0 | xargs -0 -n1 luac -p
           luac -p gameguru/Files/scriptbank/gameloop.lua
+
+      - name: Syntax-check PowerShell tooling
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $scripts = @(
+            './tools/validate-repo.ps1',
+            './tools/audit-cyberpunk-detail-assets.ps1'
+          )
+          foreach ($script in $scripts) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              throw "PowerShell syntax check failed: $script"
+            }
+            Write-Host "[PASS] PowerShell syntax: $script"
+          }
 
       - name: Validate repository structure and CITY V3 seed assets
         shell: pwsh
