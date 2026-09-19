@@ -12,11 +12,11 @@ local gameloop = {}
 function gameloop.init()
     gameloop_RegenTickTime = 0
 
-    if fabric_ok and bs_city_fabric ~= nil and bs_city_fabric.init ~= nil then
-        bs_city_fabric.init()
-    end
     if city_ok and bs_city_runtime ~= nil and bs_city_runtime.init ~= nil then
         bs_city_runtime.init()
+    end
+    if fabric_ok and bs_city_fabric ~= nil and bs_city_fabric.init ~= nil then
+        bs_city_fabric.init()
     end
 end
 
@@ -37,25 +37,27 @@ function gameloop.main()
         end
     end
 
-    -- Generate the near/midground urban fabric first: storefronts, street walls,
-    -- side-street channels, alley mouths and lived-in curb dressing.
-    if fabric_ok and bs_city_fabric ~= nil and bs_city_fabric.main ~= nil then
-        bs_city_fabric.main()
-    end
-
-    -- Then extend the skyline outside the authored district. Both modules are
-    -- level-gated and only run for BLACK SIGNAL - District 12.
+    -- Extend the distant skyline from the original authored map first.
     if city_ok and bs_city_runtime ~= nil and bs_city_runtime.main ~= nil then
         bs_city_runtime.main()
+    end
+
+    -- Build the lived-in near/midground after the skyline bootstrap window.
+    -- bs_city_fabric filters runtime-spawned entities when scanning templates,
+    -- so its street layout remains based on the authored District 12 map.
+    if (g_Time or 0) >= 900 then
+        if fabric_ok and bs_city_fabric ~= nil and bs_city_fabric.main ~= nil then
+            bs_city_fabric.main()
+        end
     end
 end
 
 function gameloop.quit()
-    if city_ok and bs_city_runtime ~= nil and bs_city_runtime.quit ~= nil then
-        bs_city_runtime.quit()
-    end
     if fabric_ok and bs_city_fabric ~= nil and bs_city_fabric.quit ~= nil then
         bs_city_fabric.quit()
+    end
+    if city_ok and bs_city_runtime ~= nil and bs_city_runtime.quit ~= nil then
+        bs_city_runtime.quit()
     end
     module_cameraoverride.restoreandreset()
 end
