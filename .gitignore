@@ -1,0 +1,16 @@
+# OS/editor noise
+Thumbs.db
+.DS_Store
+*.tmp
+*.bak
+
+# GameGuru-generated backup folders
+**/_automatedbackups/
+**/_black_signal_deploy_backups/
+
+# Local render outputs; deliverables belong outside normal Git history
+renders/dailies/
+renders/final/
+
+# Local production scratch
+.local/
