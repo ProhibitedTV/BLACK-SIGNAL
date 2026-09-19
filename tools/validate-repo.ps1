@@ -92,8 +92,12 @@ if (Test-Path $GameGuruFiles) {
     Write-Warn "GameGuru MAX user Files directory not found at: $GameGuruFiles"
 }
 
-if (Test-Path (Join-Path $repo "Files")) {
-    Write-Warn "Legacy top-level Files/ snapshot is still present; do not add new project source there"
+$repoFiles = Join-Path $repo "Files"
+$projectDescriptor = Join-Path $repoFiles "projectbank\BLACK SIGNAL\project203.dat"
+if (Test-Path $projectDescriptor) {
+    Write-Pass "Top-level Files/ is the BLACK SIGNAL GameGuru MAX project runtime tree"
+} elseif (Test-Path $repoFiles) {
+    Write-Warn "Top-level Files/ exists without the BLACK SIGNAL project descriptor; verify whether it is still needed"
 }
 
 Write-Host ""
