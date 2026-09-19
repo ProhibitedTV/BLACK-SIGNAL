@@ -1,63 +1,57 @@
 # Repository audit — GameGuru MAX / CineGuru MAX
 
-## Finding
+## Corrected finding
 
-The repository had a valid source-controlled copy of the District 12 `.fpm` map and useful production documentation, but it did **not** yet have a proper project-owned GameGuru `Files` mirror, any BLACK SIGNAL Lua behaviours, or an explicit CineGuru dependency boundary.
+The repository contains **two different classes of GameGuru data**, and treating them as the same thing caused confusion:
 
-That explains why opening the project in GameGuru MAX did not reveal a newly authored film set: the repository had imported a pre-existing city map and documented how Arrival Boulevard should be dressed, but no tool had actually placed geometry or CineGuru camera entities inside the binary `.fpm`.
+1. `gameguru/` is the curated BLACK SIGNAL source boundary we control.
+2. top-level `Files/` appears to be the GameGuru MAX **Separate Project Folder runtime/writables tree** for the BLACK SIGNAL project because it contains `Files/projectbank/BLACK SIGNAL/project203.dat` and changes there when the project is opened/saved.
+
+The top-level `Files/` tree is therefore **not safe to call disposable legacy data**. It still contains a broad mixture of copied/runtime/engine-style assets and must be audited for ownership before public redistribution, but it also contains real GameGuru project state.
 
 ## Existing good pieces
 
-- `gameguru/maps/BLACK SIGNAL - District 12.fpm` is the canonical exterior map and is tracked through Git LFS.
+- `gameguru/maps/BLACK SIGNAL - District 12.fpm` is the curated exterior-map source and is tracked through Git LFS.
 - `gameguru/maps/BLACK SIGNAL - District 12.lst` records map dependencies.
 - `film/` contains concept, screenplay, shot-list and production notes.
-- `tools/deploy-district12.bat` and `tools/sync-district12-back.bat` establish a safe binary-map round trip.
+- `gameguru/Files/scriptbank/user/black_signal/` is the clean home for BLACK SIGNAL-owned Lua source.
+- `tools/deploy-gameguru-project.ps1` mirrors curated source into the GameGuru runtime trees without rewriting Storyboard state.
 
-## Structural problems found
+## Why Play/Test can still be disabled
 
-### 1. `gameguru/` contained only `maps/`
+GameGuru MAX project/storyboard state and raw `.fpm` level state are separate. The repo contains a BLACK SIGNAL `project203.dat`, but copying a District 12 FPM into a mapbank does not automatically add that level to the Storyboard or make it the currently loaded level.
 
-There was no source-controlled custom `scriptbank`, `entitybank`, `audiobank`, or `imagebank` namespace for BLACK SIGNAL.
+The current upstream GameGuru MAX issue `Dark-Basic-Software-Limited/GameGuruRepo#6423` (July 2026) reports that adding existing levels to a Separate Project Folder project may fail to transfer referenced files into the project folder. For that reason the supported isolation path is:
 
-### 2. The root `Files/` tree is a legacy broad snapshot
+1. deploy/materialize District 12;
+2. load `BLACK SIGNAL - District 12.fpm` directly in the Level Editor;
+3. confirm Test/Play works on the raw level;
+4. then add the existing level to the BLACK SIGNAL Storyboard and save `project203.dat` through MAX.
 
-The original commit contains many GameGuru engine/runtime asset families (`audiobank`, `gamecore`, `terraintextures`, `treebank`, and more) plus `projectbank`. This is not a clean project-source boundary and may include redistributable-license concerns for third-party/runtime content.
-
-No destructive cleanup is performed by this branch. History rewriting or deleting the legacy tree should be a separate, explicitly approved operation after ownership/licensing review.
-
-### 3. CineGuru was installed locally but not represented as a dependency
-
-CineGuru should remain external. BLACK SIGNAL should reference and use its installed behaviours rather than copying commercial `cg_*` scripts into a public repository.
-
-### 4. No project-owned Lua behaviour existed
-
-The new `bs_shot_marker.lua` provides a deliberately small MAX-native Dynamic Lua behaviour whose filename, callbacks, `DESCRIPTION` metadata and per-entity properties follow GameGuru MAX conventions.
-
-## New source-of-truth layout
+## Source vs runtime layout
 
 ```text
 BLACK-SIGNAL/
 ├── ASSET-MANIFEST.md
 ├── docs/
-│   ├── GAMEGURU-MAX.md
-│   ├── CINEGURU-MAX.md
-│   └── REPO-AUDIT.md
 ├── film/
-├── gameguru/
+├── gameguru/                     # curated source we intentionally maintain
 │   ├── maps/
 │   └── Files/
 │       └── scriptbank/user/black_signal/
-└── tools/
-    ├── validate-repo.ps1
-    ├── deploy-gameguru-project.ps1
-    ├── deploy-district12.bat
-    └── sync-district12-back.bat
+├── tools/
+└── Files/                        # GameGuru MAX Separate Project Folder runtime/state
+    └── projectbank/BLACK SIGNAL/project203.dat
 ```
 
-Future project-owned entities/audio/images should be added under `gameguru/Files/...` in the same relative path they need inside the user's GameGuru MAX `Files` directory.
+Do not bulk-copy the top-level `Files/` tree back into `gameguru/Files/`. The curated tree should contain only project-owned source. Conversely, do not delete top-level `Files/` until the Separate Project Folder relationship and all custom content have been fully audited.
+
+## CineGuru boundary
+
+CineGuru remains an external installed dependency. BLACK SIGNAL may use it locally, but its commercial `cg_*` files should not be vendored into the public repository. If MAX is opened with this repository as a Separate Project Folder and CineGuru is not visible, first inspect **Edit > Settings > Advanced > Writables folder location** rather than copying commercial files into Git.
 
 ## What this does not claim
 
-This structure does **not** mean District 12 is finished. The city still needs an in-engine authoring pass: street selection/rebuild, modular buildings, background skyline, signage, lighting, CineGuru camera/trigger placement, and a saved map revision.
+The city still needs an in-engine authoring pass: street selection/rebuild, modular buildings, background skyline, signage, lighting, CineGuru camera/trigger placement, and a saved map revision.
 
-The point of this audit is to make the repository technically coherent so those edits can be versioned and reproduced instead of living as an opaque local GameGuru project.
+The corrected architecture is meant to make that work reproducible without confusing GameGuru's generated project state with BLACK SIGNAL-owned source.
