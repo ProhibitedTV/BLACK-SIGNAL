@@ -36,7 +36,19 @@ Build only what the camera needs. Reuse sets aggressively through lighting, sign
 
 The first production target is the opening sequence: **CURRENT POPULATION: ZERO**.
 
-See:
+## District 12 city stage
+
+The canonical exterior virtual-production set is **District 12**, based on a duplicate of the existing editable `CyberCity.fpm` map and redressed with the available Cityscape, Future, Scifi, and custom Building Editor assets.
+
+Production documentation:
+
+- `film/production/CITY-STAGE.md`
+- `gameguru/maps/README.md`
+- `tools/import-city-stage.bat`
+
+The importer copies the local `CyberCity.fpm` into the repository as `BLACK SIGNAL - District 12.fpm` without overwriting the original and stages the map for Git LFS.
+
+See also:
 
 - `film/CONCEPT.md`
 - `film/screenplay/OPENING.md`
