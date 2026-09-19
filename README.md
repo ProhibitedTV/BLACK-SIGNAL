@@ -1,6 +1,6 @@
 # BLACK SIGNAL
 
-**BLACK SIGNAL** is a cyberpunk short film produced primarily inside **GameGuru MAX**, using the engine as a virtual production stage rather than as the final gameplay experience.
+**BLACK SIGNAL** is a cyberpunk short film produced primarily inside **GameGuru MAX**, using the engine as a virtual-production stage and **CineGuru MAX** as the cinematic toolset.
 
 ## Logline
 
@@ -11,45 +11,85 @@ A municipal systems technician enters an evacuated district that is still consum
 - Short film / proof of concept
 - Target runtime: 10–20 minutes
 - Primary production environment: GameGuru MAX
+- Cinematic layer: CineGuru MAX
 - Style: atmospheric science-fiction thriller with cyberpunk production design
 - Priority: cinematography, sound, environment, tension, and story over gameplay systems
 
-## Core idea
-
-The district was managed by an experimental municipal AI trained on traffic cameras, microphones, smart-home telemetry, purchases, utility usage, and public infrastructure. After the population was evacuated, the system continued modeling the people it had observed.
-
-It did not understand that they were gone.
-
-The city is not haunted. It is being remembered.
-
 ## Visual rule
-
-This is not a generic rainy-neon cyberpunk city. The primary visual concept is:
 
 > A city at 7:43 AM after something impossible happened at 3:17 AM.
 
 Cold morning haze, empty infrastructure, distant machinery, active advertising, long sightlines, sparse human presence, and small impossible details.
 
-## Production philosophy
+## Source-of-truth layout
 
-Build only what the camera needs. Reuse sets aggressively through lighting, signage, lensing, fog, camera placement, and dressing.
+```text
+BLACK-SIGNAL/
+├── ASSET-MANIFEST.md
+├── docs/                         # engine / CineGuru / repo conventions
+├── film/                         # screenplay, shot lists, production notes
+├── gameguru/
+│   ├── maps/                     # production FPM/LST files
+│   └── Files/                    # BLACK SIGNAL-owned GameGuru Files mirror
+│       └── scriptbank/user/black_signal/
+├── tools/                        # validation, deploy and map round-trip helpers
+└── Files/                        # LEGACY broad project/export snapshot; not authoritative
+```
 
-The first production target is the opening sequence: **CURRENT POPULATION: ZERO**.
+Do **not** put new BLACK SIGNAL source into the top-level legacy `Files/` tree. Project-owned GameGuru files belong beneath `gameguru/Files/` using the same relative path they need beneath the local GameGuru MAX `Files` directory.
 
-## District 12 city stage
+## District 12
 
-The canonical exterior virtual-production set is **District 12**, based on a duplicate of the existing editable `CyberCity.fpm` map and redressed with the available Cityscape, Future, Scifi, and custom Building Editor assets.
+The canonical exterior production map is:
 
-Production documentation:
+```text
+gameguru/maps/BLACK SIGNAL - District 12.fpm
+```
 
-- `film/production/CITY-STAGE.md`
-- `gameguru/maps/README.md`
-- `tools/import-city-stage.bat`
+It is tracked with Git LFS. The companion `.lst` records referenced map dependencies. Importing/versioning the map does not build the film set by itself: geometry, dressing, lighting, CineGuru cameras, camera nodes, actors and trigger entities still have to be authored and saved inside GameGuru MAX.
 
-The importer copies the local `CyberCity.fpm` into the repository as `BLACK SIGNAL - District 12.fpm` without overwriting the original and stages the map for Git LFS.
+## GameGuru MAX / CineGuru MAX
 
-See also:
+Project conventions:
 
-- `film/CONCEPT.md`
-- `film/screenplay/OPENING.md`
-- `film/shotlists/OPENING.md`
+- `docs/GAMEGURU-MAX.md`
+- `docs/CINEGURU-MAX.md`
+- `docs/REPO-AUDIT.md`
+- `ASSET-MANIFEST.md`
+
+The repository contains BLACK SIGNAL-owned scripts only. CineGuru's commercial `cg_*` files and marketplace asset packs remain external dependencies.
+
+A MAX-native Dynamic Lua behaviour is provided at:
+
+```text
+gameguru/Files/scriptbank/user/black_signal/bs_shot_marker.lua
+```
+
+## Validate and deploy
+
+From PowerShell at the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\validate-repo.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\deploy-gameguru-project.ps1
+```
+
+The deployer targets the user-writable GameGuru MAX tree under `%USERPROFILE%\Documents\GameGuruApps\GameGuruMAX\Files`, backs up an existing District 12 map, deploys the production map, and copies only project-owned `gameguru/Files` content. It does not vendor or overwrite CineGuru or marketplace packs.
+
+After saving a District 12 edit in GameGuru MAX:
+
+```bat
+tools\sync-district12-back.bat
+```
+
+Review `git status` before committing the updated binary map.
+
+## First film milestone
+
+The first production target remains **Shot 001 — CURRENT POPULATION: ZERO** on Arrival Boulevard. See:
+
+- `film/production/SHOT-001-FRAME.md`
+- `gameguru/maps/DISTRICT-12-ARRIVAL-BOULEVARD.md`
+- `film/production/DISTRICT-12-ASSET-AUDIT.md`
+
+The repository is now structured to support that work; the next milestone is a real in-engine set-dressing and CineGuru camera pass.
