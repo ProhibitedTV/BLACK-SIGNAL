@@ -1,10 +1,21 @@
--- DESCRIPTION: BLACK SIGNAL incremental District 12 city generator. Plans a dense deterministic metropolis, then spawns only a few entities per frame so GameGuru MAX stays responsive.
+-- DESCRIPTION: BLACK SIGNAL street-aware District 12 city generator. Uses the authored Cyberpunk Streets road network as the urban plan and incrementally builds coherent blocks, alleys and curb detail around it.
 
 local bs_city_v2 = {}
 
-local MAX_CLONES = 900
+local MAX_CLONES = 720
 local SPAWNS_PER_FRAME = 3
 local START_DELAY_MS = 500
+
+local FRONT_OFFSET = 680
+local BACK_OFFSET = 1380
+local DEEP_OFFSET = 2050
+local CURB_OFFSET = 430
+local INTERSECTION_CORNER_OFFSET = 900
+local ROAD_CLEARANCE = 430
+local EXISTING_CLEARANCE = 560
+local PLAYER_CLEARANCE = 850
+local MAX_TERRAIN_DELTA = 110
+local SITE_CELL = 620
 
 local generated = false
 local init_time = 0
@@ -14,7 +25,7 @@ local job_index = 1
 local rng_state = 12074317
 local status = "idle"
 local last_error = ""
-local stats = { roads = 0, templates = 0, blocks = 0, clones = 0, planned = 0, failed = 0 }
+local stats = { roads = 0, templates = 0, blocks = 0, clones = 0, planned = 0, failed = 0, alleys = 0 }
 
 local function lower(value)
     if value == nil then return "" end
@@ -82,33 +93,74 @@ local function bounds(e)
     return -200, 0, -200, 200, 400, 200
 end
 
+local function terrain_height(x, z, fallback)
+    if GetTerrainHeight ~= nil then
+        local ok, value = pcall(GetTerrainHeight, x, z)
+        if ok and value ~= nil then return value end
+    end
+    return fallback or 0
+end
+
+local function distance_sq(ax, az, bx, bz)
+    local dx = ax - bx
+    local dz = az - bz
+    return dx * dx + dz * dz
+end
+
 local function is_known_road(path)
     return contains(path, "cs_street_straight_4x.fpe") or
            contains(path, "cs_street_t-intersect_3.fpe") or
            contains(path, "cs_street_4_way_2.fpe")
 end
 
-local function is_cyberpunk_architecture(path)
+local function road_kind(path)
+    if contains(path, "cs_street_4_way_2.fpe") then return "4way" end
+    if contains(path, "cs_street_t-intersect_3.fpe") then return "t" end
+    return "straight"
+end
+
+local function is_existing_architecture(path)
     if not contains(path, "cyberpunk streets booster pack") then return false end
+    if is_known_road(path) then return false end
     return contains(path, "background buildings") or
            contains(path, "store fronts") or
-           contains(path, "buildings") or
-           is_known_road(path)
+           contains(path, "\\buildings\\")
+end
+
+local function site_hash(x, z, salt)
+    local xi = math.floor(x / 100)
+    local zi = math.floor(z / 100)
+    local value = (xi * 73856093) + (zi * 19349663) + ((salt or 0) * 83492791)
+    if value < 0 then value = -value end
+    return value
+end
+
+local function site_key(x, z)
+    local gx = math.floor((x / SITE_CELL) + 0.5)
+    local gz = math.floor((z / SITE_CELL) + 0.5)
+    return tostring(gx) .. ":" .. tostring(gz)
+end
+
+local function road_vectors(yaw)
+    local r = math.rad(yaw or 0)
+    local fx = math.sin(r)
+    local fz = math.cos(r)
+    local rx = math.cos(r)
+    local rz = -math.sin(r)
+    return fx, fz, rx, rz
 end
 
 local function scan_level()
     local t = {}
     local roads = {}
     local architecture = {}
-    local ground_sum = 0
-    local ground_count = 0
     local maxe = g_EntityElementMax or 0
 
     for e = 1, maxe do
         if original_entity(e) then
             local path = entity_path(e)
             if path ~= "" then
-                local x, y, z = pos_ang(e)
+                local x, y, z, _, ay, _ = pos_ang(e)
 
                 if contains(path, "cs_bg_building_01_base2.fpe") then t.b1_base2 = t.b1_base2 or e end
                 if contains(path, "cs_bg_building_01_base.fpe") then t.b1_base = t.b1_base or e end
@@ -119,27 +171,34 @@ local function scan_level()
                 if contains(path, "cs_bg_building_03_floor.fpe") then t.b3_floor = t.b3_floor or e end
                 if contains(path, "cs_bg_building_03_top.fpe") then t.b3_top = t.b3_top or e end
 
-                if contains(path, "cs_wall_01.fpe") then t.wall = t.wall or e end
-                if contains(path, "cs_walls_01_window_with_bars.fpe") then t.window = t.window or e end
-                if contains(path, "cs_wall_01_entry_01.fpe") then t.entry = t.entry or e end
-                if contains(path, "cs_store_front_02_corner_with_window.fpe") then t.store_window = t.store_window or e end
-                if contains(path, "cs_store_front_02_corner_neon_opposite.fpe") then t.store_neon = t.store_neon or e end
                 if contains(path, "cs_street_lamp.fpe") then t.lamp = t.lamp or e end
                 if contains(path, "cs_planter_01.fpe") then t.planter = t.planter or e end
                 if contains(path, "cs_trash_can.fpe") then t.trash = t.trash or e end
+                if contains(path, "cs_bottle_can_cluster_01.fpe") then t.bottles = t.bottles or e end
+                if contains(path, "cs_newspaper_01.fpe") then t.paper1 = t.paper1 or e end
+                if contains(path, "cs_newspaper_02.fpe") then t.paper2 = t.paper2 or e end
 
                 if is_known_road(path) then
-                    roads[#roads + 1] = { x = x, y = y, z = z }
-                    ground_sum = ground_sum + y
-                    ground_count = ground_count + 1
-                end
-
-                if is_cyberpunk_architecture(path) then
+                    roads[#roads + 1] = {
+                        x = x, y = y, z = z,
+                        yaw = ay or 0,
+                        kind = road_kind(path),
+                        path = path
+                    }
+                elseif is_existing_architecture(path) then
                     architecture[#architecture + 1] = { x = x, y = y, z = z, e = e, path = path }
                 end
             end
         end
     end
+
+    table.sort(roads, function(a, b)
+        if a.x == b.x then
+            if a.z == b.z then return a.yaw < b.yaw end
+            return a.z < b.z
+        end
+        return a.x < b.x
+    end)
 
     stats.roads = #roads
     local template_count = 0
@@ -150,61 +209,22 @@ local function scan_level()
         status = "no building floor templates"
         return nil
     end
-
-    local samples = roads
-    if #samples == 0 then samples = architecture end
-    if #samples == 0 then
-        status = "no road or architecture samples"
+    if #roads == 0 then
+        status = "no authored road samples"
         return nil
-    end
-
-    local mean_x, mean_z = 0, 0
-    for i = 1, #samples do
-        mean_x = mean_x + samples[i].x
-        mean_z = mean_z + samples[i].z
-    end
-    mean_x = mean_x / #samples
-    mean_z = mean_z / #samples
-
-    local var_x, var_z = 0, 0
-    for i = 1, #samples do
-        local dx = samples[i].x - mean_x
-        local dz = samples[i].z - mean_z
-        var_x = var_x + dx * dx
-        var_z = var_z + dz * dz
-    end
-    local axis = "x"
-    if var_z > var_x then axis = "z" end
-
-    local center_x = mean_x
-    local center_z = mean_z
-    if g_PlayerPosX ~= nil and g_PlayerPosZ ~= nil then
-        center_x = g_PlayerPosX
-        center_z = g_PlayerPosZ
-    end
-
-    local ground_y = 0
-    if ground_count > 0 then
-        ground_y = ground_sum / ground_count
-    elseif g_PlayerPosY ~= nil then
-        ground_y = g_PlayerPosY - 80
-    else
-        ground_y = samples[1].y or 0
     end
 
     return {
         templates = t,
-        axis = axis,
-        center_x = center_x,
-        center_z = center_z,
-        ground_y = ground_y
+        roads = roads,
+        architecture = architecture
     }
 end
 
-local function choose_kit(t)
-    if random01() < 0.58 and t.b1_floor ~= nil then
+local function choose_kit(t, hash)
+    if (hash % 100) < 58 and t.b1_floor ~= nil then
         return {
-            base = (random01() < 0.25 and t.b1_base2 or t.b1_base) or t.b1_floor,
+            base = (((hash % 7) == 0) and t.b1_base2 or t.b1_base) or t.b1_floor,
             floor = t.b1_floor,
             between = t.b1_between,
             top = t.b1_top or t.b1_floor
@@ -242,92 +262,209 @@ local function queue_piece(template, x, bottom_y, z, yaw, scale, collision, shad
     return top_after(template, bottom_y, scale)
 end
 
-local function plan_tower(scan, x, z, tier)
+local function site_clear(scan, x, z, road_y, site_claims)
+    local key = site_key(x, z)
+    if site_claims[key] then return false, 0, key end
+
+    if g_PlayerPosX ~= nil and g_PlayerPosZ ~= nil then
+        if distance_sq(x, z, g_PlayerPosX, g_PlayerPosZ) < (PLAYER_CLEARANCE * PLAYER_CLEARANCE) then
+            return false, 0, key
+        end
+    end
+
+    for i = 1, #scan.roads do
+        local r = scan.roads[i]
+        if distance_sq(x, z, r.x, r.z) < (ROAD_CLEARANCE * ROAD_CLEARANCE) then
+            return false, 0, key
+        end
+    end
+
+    for i = 1, #scan.architecture do
+        local a = scan.architecture[i]
+        if distance_sq(x, z, a.x, a.z) < (EXISTING_CLEARANCE * EXISTING_CLEARANCE) then
+            return false, 0, key
+        end
+    end
+
+    local gy = terrain_height(x, z, road_y)
+    if math.abs(gy - road_y) > MAX_TERRAIN_DELTA then
+        return false, gy, key
+    end
+
+    return true, gy, key
+end
+
+local function claim_site(scan, sites, site_claims, x, z, road_y, yaw, tier, depth, hash, source_kind)
+    local ok, gy, key = site_clear(scan, x, z, road_y, site_claims)
+    if not ok then return false end
+
+    site_claims[key] = true
+    sites[#sites + 1] = {
+        x = x,
+        z = z,
+        y = gy,
+        yaw = yaw,
+        tier = tier,
+        depth = depth,
+        hash = hash,
+        source_kind = source_kind
+    }
+    return true
+end
+
+local function collect_sites(scan)
+    local front = {}
+    local back = {}
+    local deep = {}
+    local corners = {}
+    local site_claims = {}
+
+    for i = 1, #scan.roads do
+        local road = scan.roads[i]
+        local fx, fz, rx, rz = road_vectors(road.yaw)
+
+        if road.kind == "straight" then
+            for side = -1, 1, 2 do
+                local h = site_hash(road.x, road.z, side + 7)
+                local facing = road.yaw + (side > 0 and -90 or 90)
+                local alley = (h % 7) == 0
+
+                local front_x = road.x + (rx * side * FRONT_OFFSET)
+                local front_z = road.z + (rz * side * FRONT_OFFSET)
+                if alley then
+                    stats.alleys = stats.alleys + 1
+                else
+                    claim_site(scan, front, site_claims, front_x, front_z, road.y, facing, 2 + (h % 2), 1, h, "front")
+                end
+
+                -- The second row sits behind the street wall. When the frontage is
+                -- intentionally omitted, this mass becomes the visual termination of
+                -- a real alley/service corridor instead of a random gap.
+                local along_jitter = ((h % 3) - 1) * 115
+                local back_x = road.x + (rx * side * BACK_OFFSET) + (fx * along_jitter)
+                local back_z = road.z + (rz * side * BACK_OFFSET) + (fz * along_jitter)
+                claim_site(scan, back, site_claims, back_x, back_z, road.y, facing, 3 + (h % 3), 2, h + 101, "back")
+
+                -- Sparse third-row towers fill the basin behind the block while still
+                -- respecting terrain and the authored street network.
+                if (h % 4) == 0 then
+                    local deep_x = road.x + (rx * side * DEEP_OFFSET) - (fx * 180)
+                    local deep_z = road.z + (rz * side * DEEP_OFFSET) - (fz * 180)
+                    claim_site(scan, deep, site_claims, deep_x, deep_z, road.y, facing, 5 + (h % 2), 3, h + 202, "deep")
+                end
+            end
+        else
+            -- Intersections get four corner masses, deliberately pulled back from
+            -- the carriageway. Adjacent intersection/straight samples collapse into
+            -- the same spatial cells, preventing overlapping stacks.
+            for side = -1, 1, 2 do
+                for along = -1, 1, 2 do
+                    local h = site_hash(road.x + side * 31, road.z + along * 37, 19)
+                    local x = road.x + (rx * side * INTERSECTION_CORNER_OFFSET) + (fx * along * INTERSECTION_CORNER_OFFSET)
+                    local z = road.z + (rz * side * INTERSECTION_CORNER_OFFSET) + (fz * along * INTERSECTION_CORNER_OFFSET)
+                    local facing = road.yaw + (side > 0 and -90 or 90)
+                    claim_site(scan, corners, site_claims, x, z, road.y, facing, 4 + (h % 2), 2, h, "corner")
+                end
+            end
+        end
+    end
+
+    return front, corners, back, deep
+end
+
+local function plan_building(scan, site)
     if #jobs >= MAX_CLONES - 12 then return end
-    local kit = choose_kit(scan.templates)
+    local t = scan.templates
+    local kit = choose_kit(t, site.hash)
     if kit.floor == nil then return end
 
-    local scale = random_range(82, 118)
-    local floors = random_int(2, 4) + tier
-    local yaw = random_int(0, 3) * 90
-    local next_y = scan.ground_y
+    local scale = 96 + (site.hash % 10)
+    if site.depth >= 2 then scale = 100 + (site.hash % 11) end
+    local floors = 2 + site.tier + (site.hash % 2)
+    local next_y = site.y
 
-    next_y = queue_piece(kit.base or kit.floor, x, next_y, z, yaw, scale, false, tier <= 2)
-    if kit.between ~= nil and random01() < 0.25 then
-        next_y = queue_piece(kit.between, x, next_y, z, yaw, scale, false, tier <= 2)
+    next_y = queue_piece(kit.base or kit.floor, site.x, next_y, site.z, site.yaw, scale, false, site.depth <= 2)
+    if kit.between ~= nil and (site.hash % 5) == 0 then
+        next_y = queue_piece(kit.between, site.x, next_y, site.z, site.yaw, scale, false, site.depth <= 2)
     end
+
     for _ = 1, floors do
         if #jobs >= MAX_CLONES - 2 then break end
-        next_y = queue_piece(kit.floor, x, next_y, z, yaw, scale, false, tier <= 2)
+        next_y = queue_piece(kit.floor, site.x, next_y, site.z, site.yaw, scale, false, site.depth <= 2)
     end
-    queue_piece(kit.top or kit.floor, x, next_y, z, yaw, scale, false, tier <= 2)
+    queue_piece(kit.top or kit.floor, site.x, next_y, site.z, site.yaw, scale, false, site.depth <= 2)
+    stats.blocks = stats.blocks + 1
 end
 
-local function to_world(scan, along, cross)
-    if scan.axis == "x" then
-        return scan.center_x + along, scan.center_z + cross
-    end
-    return scan.center_x + cross, scan.center_z + along
-end
-
-local function plan_dense_grid(scan)
+local function plan_road_props(scan)
     local t = scan.templates
-    local along_step = 780
-    local cross_step = 720
-    local road_half = 560
+    local prop_claims = {}
 
-    for side = -1, 1, 2 do
-        for band = 1, 4 do
-            local cross = side * (road_half + band * cross_step)
-            for slot = -6, 6 do
-                if #jobs >= MAX_CLONES - 20 then return end
-                local cross_street = (slot == -3 or slot == 0 or slot == 3)
-                if not cross_street then
-                    local along = slot * along_step
-                    local x, z = to_world(scan, along + random_range(-80, 80), cross + random_range(-70, 70))
-                    plan_tower(scan, x, z, band)
-                    stats.blocks = stats.blocks + 1
+    for i = 1, #scan.roads do
+        if #jobs >= MAX_CLONES - 4 then return end
+        local road = scan.roads[i]
+        if road.kind == "straight" then
+            local fx, fz, rx, rz = road_vectors(road.yaw)
+            local h = site_hash(road.x, road.z, 41)
 
-                    if random01() < 0.72 and #jobs < MAX_CLONES - 12 then
-                        local sign = 1
-                        if random01() < 0.5 then sign = -1 end
-                        local ax, az = to_world(scan,
-                            along + random_range(230, 330) * sign,
-                            cross + side * random_range(180, 260))
-                        plan_tower(scan, ax, az, math.max(1, band - 1))
-                    end
-
-                    if band == 1 then
-                        local frontage_cross = side * (road_half + 130)
-                        local fx, fz = to_world(scan, along, frontage_cross)
-                        local facade = t.store_window or t.store_neon or t.window or t.entry or t.wall
-                        if facade ~= nil then
-                            queue_piece(facade, fx, scan.ground_y, fz, side > 0 and 180 or 0, 100, false, true)
-                        end
-                        if t.lamp ~= nil and slot % 2 == 0 then
-                            local lx, lz = to_world(scan, along + 250, frontage_cross - side * 120)
-                            queue_piece(t.lamp, lx, scan.ground_y, lz, 0, 100, false, false)
-                        end
-                        if t.planter ~= nil and slot % 3 == 1 then
-                            local px, pz = to_world(scan, along - 230, frontage_cross - side * 110)
-                            queue_piece(t.planter, px, scan.ground_y, pz, random_range(0, 360), 100, false, false)
+            for side = -1, 1, 2 do
+                local px = road.x + (rx * side * CURB_OFFSET) + (fx * (((h % 3) - 1) * 90))
+                local pz = road.z + (rz * side * CURB_OFFSET) + (fz * (((h % 3) - 1) * 90))
+                local key = site_key(px, pz)
+                if not prop_claims[key] then
+                    prop_claims[key] = true
+                    local gy = terrain_height(px, pz, road.y)
+                    if math.abs(gy - road.y) <= MAX_TERRAIN_DELTA then
+                        if (h % 3) == 0 and t.lamp ~= nil then
+                            queue_piece(t.lamp, px, gy, pz, road.yaw, 100, false, false)
+                        elseif (h % 5) == 0 and t.planter ~= nil then
+                            queue_piece(t.planter, px, gy, pz, road.yaw, 100, false, false)
+                        elseif (h % 11) == 0 and t.trash ~= nil then
+                            queue_piece(t.trash, px, gy, pz, road.yaw, 100, false, false)
                         end
                     end
                 end
             end
         end
     end
+end
 
-    for side = -1, 1, 2 do
-        local cross = side * 3850
-        for slot = -6, 6 do
-            if #jobs >= MAX_CLONES - 14 then break end
-            if slot % 2 == 0 then
-                local x, z = to_world(scan, slot * 820, cross)
-                plan_tower(scan, x, z, 5)
-            end
-        end
+local function plan_generation()
+    status = "scanning roads"
+    local scan = scan_level()
+    if scan == nil then return false end
+
+    status = "laying out blocks"
+    local front, corners, back, deep = collect_sites(scan)
+
+    -- Plan in urban-design order: street wall first, then intersection anchors,
+    -- then interior/back-row mass, then sparse deeper towers and curb furniture.
+    for i = 1, #front do
+        if #jobs >= MAX_CLONES - 12 then break end
+        plan_building(scan, front[i])
     end
+    for i = 1, #corners do
+        if #jobs >= MAX_CLONES - 12 then break end
+        plan_building(scan, corners[i])
+    end
+    for i = 1, #back do
+        if #jobs >= MAX_CLONES - 12 then break end
+        plan_building(scan, back[i])
+    end
+    for i = 1, #deep do
+        if #jobs >= MAX_CLONES - 12 then break end
+        plan_building(scan, deep[i])
+    end
+    plan_road_props(scan)
+
+    stats.planned = #jobs
+    if #jobs == 0 then
+        status = "layout produced zero jobs"
+        return false
+    end
+
+    status = "building 0/" .. tostring(#jobs)
+    return true
 end
 
 local function spawn_job(job)
@@ -374,24 +511,8 @@ local function publish_ready()
         g_UserGlobal["BLACK_SIGNAL_CITY_V2_ROADS"] = stats.roads
         g_UserGlobal["BLACK_SIGNAL_CITY_V2_TEMPLATES"] = stats.templates
         g_UserGlobal["BLACK_SIGNAL_CITY_V2_BLOCKS"] = stats.blocks
+        g_UserGlobal["BLACK_SIGNAL_CITY_V2_ALLEYS"] = stats.alleys
     end
-end
-
-local function plan_generation()
-    status = "scanning"
-    local scan = scan_level()
-    if scan == nil then return false end
-
-    status = "planning"
-    plan_dense_grid(scan)
-    stats.planned = #jobs
-    if #jobs == 0 then
-        status = "planning produced zero jobs"
-        return false
-    end
-
-    status = "building 0/" .. tostring(#jobs)
-    return true
 end
 
 function bs_city_v2.init()
@@ -403,7 +524,7 @@ function bs_city_v2.init()
     rng_state = 12074317
     status = "waiting"
     last_error = ""
-    stats = { roads = 0, templates = 0, blocks = 0, clones = 0, planned = 0, failed = 0 }
+    stats = { roads = 0, templates = 0, blocks = 0, clones = 0, planned = 0, failed = 0, alleys = 0 }
 end
 
 function bs_city_v2.main()
@@ -455,9 +576,6 @@ function bs_city_v2.get_status()
 end
 
 function bs_city_v2.quit()
-    -- Spawned entities are scoped to the test level and are discarded by MAX on
-    -- level teardown. Avoid deleting hundreds of entities synchronously here;
-    -- that was another potential editor stall when exiting Test Play.
     spawned = {}
     jobs = {}
     job_index = 1

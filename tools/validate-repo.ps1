@@ -23,6 +23,7 @@ $required = @(
     "gameguru\Files\scriptbank\user\black_signal\bs_city_v2.lua",
     "docs\GAMEGURU-MAX.md",
     "docs\CINEGURU-MAX.md",
+    "docs\DISTRICT-12-STREET-AWARE-GENERATOR.md",
     "ASSET-MANIFEST.md"
 )
 
@@ -74,8 +75,11 @@ $cityV2Path = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_ci
 if (Test-Path $cityV2Path) {
     $cityV2 = Get-Content -Raw $cityV2Path
     $requiredTokens = @(
-        'MAX_CLONES = 900',
+        'MAX_CLONES = 720',
         'SPAWNS_PER_FRAME = 3',
+        'FRONT_OFFSET = 680',
+        'INTERSECTION_CORNER_OFFSET = 900',
+        'GetTerrainHeight',
         'GetEntityFilePath',
         'cs_street_straight_4x.fpe',
         'cs_street_t-intersect_3.fpe',
@@ -83,12 +87,15 @@ if (Test-Path $cityV2Path) {
         'cs_bg_building_01_floor.fpe',
         'cs_bg_building_03_floor.fpe',
         'BLACK_SIGNAL_CITY_V2_CLONES',
+        'BLACK_SIGNAL_CITY_V2_ALLEYS',
         'SpawnNewEntity',
+        'collect_sites',
+        'site_clear',
         'function bs_city_v2.get_status'
     )
     foreach ($token in $requiredTokens) {
-        if ($cityV2 -match [regex]::Escape($token)) { Write-Pass "City-v2 runtime includes $token" }
-        else { Write-Fail "City-v2 runtime is missing $token" }
+        if ($cityV2 -match [regex]::Escape($token)) { Write-Pass "Street-aware city-v2 runtime includes $token" }
+        else { Write-Fail "Street-aware city-v2 runtime is missing $token" }
     }
 }
 
