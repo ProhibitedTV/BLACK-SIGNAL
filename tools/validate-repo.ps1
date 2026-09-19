@@ -20,6 +20,7 @@ $required = @(
     "gameguru\maps\BLACK SIGNAL - District 12.lst",
     "gameguru\Files\scriptbank\gameloop.lua",
     "gameguru\Files\scriptbank\user\black_signal",
+    "gameguru\Files\scriptbank\user\black_signal\bs_basin_city.lua",
     "gameguru\Files\scriptbank\user\black_signal\bs_city_runtime.lua",
     "gameguru\Files\scriptbank\user\black_signal\bs_city_fabric.lua",
     "docs\GAMEGURU-MAX.md",
@@ -35,39 +36,25 @@ foreach ($relative in $required) {
 $luaRoot = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal"
 if (Test-Path $luaRoot) {
     $scripts = @(Get-ChildItem -Path $luaRoot -Filter "*.lua" -File -Recurse)
-    if ($scripts.Count -eq 0) {
-        Write-Fail "No BLACK SIGNAL Lua behaviours found"
-    }
+    if ($scripts.Count -eq 0) { Write-Fail "No BLACK SIGNAL Lua behaviours found" }
 
     foreach ($script in $scripts) {
         $content = Get-Content -Raw -Path $script.FullName
         $base = [IO.Path]::GetFileNameWithoutExtension($script.Name)
         $escaped = [regex]::Escape($base)
 
-        if ($content -match '(?m)^\s*--\s*DESCRIPTION:') {
-            Write-Pass "$($script.Name): DESCRIPTION metadata"
-        } else {
-            Write-Fail "$($script.Name): missing -- DESCRIPTION metadata"
-        }
+        if ($content -match '(?m)^\s*--\s*DESCRIPTION:') { Write-Pass "$($script.Name): DESCRIPTION metadata" }
+        else { Write-Fail "$($script.Name): missing -- DESCRIPTION metadata" }
 
-        if ($content -match "function\s+${escaped}_init\s*\(\s*e\s*\)") {
-            Write-Pass "$($script.Name): ${base}_init(e)"
-        } else {
-            Write-Fail "$($script.Name): filename does not have matching ${base}_init(e)"
-        }
+        if ($content -match "function\s+${escaped}_init\s*\(\s*e\s*\)") { Write-Pass "$($script.Name): ${base}_init(e)" }
+        else { Write-Fail "$($script.Name): filename does not have matching ${base}_init(e)" }
 
-        if ($content -match "function\s+${escaped}_main\s*\(\s*e\s*\)") {
-            Write-Pass "$($script.Name): ${base}_main(e)"
-        } else {
-            Write-Fail "$($script.Name): filename does not have matching ${base}_main(e)"
-        }
+        if ($content -match "function\s+${escaped}_main\s*\(\s*e\s*\)") { Write-Pass "$($script.Name): ${base}_main(e)" }
+        else { Write-Fail "$($script.Name): filename does not have matching ${base}_main(e)" }
 
         if ($content -match '(?m)^\s*--\s*DESCRIPTION:.*\[') {
-            if ($content -match "function\s+${escaped}_properties\s*\(") {
-                Write-Pass "$($script.Name): Dynamic Lua properties callback"
-            } else {
-                Write-Fail "$($script.Name): dynamic DESCRIPTION fields exist but ${base}_properties(...) is missing"
-            }
+            if ($content -match "function\s+${escaped}_properties\s*\(") { Write-Pass "$($script.Name): Dynamic Lua properties callback" }
+            else { Write-Fail "$($script.Name): dynamic DESCRIPTION fields exist but ${base}_properties(...) is missing" }
         }
     }
 }
@@ -75,15 +62,27 @@ if (Test-Path $luaRoot) {
 $gameLoopPath = Join-Path $repo "gameguru\Files\scriptbank\gameloop.lua"
 if (Test-Path $gameLoopPath) {
     $gameLoopContent = Get-Content -Raw $gameLoopPath
-    if ($gameLoopContent -match 'bs_city_runtime') {
-        Write-Pass "Project gameloop hooks BLACK SIGNAL skyline runtime"
-    } else {
-        Write-Fail "Project gameloop does not hook bs_city_runtime"
+    foreach ($module in @('bs_basin_city','bs_city_fabric','bs_city_runtime')) {
+        if ($gameLoopContent -match [regex]::Escape($module)) { Write-Pass "Project gameloop hooks $module" }
+        else { Write-Fail "Project gameloop does not hook $module" }
     }
-    if ($gameLoopContent -match 'bs_city_fabric') {
-        Write-Pass "Project gameloop hooks BLACK SIGNAL lived-in city fabric"
-    } else {
-        Write-Fail "Project gameloop does not hook bs_city_fabric"
+}
+
+$basinPath = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_basin_city.lua"
+if (Test-Path $basinPath) {
+    $basinContent = Get-Content -Raw $basinPath
+    $basinTokens = @(
+        'MAX_CLONES = 780',
+        'BLACK_SIGNAL_BASIN_CLONES',
+        'BLACK_SIGNAL_BASIN_BLOCKS',
+        'cs_bg_building_01_floor',
+        'cs_bg_building_03_floor',
+        'cs_store_front_02_corner_neon_opposite',
+        'SpawnNewEntity'
+    )
+    foreach ($token in $basinTokens) {
+        if ($basinContent -match [regex]::Escape($token)) { Write-Pass "Dense basin runtime includes $token" }
+        else { Write-Fail "Dense basin runtime is missing $token" }
     }
 }
 
@@ -109,21 +108,15 @@ if (Test-Path $cityFabricPath) {
         'SpawnNewEntity'
     )
     foreach ($token in $requiredTokens) {
-        if ($cityFabricContent -match [regex]::Escape($token)) {
-            Write-Pass "District 12 city fabric includes $token"
-        } else {
-            Write-Fail "District 12 city fabric is missing $token"
-        }
+        if ($cityFabricContent -match [regex]::Escape($token)) { Write-Pass "District 12 city fabric includes $token" }
+        else { Write-Fail "District 12 city fabric is missing $token" }
     }
 }
 
 try {
     $attr = (& git -C $repo check-attr filter -- "gameguru/maps/BLACK SIGNAL - District 12.fpm" 2>$null) -join "`n"
-    if ($LASTEXITCODE -eq 0 -and $attr -match ': filter: lfs') {
-        Write-Pass "District 12 .fpm uses Git LFS"
-    } else {
-        Write-Fail "District 12 .fpm is not configured for Git LFS"
-    }
+    if ($LASTEXITCODE -eq 0 -and $attr -match ': filter: lfs') { Write-Pass "District 12 .fpm uses Git LFS" }
+    else { Write-Fail "District 12 .fpm is not configured for Git LFS" }
 } catch {
     Write-Warn "Could not run git check-attr: $($_.Exception.Message)"
 }
@@ -131,22 +124,16 @@ try {
 if (Test-Path $GameGuruFiles) {
     Write-Pass "GameGuru MAX user Files directory found"
     $cineGuru = Join-Path $GameGuruFiles "scriptbank\Cine Guru MAX"
-    if (Test-Path $cineGuru) {
-        Write-Pass "CineGuru MAX dependency found"
-    } else {
-        Write-Warn "CineGuru MAX was not found at: $cineGuru"
-    }
+    if (Test-Path $cineGuru) { Write-Pass "CineGuru MAX dependency found" }
+    else { Write-Warn "CineGuru MAX was not found at: $cineGuru" }
 } else {
     Write-Warn "GameGuru MAX user Files directory not found at: $GameGuruFiles"
 }
 
 $repoFiles = Join-Path $repo "Files"
 $projectDescriptor = Join-Path $repoFiles "projectbank\BLACK SIGNAL\project203.dat"
-if (Test-Path $projectDescriptor) {
-    Write-Pass "Top-level Files/ is the BLACK SIGNAL GameGuru MAX project runtime tree"
-} elseif (Test-Path $repoFiles) {
-    Write-Warn "Top-level Files/ exists without the BLACK SIGNAL project descriptor; verify whether it is still needed"
-}
+if (Test-Path $projectDescriptor) { Write-Pass "Top-level Files/ is the BLACK SIGNAL GameGuru MAX project runtime tree" }
+elseif (Test-Path $repoFiles) { Write-Warn "Top-level Files/ exists without the BLACK SIGNAL project descriptor; verify whether it is still needed" }
 
 Write-Host ""
 Write-Host "Validation complete: $errors error(s), $warnings warning(s)."
