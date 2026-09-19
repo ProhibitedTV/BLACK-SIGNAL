@@ -32,7 +32,7 @@ BLACK-SIGNAL/
 │   ├── maps/                     # curated production FPM/LST source
 │   └── Files/                    # curated BLACK SIGNAL-owned GameGuru source
 │       └── scriptbank/user/black_signal/
-├── tools/                        # validation, deploy and map round-trip helpers
+├── tools/                        # validation, repair, deploy and round-trip helpers
 └── Files/                        # GameGuru MAX project/runtime tree from the Separate Project Folder
 ```
 
@@ -40,7 +40,7 @@ The important distinction is **curated source vs MAX runtime state**:
 
 - `gameguru/` is the clean, reviewable source boundary for BLACK SIGNAL-owned maps/scripts.
 - top-level `Files/` is the GameGuru MAX project/runtime tree created by the project workflow. It contains `projectbank/BLACK SIGNAL/project203.dat` plus a broad mixture of MAX/runtime assets, so it is **not disposable**, but it is also **not the preferred place to author new hand-maintained source**.
-- deploy helpers can mirror the curated production map and owned scripts into the detected Separate Project Folder at runtime without creating duplicate Git source.
+- deploy helpers mirror the curated production map and owned scripts into the detected Separate Project Folder at runtime without creating duplicate Git source.
 
 Do not bulk-add new engine/DLC/marketplace material from top-level `Files/` to Git. Project-owned code should still be authored under `gameguru/Files/` and deployed into MAX.
 
@@ -71,9 +71,37 @@ A MAX-native Dynamic Lua behaviour is provided at:
 gameguru/Files/scriptbank/user/black_signal/bs_shot_marker.lua
 ```
 
-## Validate and deploy
+## Fix / deploy / play
 
-From PowerShell at the repository root:
+The BLACK SIGNAL Storyboard contains a wired `Level 1` node. If its `level_name` field is empty, MAX reports **"You do not have any levels in your setup"** even when the District 12 FPM itself is healthy.
+
+The repository now repairs that binding safely. Close GameGuru MAX first, then from PowerShell at the repository root run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\fix-game.ps1
+```
+
+That one command:
+
+- materializes the Git LFS FPM;
+- validates the curated repository source;
+- deploys District 12 and BLACK SIGNAL-owned scripts to the default GameGuru MAX `Files` tree;
+- mirrors them into this repository's Separate Project Folder runtime tree;
+- validates `Files/projectbank/BLACK SIGNAL/project203.dat` as the exact GameGuru MAX Storyboard v203 binary layout;
+- makes a byte-for-byte local backup under `.black-signal/backups/storyboard/`;
+- preserves the existing Storyboard graph and binds its empty LEVEL placeholder to `mapbank\BLACK SIGNAL - District 12.fpm`;
+- verifies the binding and Player Start/runtime dependencies;
+- launches GameGuru MAX through Steam when everything passes.
+
+The low-level repair can also be run independently:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\repair-black-signal-storyboard.ps1
+```
+
+The repair intentionally refuses to modify an unknown project format, a wrong file size/version, an already-bound unrelated level, or a Storyboard with no LEVEL placeholder. It also refuses to run while GameGuru MAX is open so the editor cannot overwrite the repaired binary on exit.
+
+For manual validation/deployment:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\validate-repo.ps1
@@ -81,15 +109,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\deploy-gameguru-project.ps1
 powershell -ExecutionPolicy Bypass -File .\tools\diagnose-play-level.ps1
 ```
 
-The deployer:
-
-- materializes the Git LFS FPM;
-- deploys District 12 and BLACK SIGNAL-owned scripts to the default GameGuru MAX `Files` tree;
-- detects this repository's `Files/projectbank/BLACK SIGNAL/project203.dat` and, when present, also mirrors District 12 and owned scripts into the Separate Project Folder runtime tree;
-- does **not** rewrite `project203.dat` or automatically attach the level to the Storyboard;
-- does **not** vendor CineGuru or marketplace packs.
-
-For the first play-test, load `BLACK SIGNAL - District 12.fpm` directly in the Level Editor. If Test/Play works there, add the existing level to the BLACK SIGNAL Storyboard and save the project.
+The normal deployer also performs the safe Storyboard binding repair when `project203.dat` is present. Pass `-SkipStoryboardRepair` only when intentionally testing the raw FPM independently.
 
 After saving a District 12 edit in GameGuru MAX:
 
