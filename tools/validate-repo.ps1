@@ -77,10 +77,18 @@ if (Test-Path $cityV2Path) {
     $requiredTokens = @(
         'MAX_CLONES = 720',
         'SPAWNS_PER_FRAME = 3',
-        'FRONT_OFFSET = 680',
-        'INTERSECTION_CORNER_OFFSET = 900',
+        'FRONT_OFFSET = 760',
+        'INTERSECTION_CORNER_OFFSET = 1120',
+        'ROAD_FOOTPRINT_MARGIN = 160',
+        'BUILDING_FOOTPRINT_MARGIN = 110',
+        'GetEntityColBox',
+        'GetEntityScales',
         'GetTerrainHeight',
         'GetEntityFilePath',
+        'obb_overlaps',
+        'footprint_from_entity',
+        'footprint_from_template',
+        'MAX_TERRAIN_SPREAD = 85',
         'cs_street_straight_4x.fpe',
         'cs_street_t-intersect_3.fpe',
         'cs_street_4_way_2.fpe',
@@ -88,14 +96,17 @@ if (Test-Path $cityV2Path) {
         'cs_bg_building_03_floor.fpe',
         'BLACK_SIGNAL_CITY_V2_CLONES',
         'BLACK_SIGNAL_CITY_V2_ALLEYS',
+        'BLACK_SIGNAL_CITY_V2_REJECTED_ROAD',
+        'BLACK_SIGNAL_CITY_V2_REJECTED_OVERLAP',
+        'BLACK_SIGNAL_CITY_V2_REJECTED_TERRAIN',
         'SpawnNewEntity',
         'collect_sites',
         'site_clear',
         'function bs_city_v2.get_status'
     )
     foreach ($token in $requiredTokens) {
-        if ($cityV2 -match [regex]::Escape($token)) { Write-Pass "Street-aware city-v2 runtime includes $token" }
-        else { Write-Fail "Street-aware city-v2 runtime is missing $token" }
+        if ($cityV2 -match [regex]::Escape($token)) { Write-Pass "Collision-aware city-v2 runtime includes $token" }
+        else { Write-Fail "Collision-aware city-v2 runtime is missing $token" }
     }
 }
 
