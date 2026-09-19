@@ -1,14 +1,14 @@
--- DESCRIPTION: BLACK SIGNAL runtime-aware gameloop. Preserves stock MAX player-health logic and builds District 12 through the robust incremental city-v2 generator.
+-- DESCRIPTION: BLACK SIGNAL runtime-aware gameloop. Preserves stock MAX player-health logic and builds District 12 through the modular parcel-based CITY V3 generator.
 
 module_cameraoverride = require "scriptbank\\ai\\module_cameraoverride"
 
-local cityv2_ok, cityv2_result = pcall(require, "scriptbank\\user\\black_signal\\bs_city_v2")
-local bs_city_v2 = nil
-local cityv2_load_error = ""
-if cityv2_ok then
-    bs_city_v2 = cityv2_result
+local cityv3_ok, cityv3_result = pcall(require, "scriptbank\\user\\black_signal\\bs_city_v3")
+local bs_city_v3 = nil
+local cityv3_load_error = ""
+if cityv3_ok then
+    bs_city_v3 = cityv3_result
 else
-    cityv2_load_error = tostring(cityv2_result)
+    cityv3_load_error = tostring(cityv3_result)
 end
 
 gameloop_RegenTickTime = 0
@@ -40,16 +40,16 @@ local function start_black_signal_runtime()
     runtime_error = ""
 
     if g_UserGlobal ~= nil then
-        g_UserGlobal["BLACK_SIGNAL_RUNTIME_HOOK"] = 3
+        g_UserGlobal["BLACK_SIGNAL_RUNTIME_HOOK"] = 4
     end
 
-    if cityv2_ok and bs_city_v2 ~= nil and bs_city_v2.init ~= nil then
-        local ok, err = pcall(bs_city_v2.init)
+    if cityv3_ok and bs_city_v3 ~= nil and bs_city_v3.init ~= nil then
+        local ok, err = pcall(bs_city_v3.init)
         if not ok then runtime_error = tostring(err) end
-    elseif cityv2_load_error ~= "" then
-        runtime_error = cityv2_load_error
+    elseif cityv3_load_error ~= "" then
+        runtime_error = cityv3_load_error
     else
-        runtime_error = "bs_city_v2 module did not load"
+        runtime_error = "bs_city_v3 module did not load"
     end
 end
 
@@ -58,25 +58,34 @@ local function show_runtime_status()
     local now = g_Time or 0
 
     if runtime_error ~= "" then
-        Prompt("BLACK SIGNAL CITY V2 ERROR: " .. runtime_error)
+        Prompt("BLACK SIGNAL CITY V3 ERROR: " .. runtime_error)
         return
     end
 
-    if bs_city_v2 ~= nil and bs_city_v2.get_status ~= nil then
-        local ok, state, clones, roads, templates, blocks, err = pcall(bs_city_v2.get_status)
+    if bs_city_v3 ~= nil and bs_city_v3.get_status ~= nil then
+        local ok, state, clones, roads, templates, buildings, modular, towers, floors, alleys, reject_road, reject_overlap, reject_terrain, err = pcall(bs_city_v3.get_status)
         if ok then
             if tostring(state) == "ready" then
                 if runtime_ready_time == 0 then runtime_ready_time = now end
-                if now > runtime_ready_time + 4000 then return end
-            elseif now > runtime_start_time + 30000 then
+                if now > runtime_ready_time + 5000 then return end
+            elseif now > runtime_start_time + 45000 then
                 return
             end
 
-            local message = "BLACK SIGNAL CITY V2 | " .. tostring(state) ..
+            local message = "BLACK SIGNAL CITY V3 | " .. tostring(state) ..
                 " | clones " .. tostring(clones or 0) ..
-                " | roads " .. tostring(roads or 0) ..
-                " | templates " .. tostring(templates or 0) ..
-                " | blocks " .. tostring(blocks or 0)
+                " | buildings " .. tostring(buildings or 0) ..
+                " | modular " .. tostring(modular or 0) ..
+                " | towers " .. tostring(towers or 0) ..
+                " | floors " .. tostring(floors or 0) ..
+                " | alleys " .. tostring(alleys or 0) ..
+                " | roads " .. tostring(roads or 0)
+            if tostring(state) == "ready" then
+                message = message ..
+                    " | reject road " .. tostring(reject_road or 0) ..
+                    " overlap " .. tostring(reject_overlap or 0) ..
+                    " terrain " .. tostring(reject_terrain or 0)
+            end
             if err ~= nil and tostring(err) ~= "" then message = message .. " | " .. tostring(err) end
             Prompt(message)
         end
@@ -92,7 +101,6 @@ function gameloop.init()
 end
 
 function gameloop.main()
-    -- Stock GameGuru MAX player health regeneration behaviour.
     if g_PlayerHealth > 0 and g_PlayerHealth < g_gameloop_StartHealth and g_PlayerDeadTime == 0 then
         if g_PlayerLastHitTime > 0 then
             if g_Time > g_PlayerLastHitTime + g_gameloop_RegenDelay then
@@ -115,19 +123,17 @@ function gameloop.main()
 
     start_black_signal_runtime()
 
-    if cityv2_ok and bs_city_v2 ~= nil and bs_city_v2.main ~= nil and runtime_error == "" then
-        local ok, err = pcall(bs_city_v2.main)
+    if cityv3_ok and bs_city_v3 ~= nil and bs_city_v3.main ~= nil and runtime_error == "" then
+        local ok, err = pcall(bs_city_v3.main)
         if not ok then runtime_error = tostring(err) end
     end
 
-    -- Stay visible while the incremental city is building. Once ready, keep the
-    -- final counts on screen for four seconds and then get out of the film frame.
     show_runtime_status()
 end
 
 function gameloop.quit()
-    if runtime_started and bs_city_v2 ~= nil and bs_city_v2.quit ~= nil then
-        pcall(bs_city_v2.quit)
+    if runtime_started and bs_city_v3 ~= nil and bs_city_v3.quit ~= nil then
+        pcall(bs_city_v3.quit)
     end
 
     runtime_started = false

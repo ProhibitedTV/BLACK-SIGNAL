@@ -21,9 +21,11 @@ $required = @(
     "gameguru\Files\scriptbank\gameloop.lua",
     "gameguru\Files\scriptbank\user\black_signal",
     "gameguru\Files\scriptbank\user\black_signal\bs_city_v2.lua",
+    "gameguru\Files\scriptbank\user\black_signal\bs_city_v3.lua",
     "docs\GAMEGURU-MAX.md",
     "docs\CINEGURU-MAX.md",
     "docs\DISTRICT-12-STREET-AWARE-GENERATOR.md",
+    "docs\DISTRICT-12-MODULAR-CITY-V3.md",
     "ASSET-MANIFEST.md"
 )
 
@@ -61,26 +63,25 @@ if (Test-Path $luaRoot) {
 $gameLoopPath = Join-Path $repo "gameguru\Files\scriptbank\gameloop.lua"
 if (Test-Path $gameLoopPath) {
     $gameLoopContent = Get-Content -Raw $gameLoopPath
-    if ($gameLoopContent -match 'bs_city_v2') { Write-Pass "Project gameloop hooks robust bs_city_v2 runtime" }
-    else { Write-Fail "Project gameloop does not hook bs_city_v2" }
+    if ($gameLoopContent -match 'bs_city_v3') { Write-Pass "Project gameloop hooks modular bs_city_v3 runtime" }
+    else { Write-Fail "Project gameloop does not hook bs_city_v3" }
 
-    if ($gameLoopContent -match 'Prompt\(' -and $gameLoopContent -match 'get_status') {
-        Write-Pass "Project gameloop exposes city-v2 build diagnostics"
+    if ($gameLoopContent -match 'BLACK SIGNAL CITY V3' -and $gameLoopContent -match 'get_status') {
+        Write-Pass "Project gameloop exposes CITY V3 build diagnostics"
     } else {
-        Write-Fail "Project gameloop is missing city-v2 runtime diagnostics"
+        Write-Fail "Project gameloop is missing CITY V3 runtime diagnostics"
     }
 }
 
-$cityV2Path = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_city_v2.lua"
-if (Test-Path $cityV2Path) {
-    $cityV2 = Get-Content -Raw $cityV2Path
+$cityV3Path = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_city_v3.lua"
+if (Test-Path $cityV3Path) {
+    $cityV3 = Get-Content -Raw $cityV3Path
     $requiredTokens = @(
-        'MAX_CLONES = 720',
-        'SPAWNS_PER_FRAME = 3',
-        'FRONT_OFFSET = 760',
-        'INTERSECTION_CORNER_OFFSET = 1120',
-        'ROAD_FOOTPRINT_MARGIN = 160',
-        'BUILDING_FOOTPRINT_MARGIN = 110',
+        'MAX_CLONES = 850',
+        'MAX_BUILDINGS = 28',
+        'SPAWNS_PER_FRAME = 4',
+        'SIDEWALK_BUFFER = 230',
+        'ALLEY_GAP = 260',
         'GetEntityColBox',
         'GetEntityScales',
         'GetTerrainHeight',
@@ -88,25 +89,61 @@ if (Test-Path $cityV2Path) {
         'obb_overlaps',
         'footprint_from_entity',
         'footprint_from_template',
-        'MAX_TERRAIN_SPREAD = 85',
-        'cs_street_straight_4x.fpe',
-        'cs_street_t-intersect_3.fpe',
-        'cs_street_4_way_2.fpe',
         'cs_bg_building_01_floor.fpe',
         'cs_bg_building_03_floor.fpe',
-        'BLACK_SIGNAL_CITY_V2_CLONES',
-        'BLACK_SIGNAL_CITY_V2_ALLEYS',
-        'BLACK_SIGNAL_CITY_V2_REJECTED_ROAD',
-        'BLACK_SIGNAL_CITY_V2_REJECTED_OVERLAP',
-        'BLACK_SIGNAL_CITY_V2_REJECTED_TERRAIN',
+        'cs_bg_building_04_floor.fpe',
+        'cs_wall_corner_01.fpe',
+        'cs_walls_01_window_with_bars.fpe',
+        'cs_wall_01_entry_01.fpe',
+        'cs_wall_01_entry_04.fpe',
+        'cs_wall_01_overhang.fpe',
+        'cs_roof_tile_4x4.fpe',
+        'cs_roof_tile_2x2.fpe',
+        'cs_store_front_02_corner_neon_opposite.fpe',
+        'shopblock',
+        'midrise',
+        'slab',
+        'industrial',
+        'needle',
+        'corporate',
+        'collect_parcels',
+        'plan_facade',
+        'plan_roof',
+        'BLACK_SIGNAL_CITY_V3_BUILDINGS',
+        'BLACK_SIGNAL_CITY_V3_MODULAR',
+        'BLACK_SIGNAL_CITY_V3_TOWERS',
+        'BLACK_SIGNAL_CITY_V3_FLOORS',
         'SpawnNewEntity',
-        'collect_sites',
-        'site_clear',
-        'function bs_city_v2.get_status'
+        'function bs_city_v3.get_status'
     )
     foreach ($token in $requiredTokens) {
-        if ($cityV2 -match [regex]::Escape($token)) { Write-Pass "Collision-aware city-v2 runtime includes $token" }
-        else { Write-Fail "Collision-aware city-v2 runtime is missing $token" }
+        if ($cityV3 -match [regex]::Escape($token)) { Write-Pass "Modular CITY V3 runtime includes $token" }
+        else { Write-Fail "Modular CITY V3 runtime is missing $token" }
+    }
+}
+
+$mapListPath = Join-Path $repo "gameguru\maps\BLACK SIGNAL - District 12.lst"
+if (Test-Path $mapListPath) {
+    $mapList = (Get-Content -Raw $mapListPath).ToLowerInvariant()
+    $requiredSeedAssets = @(
+        'cs_street_straight_4x.fpe',
+        'cs_street_straight_2x.fpe',
+        'cs_bg_building_01_floor.fpe',
+        'cs_bg_building_03_floor.fpe',
+        'cs_bg_building_04_floor.fpe',
+        'cs_wall_01.fpe',
+        'cs_wall_corner_01.fpe',
+        'cs_walls_01_window_with_bars.fpe',
+        'cs_wall_01_entry_01.fpe',
+        'cs_wall_01_entry_04.fpe',
+        'cs_wall_01_overhang.fpe',
+        'cs_roof_tile_2x2.fpe',
+        'cs_roof_tile_4x4.fpe',
+        'cs_store_front_02_corner_neon_opposite.fpe'
+    )
+    foreach ($asset in $requiredSeedAssets) {
+        if ($mapList.Contains($asset)) { Write-Pass "District 12 seeds CITY V3 asset: $asset" }
+        else { Write-Fail "District 12 list is missing CITY V3 seed asset: $asset" }
     }
 }
 

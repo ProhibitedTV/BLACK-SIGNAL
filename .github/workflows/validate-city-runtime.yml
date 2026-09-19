@@ -1,0 +1,38 @@
+name: Validate BLACK SIGNAL city runtime
+
+on:
+  pull_request:
+    paths:
+      - 'gameguru/Files/scriptbank/**'
+      - 'gameguru/maps/BLACK SIGNAL - District 12.lst'
+      - 'tools/validate-repo.ps1'
+      - '.github/workflows/validate-city-runtime.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'gameguru/Files/scriptbank/**'
+      - 'gameguru/maps/BLACK SIGNAL - District 12.lst'
+      - 'tools/validate-repo.ps1'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Install Lua compiler
+        run: sudo apt-get update && sudo apt-get install -y lua5.4
+
+      - name: Syntax-check BLACK SIGNAL Lua
+        shell: bash
+        run: |
+          set -euo pipefail
+          find gameguru/Files/scriptbank/user/black_signal -type f -name '*.lua' -print0 | xargs -0 -n1 luac -p
+          luac -p gameguru/Files/scriptbank/gameloop.lua
+
+      - name: Validate repository structure and CITY V3 seed assets
+        shell: pwsh
+        run: ./tools/validate-repo.ps1 -GameGuruFiles /tmp/gameguru-not-installed
