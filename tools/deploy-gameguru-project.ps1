@@ -1,6 +1,7 @@
 param(
     [string]$GameGuruFiles = "$env:USERPROFILE\Documents\GameGuruApps\GameGuruMAX\Files",
-    [switch]$SkipValidation
+    [switch]$SkipValidation,
+    [switch]$SkipStoryboardRepair
 )
 
 $ErrorActionPreference = "Stop"
@@ -95,7 +96,7 @@ if ((Test-LfsPointer $mapSource) -or $sourceInfo.Length -lt 1MB) {
 $projectOwnedFiles = Join-Path $repo "gameguru\Files"
 
 # Always deploy to the default GameGuru MAX user Files tree. This gives us a
-# known-good raw-level isolation path even when the project/storyboard is broken.
+# known-good raw-level path even when the project/storyboard is being repaired.
 $globalMap = Deploy-Map -MapSource $mapSource -ListSource $listSource -DestinationFiles $GameGuruFiles -BackupFolderName "_black_signal_deploy_backups"
 Copy-ProjectOwnedFiles -SourceFiles $projectOwnedFiles -DestinationFiles $GameGuruFiles
 
@@ -104,24 +105,30 @@ Write-Host "BLACK SIGNAL deployed to default GameGuru MAX Files."
 Write-Host "Map: $globalMap"
 Write-Host "Custom behaviours: $(Join-Path $GameGuruFiles 'scriptbank\user\black_signal')"
 
-# The original BLACK SIGNAL checkout contains Files/projectbank/BLACK SIGNAL/
-# project203.dat. That shape is consistent with a MAX Separate Project Folder.
-# If present, also maintain a local runtime mirror inside that project Files tree.
-# The curated source still lives under gameguru/; these copied runtime files are
-# ignored by Git so we do not duplicate source or vendor third-party content.
+# BLACK SIGNAL uses the repository root as its GameGuru MAX Separate Project
+# Folder. Mirror curated runtime content there and repair the existing wired
+# Level 1 Storyboard placeholder so it points at District 12. The repair script
+# validates the exact v203 binary layout and makes a byte-for-byte backup before
+# touching project203.dat.
 $repoProjectFiles = Join-Path $repo "Files"
 $repoProjectDescriptor = Join-Path $repoProjectFiles "projectbank\BLACK SIGNAL\project203.dat"
 if (Test-Path $repoProjectDescriptor) {
     Write-Host ""
-    Write-Host "Detected BLACK SIGNAL project state inside the repository Files tree."
-    Write-Host "Treating the checkout as a likely GameGuru MAX Separate Project Folder runtime root."
+    Write-Host "Detected BLACK SIGNAL GameGuru MAX Separate Project Folder."
 
     $projectMap = Deploy-Map -MapSource $mapSource -ListSource $listSource -DestinationFiles $repoProjectFiles -BackupFolderName "_black_signal_deploy_backups"
     Copy-ProjectOwnedFiles -SourceFiles $projectOwnedFiles -DestinationFiles $repoProjectFiles
 
     Write-Host "Project-local map mirror: $projectMap"
     Write-Host "Project-local behaviours: $(Join-Path $repoProjectFiles 'scriptbank\user\black_signal')"
-    Write-Warning "This does NOT edit project203.dat or attach District 12 to the Storyboard. Load the FPM directly first, then add it to the Storyboard in MAX."
+
+    if (-not $SkipStoryboardRepair) {
+        Write-Host ""
+        Write-Host "Repairing BLACK SIGNAL Storyboard level binding..."
+        & (Join-Path $PSScriptRoot "repair-black-signal-storyboard.ps1") -ProjectFile $repoProjectDescriptor -LevelName "mapbank\$mapName"
+    } else {
+        Write-Warning "Storyboard repair was skipped by request."
+    }
 }
 
 $cineGuru = Join-Path $GameGuruFiles "scriptbank\Cine Guru MAX"
@@ -134,7 +141,7 @@ if (Test-Path $cineGuru) {
 if (Test-Path $repoProjectDescriptor) {
     $projectCineGuru = Join-Path $repoProjectFiles "scriptbank\Cine Guru MAX"
     if (-not (Test-Path $projectCineGuru) -and (Test-Path $cineGuru)) {
-        Write-Warning "CineGuru exists in the default Files tree but not in the detected Separate Project Folder. If CineGuru is absent inside MAX while this project is open, check Edit > Settings > Advanced > Writables folder location before copying any commercial dependency."
+        Write-Warning "CineGuru exists in the default Files tree but not in the Separate Project Folder. If CineGuru is absent inside MAX while this project is open, check Edit > Settings > Advanced > Writables folder location before copying any commercial dependency."
     }
 }
 
@@ -146,7 +153,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "IMPORTANT: deploying an FPM does not add it to the BLACK SIGNAL Storyboard/project."
-Write-Host "For the isolation test, load 'BLACK SIGNAL - District 12.fpm' directly in the Level Editor."
-Write-Host "Once Test/Play works, add that existing level to the Storyboard and save the project."
+Write-Host "BLACK SIGNAL deployment complete."
+Write-Host "District 12 is deployed and the Storyboard Level node is bound when project203.dat is present."
+Write-Host "Open the BLACK SIGNAL project in GameGuru MAX and use Normal Single Level/Test Play."
 Write-Host "Use CineGuru for cinematic cameras/actors/triggers and BLACK SIGNAL scripts for project-specific metadata/glue."
