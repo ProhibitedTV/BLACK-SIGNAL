@@ -74,6 +74,7 @@ if ($info.Length -ne $ExpectedSize) {
 $stream = [System.IO.File]::Open($ProjectFile, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::Read)
 $reader = New-Object System.IO.BinaryReader($stream, [System.Text.Encoding]::ASCII, $true)
 $writer = New-Object System.IO.BinaryWriter($stream, [System.Text.Encoding]::ASCII, $true)
+$alreadyBound = $false
 
 try {
     $signature = Read-CStringAt $reader 0 12
@@ -119,53 +120,57 @@ try {
     if ($already.Count -gt 0) {
         Write-Host ""
         Write-Host "[PASS] District 12 is already attached to Storyboard node $($already[0].Index)."
-        exit 0
+        $alreadyBound = $true
+    } else {
+        $emptyNodes = @($levelNodes | Where-Object { [string]::IsNullOrWhiteSpace($_.LevelName) })
+        if ($emptyNodes.Count -eq 0) {
+            throw "No empty LEVEL placeholder exists. Existing level bindings were left untouched."
+        }
+
+        # The stock project creates a wired 'Level 1' placeholder. Prefer it when
+        # available; otherwise use the only/first empty level node and preserve all
+        # of its existing links, actions, title, and screen routing.
+        $candidate = $emptyNodes | Where-Object { $_.Title -ieq "Level 1" } | Select-Object -First 1
+        if (-not $candidate) {
+            $candidate = $emptyNodes | Select-Object -First 1
+        }
+
+        $backupRoot = Join-Path $repo ".black-signal\backups\storyboard"
+        New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
+        $stamp = Get-Date -Format "yyyy-MM-dd_HHmmss"
+        $backup = Join-Path $backupRoot "project203_$stamp.dat"
+
+        # Flush/close before making a byte-for-byte safety copy.
+        $writer.Flush()
+        $stream.Flush()
+        $reader.Dispose()
+        $writer.Dispose()
+        $stream.Dispose()
+        $reader = $null
+        $writer = $null
+        $stream = $null
+
+        Copy-Item -Force $ProjectFile $backup
+        Write-Host "Backed up Storyboard to: $backup"
+
+        $stream = [System.IO.File]::Open($ProjectFile, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::Read)
+        $writer = New-Object System.IO.BinaryWriter($stream, [System.Text.Encoding]::ASCII, $true)
+
+        Write-CStringAt $writer ($candidate.Base + $NodeLevelNameOffset) $CStringLength $LevelName
+        $writer.Flush()
+        $stream.Flush()
+
+        Write-Host "[FIXED] Storyboard node $($candidate.Index) ('$($candidate.Title)') now points to: $LevelName"
     }
-
-    $emptyNodes = @($levelNodes | Where-Object { [string]::IsNullOrWhiteSpace($_.LevelName) })
-    if ($emptyNodes.Count -eq 0) {
-        throw "No empty LEVEL placeholder exists. Existing level bindings were left untouched."
-    }
-
-    # The stock project creates a wired 'Level 1' placeholder. Prefer it when
-    # available; otherwise use the only/first empty level node and preserve all
-    # of its existing links, actions, title, and screen routing.
-    $candidate = $emptyNodes | Where-Object { $_.Title -ieq "Level 1" } | Select-Object -First 1
-    if (-not $candidate) {
-        $candidate = $emptyNodes | Select-Object -First 1
-    }
-
-    $backupRoot = Join-Path $repo ".black-signal\backups\storyboard"
-    New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
-    $stamp = Get-Date -Format "yyyy-MM-dd_HHmmss"
-    $backup = Join-Path $backupRoot "project203_$stamp.dat"
-
-    # Flush/close before making a byte-for-byte safety copy.
-    $writer.Flush()
-    $stream.Flush()
-    $reader.Dispose()
-    $writer.Dispose()
-    $stream.Dispose()
-    $reader = $null
-    $writer = $null
-    $stream = $null
-
-    Copy-Item -Force $ProjectFile $backup
-    Write-Host "Backed up Storyboard to: $backup"
-
-    $stream = [System.IO.File]::Open($ProjectFile, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::Read)
-    $writer = New-Object System.IO.BinaryWriter($stream, [System.Text.Encoding]::ASCII, $true)
-
-    Write-CStringAt $writer ($candidate.Base + $NodeLevelNameOffset) $CStringLength $LevelName
-    $writer.Flush()
-    $stream.Flush()
-
-    Write-Host "[FIXED] Storyboard node $($candidate.Index) ('$($candidate.Title)') now points to: $LevelName"
 }
 finally {
     if ($reader) { $reader.Dispose() }
     if ($writer) { $writer.Dispose() }
     if ($stream) { $stream.Dispose() }
+}
+
+if ($alreadyBound) {
+    return
 }
 
 # Verify with a fresh read so a partial write can never be reported as success.
@@ -196,4 +201,3 @@ finally {
 }
 
 Write-Host "Storyboard repair complete."
-exit 0
