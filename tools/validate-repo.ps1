@@ -21,6 +21,7 @@ $required = @(
     "gameguru\Files\scriptbank\gameloop.lua",
     "gameguru\Files\scriptbank\user\black_signal",
     "gameguru\Files\scriptbank\user\black_signal\bs_city_runtime.lua",
+    "gameguru\Files\scriptbank\user\black_signal\bs_city_fabric.lua",
     "docs\GAMEGURU-MAX.md",
     "docs\CINEGURU-MAX.md",
     "ASSET-MANIFEST.md"
@@ -75,9 +76,14 @@ $gameLoopPath = Join-Path $repo "gameguru\Files\scriptbank\gameloop.lua"
 if (Test-Path $gameLoopPath) {
     $gameLoopContent = Get-Content -Raw $gameLoopPath
     if ($gameLoopContent -match 'bs_city_runtime') {
-        Write-Pass "Project gameloop hooks BLACK SIGNAL city runtime"
+        Write-Pass "Project gameloop hooks BLACK SIGNAL skyline runtime"
     } else {
         Write-Fail "Project gameloop does not hook bs_city_runtime"
+    }
+    if ($gameLoopContent -match 'bs_city_fabric') {
+        Write-Pass "Project gameloop hooks BLACK SIGNAL lived-in city fabric"
+    } else {
+        Write-Fail "Project gameloop does not hook bs_city_fabric"
     }
 }
 
@@ -85,9 +91,29 @@ $cityRuntimePath = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\
 if (Test-Path $cityRuntimePath) {
     $cityRuntimeContent = Get-Content -Raw $cityRuntimePath
     if ($cityRuntimeContent -match 'SpawnNewEntity' -and $cityRuntimeContent -match 'BLACK_SIGNAL_CITY_CLONES') {
-        Write-Pass "District 12 runtime expansion clones existing map architecture and publishes clone count"
+        Write-Pass "District 12 skyline runtime clones existing map architecture and publishes clone count"
     } else {
-        Write-Fail "District 12 runtime expansion is missing its clone/bootstrap logic"
+        Write-Fail "District 12 skyline runtime is missing its clone/bootstrap logic"
+    }
+}
+
+$cityFabricPath = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_city_fabric.lua"
+if (Test-Path $cityFabricPath) {
+    $cityFabricContent = Get-Content -Raw $cityFabricPath
+    $requiredTokens = @(
+        'cs_store_front_02_corner_with_window',
+        'cs_store_front_02_corner_neon_opposite',
+        'cs_street_lamp',
+        'cs_trash_can',
+        'BLACK_SIGNAL_FABRIC_CLONES',
+        'SpawnNewEntity'
+    )
+    foreach ($token in $requiredTokens) {
+        if ($cityFabricContent -match [regex]::Escape($token)) {
+            Write-Pass "District 12 city fabric includes $token"
+        } else {
+            Write-Fail "District 12 city fabric is missing $token"
+        }
     }
 }
 
