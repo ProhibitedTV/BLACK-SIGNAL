@@ -18,7 +18,9 @@ Write-Host ""
 $required = @(
     "gameguru\maps\BLACK SIGNAL - District 12.fpm",
     "gameguru\maps\BLACK SIGNAL - District 12.lst",
+    "gameguru\Files\scriptbank\gameloop.lua",
     "gameguru\Files\scriptbank\user\black_signal",
+    "gameguru\Files\scriptbank\user\black_signal\bs_city_runtime.lua",
     "docs\GAMEGURU-MAX.md",
     "docs\CINEGURU-MAX.md",
     "ASSET-MANIFEST.md"
@@ -66,6 +68,26 @@ if (Test-Path $luaRoot) {
                 Write-Fail "$($script.Name): dynamic DESCRIPTION fields exist but ${base}_properties(...) is missing"
             }
         }
+    }
+}
+
+$gameLoopPath = Join-Path $repo "gameguru\Files\scriptbank\gameloop.lua"
+if (Test-Path $gameLoopPath) {
+    $gameLoopContent = Get-Content -Raw $gameLoopPath
+    if ($gameLoopContent -match 'bs_city_runtime') {
+        Write-Pass "Project gameloop hooks BLACK SIGNAL city runtime"
+    } else {
+        Write-Fail "Project gameloop does not hook bs_city_runtime"
+    }
+}
+
+$cityRuntimePath = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_city_runtime.lua"
+if (Test-Path $cityRuntimePath) {
+    $cityRuntimeContent = Get-Content -Raw $cityRuntimePath
+    if ($cityRuntimeContent -match 'SpawnNewEntity' -and $cityRuntimeContent -match 'BLACK_SIGNAL_CITY_CLONES') {
+        Write-Pass "District 12 runtime expansion clones existing map architecture and publishes clone count"
+    } else {
+        Write-Fail "District 12 runtime expansion is missing its clone/bootstrap logic"
     }
 }
 
