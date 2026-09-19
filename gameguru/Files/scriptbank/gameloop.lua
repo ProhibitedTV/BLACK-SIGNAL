@@ -1,4 +1,4 @@
--- DESCRIPTION: BLACK SIGNAL runtime-aware gameloop. Preserves stock MAX player-health logic and builds District 12 through the modular parcel-based CITY V3 generator.
+-- DESCRIPTION: BLACK SIGNAL runtime-aware gameloop. Preserves stock MAX player-health logic, builds District 12 through CITY V3, then runs a dedicated collision-aware street-detail pass.
 
 module_cameraoverride = require "scriptbank\\ai\\module_cameraoverride"
 
@@ -11,10 +11,20 @@ else
     cityv3_load_error = tostring(cityv3_result)
 end
 
+local details_ok, details_result = pcall(require, "scriptbank\\user\\black_signal\\bs_city_details")
+local bs_city_details = nil
+local details_load_error = ""
+if details_ok then
+    bs_city_details = details_result
+else
+    details_load_error = tostring(details_result)
+end
+
 gameloop_RegenTickTime = 0
 
 local gameloop = {}
 local runtime_started = false
+local details_started = false
 local runtime_start_time = 0
 local runtime_ready_time = 0
 local runtime_error = ""
@@ -35,12 +45,13 @@ end
 local function start_black_signal_runtime()
     if runtime_started then return end
     runtime_started = true
+    details_started = false
     runtime_start_time = g_Time or 0
     runtime_ready_time = 0
     runtime_error = ""
 
     if g_UserGlobal ~= nil then
-        g_UserGlobal["BLACK_SIGNAL_RUNTIME_HOOK"] = 4
+        g_UserGlobal["BLACK_SIGNAL_RUNTIME_HOOK"] = 5
     end
 
     if cityv3_ok and bs_city_v3 ~= nil and bs_city_v3.init ~= nil then
@@ -53,48 +64,98 @@ local function start_black_signal_runtime()
     end
 end
 
+local function start_detail_runtime()
+    if details_started then return end
+    details_started = true
+    runtime_ready_time = 0
+
+    if details_ok and bs_city_details ~= nil and bs_city_details.init ~= nil then
+        local ok, err = pcall(bs_city_details.init)
+        if not ok then runtime_error = tostring(err) end
+    elseif details_load_error ~= "" then
+        runtime_error = details_load_error
+    else
+        runtime_error = "bs_city_details module did not load"
+    end
+end
+
+local function show_city_status(now)
+    if bs_city_v3 == nil or bs_city_v3.get_status == nil then return end
+    local ok, state, clones, roads, templates, buildings, modular, towers, floors, alleys, reject_road, reject_overlap, reject_terrain, err = pcall(bs_city_v3.get_status)
+    if not ok then return end
+    if now > runtime_start_time + 45000 and tostring(state) ~= "ready" then return end
+
+    local message = "BLACK SIGNAL CITY V3 | " .. tostring(state) ..
+        " | clones " .. tostring(clones or 0) ..
+        " | buildings " .. tostring(buildings or 0) ..
+        " | modular " .. tostring(modular or 0) ..
+        " | towers " .. tostring(towers or 0) ..
+        " | floors " .. tostring(floors or 0) ..
+        " | alleys " .. tostring(alleys or 0) ..
+        " | roads " .. tostring(roads or 0)
+    if tostring(state) == "ready" then
+        message = message ..
+            " | reject road " .. tostring(reject_road or 0) ..
+            " overlap " .. tostring(reject_overlap or 0) ..
+            " terrain " .. tostring(reject_terrain or 0)
+    end
+    if err ~= nil and tostring(err) ~= "" then message = message .. " | " .. tostring(err) end
+    Prompt(message)
+end
+
+local function show_detail_status(now)
+    if bs_city_details == nil or bs_city_details.get_status == nil then return end
+    local ok, state, clones, roads, sidewalks, templates, rails, posts, benches, stops, lamps, planters, service, clutter, reject_road, reject_overlap, reject_terrain, err = pcall(bs_city_details.get_status)
+    if not ok then return end
+
+    if tostring(state) == "ready" then
+        if runtime_ready_time == 0 then runtime_ready_time = now end
+        if now > runtime_ready_time + 6000 then return end
+    elseif now > runtime_start_time + 60000 then
+        return
+    end
+
+    local message = "BLACK SIGNAL DETAIL V1 | " .. tostring(state) ..
+        " | clones " .. tostring(clones or 0) ..
+        " | sidewalks " .. tostring(sidewalks or 0) ..
+        " | rail " .. tostring(rails or 0) ..
+        " | posts " .. tostring(posts or 0) ..
+        " | benches " .. tostring(benches or 0) ..
+        " | stops " .. tostring(stops or 0) ..
+        " | lamps " .. tostring(lamps or 0) ..
+        " | planters " .. tostring(planters or 0) ..
+        " | service " .. tostring(service or 0) ..
+        " | clutter " .. tostring(clutter or 0)
+    if tostring(state) == "ready" then
+        message = message ..
+            " | reject road " .. tostring(reject_road or 0) ..
+            " overlap " .. tostring(reject_overlap or 0) ..
+            " terrain " .. tostring(reject_terrain or 0)
+    end
+    if err ~= nil and tostring(err) ~= "" then message = message .. " | " .. tostring(err) end
+    Prompt(message)
+end
+
 local function show_runtime_status()
     if Prompt == nil then return end
     local now = g_Time or 0
 
     if runtime_error ~= "" then
-        Prompt("BLACK SIGNAL CITY V3 ERROR: " .. runtime_error)
+        Prompt("BLACK SIGNAL RUNTIME ERROR: " .. runtime_error)
         return
     end
 
-    if bs_city_v3 ~= nil and bs_city_v3.get_status ~= nil then
-        local ok, state, clones, roads, templates, buildings, modular, towers, floors, alleys, reject_road, reject_overlap, reject_terrain, err = pcall(bs_city_v3.get_status)
-        if ok then
-            if tostring(state) == "ready" then
-                if runtime_ready_time == 0 then runtime_ready_time = now end
-                if now > runtime_ready_time + 5000 then return end
-            elseif now > runtime_start_time + 45000 then
-                return
-            end
-
-            local message = "BLACK SIGNAL CITY V3 | " .. tostring(state) ..
-                " | clones " .. tostring(clones or 0) ..
-                " | buildings " .. tostring(buildings or 0) ..
-                " | modular " .. tostring(modular or 0) ..
-                " | towers " .. tostring(towers or 0) ..
-                " | floors " .. tostring(floors or 0) ..
-                " | alleys " .. tostring(alleys or 0) ..
-                " | roads " .. tostring(roads or 0)
-            if tostring(state) == "ready" then
-                message = message ..
-                    " | reject road " .. tostring(reject_road or 0) ..
-                    " overlap " .. tostring(reject_overlap or 0) ..
-                    " terrain " .. tostring(reject_terrain or 0)
-            end
-            if err ~= nil and tostring(err) ~= "" then message = message .. " | " .. tostring(err) end
-            Prompt(message)
-        end
+    if details_started then
+        show_detail_status(now)
+    else
+        show_city_status(now)
     end
 end
 
 function gameloop.init()
     gameloop_RegenTickTime = 0
     runtime_started = false
+    details_started = false
     runtime_start_time = g_Time or 0
     runtime_ready_time = 0
     runtime_error = ""
@@ -123,8 +184,19 @@ function gameloop.main()
 
     start_black_signal_runtime()
 
+    local city_ready = false
     if cityv3_ok and bs_city_v3 ~= nil and bs_city_v3.main ~= nil and runtime_error == "" then
-        local ok, err = pcall(bs_city_v3.main)
+        local ok, result = pcall(bs_city_v3.main)
+        if not ok then runtime_error = tostring(result)
+        else city_ready = (result == true) end
+    end
+
+    if city_ready and runtime_error == "" then
+        start_detail_runtime()
+    end
+
+    if details_started and details_ok and bs_city_details ~= nil and bs_city_details.main ~= nil and runtime_error == "" then
+        local ok, err = pcall(bs_city_details.main)
         if not ok then runtime_error = tostring(err) end
     end
 
@@ -132,11 +204,15 @@ function gameloop.main()
 end
 
 function gameloop.quit()
+    if details_started and bs_city_details ~= nil and bs_city_details.quit ~= nil then
+        pcall(bs_city_details.quit)
+    end
     if runtime_started and bs_city_v3 ~= nil and bs_city_v3.quit ~= nil then
         pcall(bs_city_v3.quit)
     end
 
     runtime_started = false
+    details_started = false
     runtime_ready_time = 0
     runtime_error = ""
     module_cameraoverride.restoreandreset()
