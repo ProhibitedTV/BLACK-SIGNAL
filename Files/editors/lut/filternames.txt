@@ -1,0 +1,58 @@
+None
+Two Strip
+Three Strip
+AO Highlight
+Base RGB
+Burgas
+Candle Light
+Chromea
+Crisp Warm
+Crisp Winter
+Desert
+Drastic BW
+Drop Blues
+Fall Colors
+Film Stock
+Foggy Night
+Haskovo
+Horror Blue
+Kid n Play
+Late Sunset
+Light Blue Purple
+Moon Light
+Neutral
+Night From Day
+Pernik
+Bleach Bypass
+Candle Light
+Cool Contrast
+Desaturated Fog
+Evening
+Fall
+Filmic 1
+Filmic 2
+Filmic 3
+Filmic 4
+Filmic 5
+Filmic 6
+Filmic 7
+Filmic 8
+Filmic 9
+Matrix Blue
+Matrix Green
+Night 1
+Night 2
+Night Dark
+Strong Amber
+Warm
+Warm Contrast
+Purple Pastel White Table
+Red From Luma Table
+Sephia
+Sofia Table
+Soft Warming Table
+Teal Orange Contrast Table
+Tension Green Table
+Varna Table
+Yambolt Table
+Yellow Purple Table

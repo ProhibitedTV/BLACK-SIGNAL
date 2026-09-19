@@ -1,0 +1,55 @@
+;material list (MAX variant)
+
+;header
+
+materialmax   = 18
+
+matdesc0      = Grass
+matwave0      = grass
+matfreq0      = 22050
+matdecal0     = dust
+
+matdesc1      = Stone
+matwave1      = gravel
+matfreq1      = 22050
+matdecal1     = impact
+
+matdesc2      = Metal
+matwave2      = metal
+matfreq2      = 22050
+matdecal2     = sparks
+
+matdesc3      = Wood
+matwave3      = wood
+matfreq3      = 22050
+matdecal3     = splinters
+
+matdesc6      = Snow
+matwave6      = snow
+matfreq6      = 22050
+matdecal6     = 
+
+matdesc10     = Tarmak
+matwave10     = tarmak
+matfreq10     = 22050
+matdecal10    = impact
+
+matdesc11     = Dirt
+matwave11     = dirt
+matfreq11     = 22050
+matdecal11    = dust
+
+matdesc13     = Sand
+matwave13     = sand
+matfreq13     = 22050
+matdecal13    = dust
+
+matdesc17     = Puddle
+matwave17     = puddle
+matfreq17     = 22050
+matdecal17    =
+
+matdesc18     = Underwater
+matwave18     = underwater
+matfreq18     = 22050
+matdecal18    =

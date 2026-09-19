@@ -1,0 +1,8 @@
+STANDARD CODES
+IC1	Nordic- Native British, Scandinavian, German, etc.
+IC2	Mediterranean - South European, eg Spanish, Italian or Greek
+IC3	Black - Sub-Saharan African or Afro-Caribbean
+IC4	Desi - South Asian
+IC5	Far East e.g. Chinese, Korean, Japanese, or Southeast Asian
+IC6	West Asia or North Africa
+IC9	Unknown
