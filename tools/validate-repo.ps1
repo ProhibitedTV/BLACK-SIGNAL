@@ -64,7 +64,7 @@ if (Test-Path $gameLoopPath) {
     else { Write-Fail "Project gameloop does not hook bs_city_v2" }
 
     if ($gameLoopContent -match 'Prompt\(' -and $gameLoopContent -match 'get_status') {
-        Write-Pass "Project gameloop exposes temporary city-v2 runtime diagnostics"
+        Write-Pass "Project gameloop exposes city-v2 build diagnostics"
     } else {
         Write-Fail "Project gameloop is missing city-v2 runtime diagnostics"
     }
@@ -75,6 +75,7 @@ if (Test-Path $cityV2Path) {
     $cityV2 = Get-Content -Raw $cityV2Path
     $requiredTokens = @(
         'MAX_CLONES = 900',
+        'SPAWNS_PER_FRAME = 3',
         'GetEntityFilePath',
         'cs_street_straight_4x.fpe',
         'cs_street_t-intersect_3.fpe',
