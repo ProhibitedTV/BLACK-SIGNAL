@@ -20,9 +20,7 @@ $required = @(
     "gameguru\maps\BLACK SIGNAL - District 12.lst",
     "gameguru\Files\scriptbank\gameloop.lua",
     "gameguru\Files\scriptbank\user\black_signal",
-    "gameguru\Files\scriptbank\user\black_signal\bs_basin_city.lua",
-    "gameguru\Files\scriptbank\user\black_signal\bs_city_runtime.lua",
-    "gameguru\Files\scriptbank\user\black_signal\bs_city_fabric.lua",
+    "gameguru\Files\scriptbank\user\black_signal\bs_city_v2.lua",
     "docs\GAMEGURU-MAX.md",
     "docs\CINEGURU-MAX.md",
     "ASSET-MANIFEST.md"
@@ -62,54 +60,34 @@ if (Test-Path $luaRoot) {
 $gameLoopPath = Join-Path $repo "gameguru\Files\scriptbank\gameloop.lua"
 if (Test-Path $gameLoopPath) {
     $gameLoopContent = Get-Content -Raw $gameLoopPath
-    foreach ($module in @('bs_basin_city','bs_city_fabric','bs_city_runtime')) {
-        if ($gameLoopContent -match [regex]::Escape($module)) { Write-Pass "Project gameloop hooks $module" }
-        else { Write-Fail "Project gameloop does not hook $module" }
-    }
-}
+    if ($gameLoopContent -match 'bs_city_v2') { Write-Pass "Project gameloop hooks robust bs_city_v2 runtime" }
+    else { Write-Fail "Project gameloop does not hook bs_city_v2" }
 
-$basinPath = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_basin_city.lua"
-if (Test-Path $basinPath) {
-    $basinContent = Get-Content -Raw $basinPath
-    $basinTokens = @(
-        'MAX_CLONES = 780',
-        'BLACK_SIGNAL_BASIN_CLONES',
-        'BLACK_SIGNAL_BASIN_BLOCKS',
-        'cs_bg_building_01_floor',
-        'cs_bg_building_03_floor',
-        'cs_store_front_02_corner_neon_opposite',
-        'SpawnNewEntity'
-    )
-    foreach ($token in $basinTokens) {
-        if ($basinContent -match [regex]::Escape($token)) { Write-Pass "Dense basin runtime includes $token" }
-        else { Write-Fail "Dense basin runtime is missing $token" }
-    }
-}
-
-$cityRuntimePath = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_city_runtime.lua"
-if (Test-Path $cityRuntimePath) {
-    $cityRuntimeContent = Get-Content -Raw $cityRuntimePath
-    if ($cityRuntimeContent -match 'SpawnNewEntity' -and $cityRuntimeContent -match 'BLACK_SIGNAL_CITY_CLONES') {
-        Write-Pass "District 12 skyline runtime clones existing map architecture and publishes clone count"
+    if ($gameLoopContent -match 'Prompt\(' -and $gameLoopContent -match 'get_status') {
+        Write-Pass "Project gameloop exposes temporary city-v2 runtime diagnostics"
     } else {
-        Write-Fail "District 12 skyline runtime is missing its clone/bootstrap logic"
+        Write-Fail "Project gameloop is missing city-v2 runtime diagnostics"
     }
 }
 
-$cityFabricPath = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_city_fabric.lua"
-if (Test-Path $cityFabricPath) {
-    $cityFabricContent = Get-Content -Raw $cityFabricPath
+$cityV2Path = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_city_v2.lua"
+if (Test-Path $cityV2Path) {
+    $cityV2 = Get-Content -Raw $cityV2Path
     $requiredTokens = @(
-        'cs_store_front_02_corner_with_window',
-        'cs_store_front_02_corner_neon_opposite',
-        'cs_street_lamp',
-        'cs_trash_can',
-        'BLACK_SIGNAL_FABRIC_CLONES',
-        'SpawnNewEntity'
+        'MAX_CLONES = 900',
+        'GetEntityFilePath',
+        'cs_street_straight_4x.fpe',
+        'cs_street_t-intersect_3.fpe',
+        'cs_street_4_way_2.fpe',
+        'cs_bg_building_01_floor.fpe',
+        'cs_bg_building_03_floor.fpe',
+        'BLACK_SIGNAL_CITY_V2_CLONES',
+        'SpawnNewEntity',
+        'function bs_city_v2.get_status'
     )
     foreach ($token in $requiredTokens) {
-        if ($cityFabricContent -match [regex]::Escape($token)) { Write-Pass "District 12 city fabric includes $token" }
-        else { Write-Fail "District 12 city fabric is missing $token" }
+        if ($cityV2 -match [regex]::Escape($token)) { Write-Pass "City-v2 runtime includes $token" }
+        else { Write-Fail "City-v2 runtime is missing $token" }
     }
 }
 
