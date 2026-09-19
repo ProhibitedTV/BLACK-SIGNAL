@@ -122,6 +122,31 @@ if (Test-Path $cityV3Path) {
     }
 }
 
+$mapListPath = Join-Path $repo "gameguru\maps\BLACK SIGNAL - District 12.lst"
+if (Test-Path $mapListPath) {
+    $mapList = (Get-Content -Raw $mapListPath).ToLowerInvariant()
+    $requiredSeedAssets = @(
+        'cs_street_straight_4x.fpe',
+        'cs_street_straight_2x.fpe',
+        'cs_bg_building_01_floor.fpe',
+        'cs_bg_building_03_floor.fpe',
+        'cs_bg_building_04_floor.fpe',
+        'cs_wall_01.fpe',
+        'cs_wall_corner_01.fpe',
+        'cs_walls_01_window_with_bars.fpe',
+        'cs_wall_01_entry_01.fpe',
+        'cs_wall_01_entry_04.fpe',
+        'cs_wall_01_overhang.fpe',
+        'cs_roof_tile_2x2.fpe',
+        'cs_roof_tile_4x4.fpe',
+        'cs_store_front_02_corner_neon_opposite.fpe'
+    )
+    foreach ($asset in $requiredSeedAssets) {
+        if ($mapList.Contains($asset)) { Write-Pass "District 12 seeds CITY V3 asset: $asset" }
+        else { Write-Fail "District 12 list is missing CITY V3 seed asset: $asset" }
+    }
+}
+
 try {
     $attr = (& git -C $repo check-attr filter -- "gameguru/maps/BLACK SIGNAL - District 12.fpm" 2>$null) -join "`n"
     if ($LASTEXITCODE -eq 0 -and $attr -match ': filter: lfs') { Write-Pass "District 12 .fpm uses Git LFS" }
