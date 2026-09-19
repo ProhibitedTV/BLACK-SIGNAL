@@ -21,11 +21,24 @@ function Test-LfsPointer([string]$Path) {
     }
 }
 
-function Copy-ProjectOwnedFiles([string]$SourceFiles, [string]$DestinationFiles) {
+function Copy-ProjectOwnedFiles([string]$SourceFiles, [string]$DestinationFiles, [switch]$ExcludeProjectGameLoop) {
     if (-not (Test-Path $SourceFiles)) { return }
     New-Item -ItemType Directory -Force -Path $DestinationFiles | Out-Null
-    Get-ChildItem -Path $SourceFiles -Force | ForEach-Object {
-        Copy-Item -Path $_.FullName -Destination $DestinationFiles -Recurse -Force
+
+    $sourceRoot = (Resolve-Path $SourceFiles).Path.TrimEnd('\')
+    Get-ChildItem -Path $sourceRoot -File -Recurse -Force | ForEach-Object {
+        $relative = $_.FullName.Substring($sourceRoot.Length).TrimStart('\')
+
+        # gameloop.lua is a BLACK SIGNAL project override. Never copy it into the
+        # default user Files tree where it could affect unrelated GameGuru projects.
+        if ($ExcludeProjectGameLoop -and $relative -ieq "scriptbank\gameloop.lua") {
+            return
+        }
+
+        $destination = Join-Path $DestinationFiles $relative
+        $destinationDir = Split-Path -Parent $destination
+        New-Item -ItemType Directory -Force -Path $destinationDir | Out-Null
+        Copy-Item -Force $_.FullName $destination
     }
 }
 
@@ -95,10 +108,11 @@ if ((Test-LfsPointer $mapSource) -or $sourceInfo.Length -lt 1MB) {
 
 $projectOwnedFiles = Join-Path $repo "gameguru\Files"
 
-# Always deploy to the default GameGuru MAX user Files tree. This gives us a
-# known-good raw-level path even when the project/storyboard is being repaired.
+# Always deploy the raw map and BLACK SIGNAL behaviours to the default GameGuru
+# MAX user Files tree for direct-level isolation testing. The project-specific
+# gameloop override is intentionally excluded here so other projects are not changed.
 $globalMap = Deploy-Map -MapSource $mapSource -ListSource $listSource -DestinationFiles $GameGuruFiles -BackupFolderName "_black_signal_deploy_backups"
-Copy-ProjectOwnedFiles -SourceFiles $projectOwnedFiles -DestinationFiles $GameGuruFiles
+Copy-ProjectOwnedFiles -SourceFiles $projectOwnedFiles -DestinationFiles $GameGuruFiles -ExcludeProjectGameLoop
 
 Write-Host ""
 Write-Host "BLACK SIGNAL deployed to default GameGuru MAX Files."
@@ -107,9 +121,8 @@ Write-Host "Custom behaviours: $(Join-Path $GameGuruFiles 'scriptbank\user\black
 
 # BLACK SIGNAL uses the repository root as its GameGuru MAX Separate Project
 # Folder. Mirror curated runtime content there and repair the existing wired
-# Level 1 Storyboard placeholder so it points at District 12. The repair script
-# validates the exact v203 binary layout and makes a byte-for-byte backup before
-# touching project203.dat.
+# Level 1 Storyboard placeholder so it points at District 12. The project-local
+# gameloop is included here and automatically activates the expanded city shell.
 $repoProjectFiles = Join-Path $repo "Files"
 $repoProjectDescriptor = Join-Path $repoProjectFiles "projectbank\BLACK SIGNAL\project203.dat"
 if (Test-Path $repoProjectDescriptor) {
@@ -121,6 +134,7 @@ if (Test-Path $repoProjectDescriptor) {
 
     Write-Host "Project-local map mirror: $projectMap"
     Write-Host "Project-local behaviours: $(Join-Path $repoProjectFiles 'scriptbank\user\black_signal')"
+    Write-Host "Project-local gameloop: $(Join-Path $repoProjectFiles 'scriptbank\gameloop.lua')"
 
     if (-not $SkipStoryboardRepair) {
         Write-Host ""
@@ -141,7 +155,7 @@ if (Test-Path $cineGuru) {
 if (Test-Path $repoProjectDescriptor) {
     $projectCineGuru = Join-Path $repoProjectFiles "scriptbank\Cine Guru MAX"
     if (-not (Test-Path $projectCineGuru) -and (Test-Path $cineGuru)) {
-        Write-Warning "CineGuru exists in the default Files tree but not in the Separate Project Folder. If CineGuru is absent inside MAX while this project is open, check Edit > Settings > Advanced > Writables folder location before copying any commercial dependency."
+        Write-Warning "CineGuru exists in default GameGuru Files but not in the Separate Project Folder. If CineGuru is absent inside MAX while this project is open, check Edit > Settings > Advanced > Writables folder location before copying any commercial dependency."
     }
 }
 
@@ -154,6 +168,6 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host ""
 Write-Host "BLACK SIGNAL deployment complete."
-Write-Host "District 12 is deployed and the Storyboard Level node is bound when project203.dat is present."
+Write-Host "District 12 is deployed, the Storyboard Level node is bound, and the project-local city expansion runtime is installed."
 Write-Host "Open the BLACK SIGNAL project in GameGuru MAX and use Normal Single Level/Test Play."
 Write-Host "Use CineGuru for cinematic cameras/actors/triggers and BLACK SIGNAL scripts for project-specific metadata/glue."

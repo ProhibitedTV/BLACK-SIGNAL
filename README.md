@@ -54,6 +54,14 @@ gameguru/maps/BLACK SIGNAL - District 12.fpm
 
 It is tracked with Git LFS. The companion `.lst` records referenced map dependencies. Importing/versioning the map does not build the film set by itself: geometry, dressing, lighting, CineGuru cameras, camera nodes, actors and trigger entities still have to be authored and saved inside GameGuru MAX.
 
+### Runtime metropolis shell
+
+District 12 automatically grows into a much larger city when the level runs. The project-local `gameloop.lua` loads `bs_city_runtime.lua`, which scans the already-authored Cyberpunk Streets background-building pieces and uses GameGuru MAX's `SpawnNewEntity` cloning API to build a deterministic metropolis around the hand-authored district.
+
+The expansion currently creates four skyline shells plus corner infill, with a hard ceiling of 620 cloned pieces. Towers are assembled from the existing `cs_bg_building_01_*` and `cs_bg_building_03_*` families, varied in footprint, height and orientation, and far-shell shadows/collision are disabled for production performance. The seed is fixed, so the skyline is identical from take to take. The generated shell is deliberately outside the authored district so Arrival Boulevard and other hero sets remain directly art-directable.
+
+This is a **runtime film-stage extension**, not destructive map editing: it does not duplicate marketplace assets into the repository and it does not permanently bake hundreds of background towers into the `.fpm`. Hero streets still belong in the authored map; the procedural shell supplies scale, parallax and skyline density around them.
+
 ## GameGuru MAX / CineGuru MAX
 
 Project conventions:
@@ -75,7 +83,7 @@ gameguru/Files/scriptbank/user/black_signal/bs_shot_marker.lua
 
 The BLACK SIGNAL Storyboard contains a wired `Level 1` node. If its `level_name` field is empty, MAX reports **"You do not have any levels in your setup"** even when the District 12 FPM itself is healthy.
 
-The repository now repairs that binding safely. Close GameGuru MAX first, then from PowerShell at the repository root run:
+The repository repairs that binding safely and also installs the project-local runtime city expansion. Close GameGuru MAX first, then from PowerShell at the repository root run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\fix-game.ps1
@@ -86,7 +94,8 @@ That one command:
 - materializes the Git LFS FPM;
 - validates the curated repository source;
 - deploys District 12 and BLACK SIGNAL-owned scripts to the default GameGuru MAX `Files` tree;
-- mirrors them into this repository's Separate Project Folder runtime tree;
+- mirrors the complete BLACK SIGNAL runtime, including its project-local `gameloop.lua`, into this repository's Separate Project Folder;
+- keeps the BLACK SIGNAL `gameloop.lua` out of the default user Files tree so unrelated projects are not changed;
 - validates `Files/projectbank/BLACK SIGNAL/project203.dat` as the exact GameGuru MAX Storyboard v203 binary layout;
 - makes a byte-for-byte local backup under `.black-signal/backups/storyboard/`;
 - preserves the existing Storyboard graph and binds its empty LEVEL placeholder to `mapbank\BLACK SIGNAL - District 12.fpm`;
