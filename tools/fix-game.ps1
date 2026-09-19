@@ -21,9 +21,17 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
+Write-Host "Installing verified runtime hook in the default GameGuru scriptbank..."
+& (Join-Path $PSScriptRoot "install-default-runtime-hook.ps1") -GameGuruFiles $GameGuruFiles
+if ($LASTEXITCODE -ne 0) {
+    throw "BLACK SIGNAL runtime-hook installation failed."
+}
+
+Write-Host ""
 Write-Host "[PASS] BLACK SIGNAL is repaired and ready to open."
 Write-Host "       District 12 is deployed to mapbank and bound to the existing Storyboard LEVEL node."
-Write-Host "       The project-local runtime city expander is installed for District 12."
+Write-Host "       The city runtime is installed in both the project tree and the default GameGuru scriptbank."
+Write-Host "       The default hook is level-gated and stays inert outside BLACK SIGNAL / District 12."
 
 if ($Launch) {
     Write-Host "Launching GameGuru MAX through Steam..."
