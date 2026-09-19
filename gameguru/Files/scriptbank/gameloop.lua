@@ -97,7 +97,16 @@ function gameloop.main()
         end
     end
 
-    if not is_black_signal_level() then return end
+    if not is_black_signal_level() then
+        -- Temporary diagnostic so a future screenshot tells us immediately if MAX
+        -- is reporting an unexpected level filename. This appears only for the
+        -- first seven seconds of a test run.
+        if Prompt ~= nil and (g_Time or 0) < 7000 then
+            Prompt("BLACK SIGNAL HOOK ACTIVE | level='" .. tostring(g_LevelFilename or "") .. "'")
+        end
+        return
+    end
+
     start_black_signal_runtime()
 
     if cityv2_ok and bs_city_v2 ~= nil and bs_city_v2.main ~= nil and runtime_error == "" then
