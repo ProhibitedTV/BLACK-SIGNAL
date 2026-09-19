@@ -60,16 +60,49 @@ gameguru/maps/BLACK SIGNAL - District 12.fpm
 
 The `.fpm` is a binary GameGuru map and is tracked with Git LFS. Its companion `.lst` records referenced dependencies. The repository can version and deploy the map, but actual street geometry, entity placement, CineGuru camera nodes, lights, actors, and trigger zones must be authored/saved inside GameGuru MAX.
 
-## Deploy and validate
+## Important: project != loaded level
+
+A GameGuru MAX **project/storyboard** and an `.fpm` **level** are separate pieces of state. Copying `BLACK SIGNAL - District 12.fpm` into `mapbank` does not automatically add that level to the BLACK SIGNAL Storyboard, select it as the current level, or rewrite `projectbank/BLACK SIGNAL/project203.dat`.
+
+For the first isolation test after a deploy:
+
+1. Open GameGuru MAX.
+2. From the Level Editor / Load Existing Level flow, load `BLACK SIGNAL - District 12.fpm` directly.
+3. Confirm the Player Start marker exists and Test/Play works.
+4. Only after direct level test works, add the existing level to the BLACK SIGNAL Storyboard and save the project.
+
+This distinction matters in current MAX builds. Upstream GameGuru MAX issue `Dark-Basic-Software-Limited/GameGuruRepo#6423` (opened July 2026) reports that adding an existing level to a project may fail to transfer that level's referenced files into a separate project folder. BLACK SIGNAL therefore keeps the raw FPM test path as the baseline sanity check instead of assuming project/storyboard integration succeeded.
+
+## Git LFS requirement
+
+The production FPM must be **materialized** before deployment. A 100-ish byte Git LFS pointer is not a playable GameGuru map. The deploy helper now runs an LFS pull and refuses to copy a pointer/stub into GameGuru MAX.
+
+Manual recovery command:
+
+```powershell
+git lfs pull --include="gameguru/maps/*.fpm"
+```
+
+## Deploy, validate, diagnose
 
 From PowerShell at the repository root:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\validate-repo.ps1
 powershell -ExecutionPolicy Bypass -File .\tools\deploy-gameguru-project.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-play-level.ps1
 ```
 
-The deploy script copies only BLACK SIGNAL-owned source plus the production map. It does **not** copy or overwrite GameGuru engine content, Cyberpunk Streets assets, or CineGuru files.
+The play-level diagnostic verifies that:
+
+- the repository FPM is a real binary rather than an LFS pointer;
+- the deployed FPM is present and matches the repository source unless it has been edited in MAX;
+- the District 12 dependency list references the Player Start marker;
+- the installed Player Start asset exists;
+- CineGuru and the BLACK SIGNAL behaviour folder are visible locally;
+- a BLACK SIGNAL project descriptor is treated separately from the raw level.
+
+The deploy script copies only BLACK SIGNAL-owned source plus the production map. It does **not** copy or overwrite GameGuru engine content, Cyberpunk Streets assets, CineGuru files, or the project's `project203.dat` storyboard descriptor.
 
 After changing District 12 in MAX, the existing round-trip helper remains available:
 
