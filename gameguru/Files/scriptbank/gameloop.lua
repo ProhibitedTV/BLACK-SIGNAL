@@ -1,4 +1,4 @@
--- DESCRIPTION: BLACK SIGNAL runtime-aware gameloop. Preserves stock MAX player-health logic and builds District 12 through the robust city-v2 generator.
+-- DESCRIPTION: BLACK SIGNAL runtime-aware gameloop. Preserves stock MAX player-health logic and builds District 12 through the robust incremental city-v2 generator.
 
 module_cameraoverride = require "scriptbank\\ai\\module_cameraoverride"
 
@@ -16,6 +16,7 @@ gameloop_RegenTickTime = 0
 local gameloop = {}
 local runtime_started = false
 local runtime_start_time = 0
+local runtime_ready_time = 0
 local runtime_error = ""
 
 local function lower(value)
@@ -35,10 +36,11 @@ local function start_black_signal_runtime()
     if runtime_started then return end
     runtime_started = true
     runtime_start_time = g_Time or 0
+    runtime_ready_time = 0
     runtime_error = ""
 
     if g_UserGlobal ~= nil then
-        g_UserGlobal["BLACK_SIGNAL_RUNTIME_HOOK"] = 2
+        g_UserGlobal["BLACK_SIGNAL_RUNTIME_HOOK"] = 3
     end
 
     if cityv2_ok and bs_city_v2 ~= nil and bs_city_v2.init ~= nil then
@@ -54,7 +56,6 @@ end
 local function show_runtime_status()
     if Prompt == nil then return end
     local now = g_Time or 0
-    if now > runtime_start_time + 7000 then return end
 
     if runtime_error ~= "" then
         Prompt("BLACK SIGNAL CITY V2 ERROR: " .. runtime_error)
@@ -64,6 +65,13 @@ local function show_runtime_status()
     if bs_city_v2 ~= nil and bs_city_v2.get_status ~= nil then
         local ok, state, clones, roads, templates, blocks, err = pcall(bs_city_v2.get_status)
         if ok then
+            if tostring(state) == "ready" then
+                if runtime_ready_time == 0 then runtime_ready_time = now end
+                if now > runtime_ready_time + 4000 then return end
+            elseif now > runtime_start_time + 30000 then
+                return
+            end
+
             local message = "BLACK SIGNAL CITY V2 | " .. tostring(state) ..
                 " | clones " .. tostring(clones or 0) ..
                 " | roads " .. tostring(roads or 0) ..
@@ -79,6 +87,7 @@ function gameloop.init()
     gameloop_RegenTickTime = 0
     runtime_started = false
     runtime_start_time = g_Time or 0
+    runtime_ready_time = 0
     runtime_error = ""
 end
 
@@ -98,9 +107,6 @@ function gameloop.main()
     end
 
     if not is_black_signal_level() then
-        -- Temporary diagnostic so a future screenshot tells us immediately if MAX
-        -- is reporting an unexpected level filename. This appears only for the
-        -- first seven seconds of a test run.
         if Prompt ~= nil and (g_Time or 0) < 7000 then
             Prompt("BLACK SIGNAL HOOK ACTIVE | level='" .. tostring(g_LevelFilename or "") .. "'")
         end
@@ -114,9 +120,8 @@ function gameloop.main()
         if not ok then runtime_error = tostring(err) end
     end
 
-    -- Temporary seven-second HUD diagnostic. It disappears automatically once
-    -- we have proved the runtime path and gives us exact scan/spawn counts if MAX
-    -- rejects any part of the procedural city build.
+    -- Stay visible while the incremental city is building. Once ready, keep the
+    -- final counts on screen for four seconds and then get out of the film frame.
     show_runtime_status()
 end
 
@@ -126,6 +131,7 @@ function gameloop.quit()
     end
 
     runtime_started = false
+    runtime_ready_time = 0
     runtime_error = ""
     module_cameraoverride.restoreandreset()
 end
