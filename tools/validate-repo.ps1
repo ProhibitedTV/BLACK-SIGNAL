@@ -22,10 +22,12 @@ $required = @(
     "gameguru\Files\scriptbank\user\black_signal",
     "gameguru\Files\scriptbank\user\black_signal\bs_city_v2.lua",
     "gameguru\Files\scriptbank\user\black_signal\bs_city_v3.lua",
+    "gameguru\Files\scriptbank\user\black_signal\bs_city_details.lua",
     "docs\GAMEGURU-MAX.md",
     "docs\CINEGURU-MAX.md",
     "docs\DISTRICT-12-STREET-AWARE-GENERATOR.md",
     "docs\DISTRICT-12-MODULAR-CITY-V3.md",
+    "docs\DISTRICT-12-STREET-DETAILS.md",
     "ASSET-MANIFEST.md"
 )
 
@@ -66,10 +68,13 @@ if (Test-Path $gameLoopPath) {
     if ($gameLoopContent -match 'bs_city_v3') { Write-Pass "Project gameloop hooks modular bs_city_v3 runtime" }
     else { Write-Fail "Project gameloop does not hook bs_city_v3" }
 
-    if ($gameLoopContent -match 'BLACK SIGNAL CITY V3' -and $gameLoopContent -match 'get_status') {
-        Write-Pass "Project gameloop exposes CITY V3 build diagnostics"
+    if ($gameLoopContent -match 'bs_city_details') { Write-Pass "Project gameloop hooks post-city bs_city_details runtime" }
+    else { Write-Fail "Project gameloop does not hook bs_city_details" }
+
+    if ($gameLoopContent -match 'BLACK SIGNAL CITY V3' -and $gameLoopContent -match 'BLACK SIGNAL DETAIL V1' -and $gameLoopContent -match 'get_status') {
+        Write-Pass "Project gameloop exposes CITY V3 and DETAIL V1 diagnostics"
     } else {
-        Write-Fail "Project gameloop is missing CITY V3 runtime diagnostics"
+        Write-Fail "Project gameloop is missing CITY V3/DETAIL V1 diagnostics"
     }
 }
 
@@ -122,6 +127,38 @@ if (Test-Path $cityV3Path) {
     }
 }
 
+$detailPath = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_city_details.lua"
+if (Test-Path $detailPath) {
+    $details = Get-Content -Raw $detailPath
+    $detailTokens = @(
+        'MAX_DETAILS = 360',
+        'SPAWNS_PER_FRAME = 6',
+        'streets and sidewalks\\sidewalks\\',
+        'parking',
+        'bollard',
+        'rail',
+        'cs_bench.fpe',
+        'cs_bus_stop.fpe',
+        'cs_atm.fpe',
+        'cs_dumpster_closed.fpe',
+        'cs_fireplug.fpe',
+        'cs_aircon_01.fpe',
+        'cs_street_lamp.fpe',
+        'cs_planter_01.fpe',
+        'cs_trash_can.fpe',
+        'place_sidewalk_details',
+        'place_service_details',
+        'place_small_clutter',
+        'BLACK_SIGNAL_DETAILS_RAILS',
+        'BLACK_SIGNAL_DETAILS_POSTS',
+        'function bs_city_details.get_status'
+    )
+    foreach ($token in $detailTokens) {
+        if ($details -match [regex]::Escape($token)) { Write-Pass "DETAIL V1 runtime includes $token" }
+        else { Write-Fail "DETAIL V1 runtime is missing $token" }
+    }
+}
+
 $mapListPath = Join-Path $repo "gameguru\maps\BLACK SIGNAL - District 12.lst"
 if (Test-Path $mapListPath) {
     $mapList = (Get-Content -Raw $mapListPath).ToLowerInvariant()
@@ -139,11 +176,35 @@ if (Test-Path $mapListPath) {
         'cs_wall_01_overhang.fpe',
         'cs_roof_tile_2x2.fpe',
         'cs_roof_tile_4x4.fpe',
-        'cs_store_front_02_corner_neon_opposite.fpe'
+        'cs_store_front_02_corner_neon_opposite.fpe',
+        'cs_street_lamp.fpe',
+        'cs_planter_01.fpe',
+        'cs_trash_can.fpe',
+        'cs_bottle_can_cluster_01.fpe',
+        'cs_newspaper_01.fpe'
     )
     foreach ($asset in $requiredSeedAssets) {
-        if ($mapList.Contains($asset)) { Write-Pass "District 12 seeds CITY V3 asset: $asset" }
-        else { Write-Fail "District 12 list is missing CITY V3 seed asset: $asset" }
+        if ($mapList.Contains($asset)) { Write-Pass "District 12 seeds runtime asset: $asset" }
+        else { Write-Fail "District 12 list is missing required runtime seed asset: $asset" }
+    }
+
+    $optionalDetailFamilies = [ordered]@{
+        'parking posts/bollards' = '(parking.*post|bollard)'
+        'pedestrian rails/barriers' = '(rail|parking.*barrier)'
+        'bench' = 'cs_bench\.fpe'
+        'bus stop' = 'cs_bus_stop\.fpe'
+        'ATM' = 'cs_atm\.fpe'
+        'dumpster' = 'cs_dumpster_closed\.fpe'
+        'fireplug' = 'cs_fireplug\.fpe'
+        'air conditioner' = 'cs_aircon_01\.fpe'
+    }
+    $missingOptional = @()
+    foreach ($entry in $optionalDetailFamilies.GetEnumerator()) {
+        if ($mapList -match $entry.Value) { Write-Pass "District 12 seeds optional DETAIL V1 family: $($entry.Key)" }
+        else { $missingOptional += $entry.Key }
+    }
+    if ($missingOptional.Count -gt 0) {
+        Write-Warn ("Optional DETAIL V1 exemplars not yet seeded in the FPM: " + ($missingOptional -join ', ') + ". The runtime will use them automatically once one exemplar of each desired asset is present in the level.")
     }
 }
 
