@@ -1,7 +1,8 @@
--- DESCRIPTION: BLACK SIGNAL project gameloop. Preserves stock MAX player-health logic and adds District 12 skyline expansion.
+-- DESCRIPTION: BLACK SIGNAL project gameloop. Preserves stock MAX player-health logic and adds District 12 city fabric and skyline expansion.
 
 module_cameraoverride = require "scriptbank\\ai\\module_cameraoverride"
 
+local fabric_ok, bs_city_fabric = pcall(require, "scriptbank\\user\\black_signal\\bs_city_fabric")
 local city_ok, bs_city_runtime = pcall(require, "scriptbank\\user\\black_signal\\bs_city_runtime")
 
 gameloop_RegenTickTime = 0
@@ -11,6 +12,9 @@ local gameloop = {}
 function gameloop.init()
     gameloop_RegenTickTime = 0
 
+    if fabric_ok and bs_city_fabric ~= nil and bs_city_fabric.init ~= nil then
+        bs_city_fabric.init()
+    end
     if city_ok and bs_city_runtime ~= nil and bs_city_runtime.init ~= nil then
         bs_city_runtime.init()
     end
@@ -33,8 +37,14 @@ function gameloop.main()
         end
     end
 
-    -- BLACK SIGNAL production-stage extension. The module is level-gated and
-    -- only runs for BLACK SIGNAL - District 12.
+    -- Generate the near/midground urban fabric first: storefronts, street walls,
+    -- side-street channels, alley mouths and lived-in curb dressing.
+    if fabric_ok and bs_city_fabric ~= nil and bs_city_fabric.main ~= nil then
+        bs_city_fabric.main()
+    end
+
+    -- Then extend the skyline outside the authored district. Both modules are
+    -- level-gated and only run for BLACK SIGNAL - District 12.
     if city_ok and bs_city_runtime ~= nil and bs_city_runtime.main ~= nil then
         bs_city_runtime.main()
     end
@@ -43,6 +53,9 @@ end
 function gameloop.quit()
     if city_ok and bs_city_runtime ~= nil and bs_city_runtime.quit ~= nil then
         bs_city_runtime.quit()
+    end
+    if fabric_ok and bs_city_fabric ~= nil and bs_city_fabric.quit ~= nil then
+        bs_city_fabric.quit()
     end
     module_cameraoverride.restoreandreset()
 end
