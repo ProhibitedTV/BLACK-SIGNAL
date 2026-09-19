@@ -8,6 +8,14 @@ Thumbs.db
 **/_automatedbackups/
 **/_black_signal_deploy_backups/
 
+# Curated BLACK SIGNAL source lives under gameguru/. When the repository root
+# is used as a GameGuru MAX Separate Project Folder, deploy helpers mirror the
+# production map and owned scripts into the runtime Files tree. Do not commit
+# those duplicate runtime mirrors.
+/Files/mapbank/BLACK SIGNAL - District 12.fpm
+/Files/mapbank/BLACK SIGNAL - District 12.lst
+/Files/scriptbank/user/black_signal/
+
 # Local render outputs; deliverables belong outside normal Git history
 renders/dailies/
 renders/final/
