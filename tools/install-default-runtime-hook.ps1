@@ -43,7 +43,12 @@ if ($installedHash -ne $sourceHash) {
     throw "Default GameGuru gameloop verification failed after copy."
 }
 
-$requiredModules = @("bs_basin_city.lua", "bs_city_fabric.lua", "bs_city_runtime.lua")
+$requiredModules = @(
+    "bs_city_v2.lua",
+    "bs_basin_city.lua",
+    "bs_city_fabric.lua",
+    "bs_city_runtime.lua"
+)
 foreach ($module in $requiredModules) {
     $path = Join-Path $destinationModules $module
     if (-not (Test-Path $path)) {
@@ -51,7 +56,14 @@ foreach ($module in $requiredModules) {
     }
 }
 
+$v2Source = Join-Path $sourceModules "bs_city_v2.lua"
+$v2Destination = Join-Path $destinationModules "bs_city_v2.lua"
+if ((Get-FileHash -Algorithm SHA256 $v2Source).Hash -ne (Get-FileHash -Algorithm SHA256 $v2Destination).Hash) {
+    throw "bs_city_v2.lua hash verification failed after copy."
+}
+
 Write-Host "[PASS] Installed BLACK SIGNAL runtime hook into default GameGuru scriptbank."
 Write-Host "       Hook: $destinationGameLoop"
 Write-Host "       Modules: $destinationModules"
+Write-Host "[PASS] Verified robust District 12 city-v2 runtime module."
 Write-Host "       The hook preserves stock health regeneration and only activates city generation when g_LevelFilename contains 'BLACK SIGNAL' or 'District 12'."
