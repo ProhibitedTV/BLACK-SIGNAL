@@ -1,15 +1,20 @@
--- DESCRIPTION: BLACK SIGNAL robust District 12 city generator. Builds dense city blocks from all level entity indices without relying on g_Entity population state.
+-- DESCRIPTION: BLACK SIGNAL incremental District 12 city generator. Plans a dense deterministic metropolis, then spawns only a few entities per frame so GameGuru MAX stays responsive.
 
 local bs_city_v2 = {}
 
 local MAX_CLONES = 900
+local SPAWNS_PER_FRAME = 3
+local START_DELAY_MS = 500
+
 local generated = false
 local init_time = 0
 local spawned = {}
+local jobs = {}
+local job_index = 1
 local rng_state = 12074317
 local status = "idle"
 local last_error = ""
-local stats = { roads = 0, templates = 0, blocks = 0, clones = 0 }
+local stats = { roads = 0, templates = 0, blocks = 0, clones = 0, planned = 0, failed = 0 }
 
 local function lower(value)
     if value == nil then return "" end
@@ -89,40 +94,6 @@ local function is_cyberpunk_architecture(path)
            contains(path, "store fronts") or
            contains(path, "buildings") or
            is_known_road(path)
-end
-
-local function safe_scale(e, scale)
-    if Scale ~= nil then pcall(Scale, e, scale) end
-end
-
-local function spawn_piece(template, x, bottom_y, z, yaw, scale, collision, shadow)
-    if template == nil or template <= 0 then return nil, bottom_y end
-    if #spawned >= MAX_CLONES then return nil, bottom_y end
-    if SpawnNewEntity == nil then return nil, bottom_y end
-
-    local ok, newe = pcall(SpawnNewEntity, template)
-    if not ok or newe == nil or newe <= 0 then return nil, bottom_y end
-
-    scale = scale or 100
-    local _, miny, _, _, maxy, _ = bounds(template)
-    local factor = scale / 100.0
-    local pivot_y = bottom_y - (miny * factor)
-
-    if ResetPosition ~= nil then pcall(ResetPosition, newe, x, pivot_y, z) end
-    if ResetRotation ~= nil then pcall(ResetRotation, newe, 0, yaw or 0, 0) end
-    safe_scale(newe, scale)
-    if GravityOff ~= nil then pcall(GravityOff, newe) end
-    if collision then
-        if CollisionOn ~= nil then pcall(CollisionOn, newe) end
-    else
-        if CollisionOff ~= nil then pcall(CollisionOff, newe) end
-    end
-    if shadow == false and SetEntityCastShadows ~= nil then pcall(SetEntityCastShadows, newe, 0) end
-    if Show ~= nil then pcall(Show, newe) end
-
-    spawned[#spawned + 1] = newe
-    stats.clones = #spawned
-    return newe, pivot_y + (maxy * factor)
 end
 
 local function scan_level()
@@ -205,8 +176,6 @@ local function scan_level()
     local axis = "x"
     if var_z > var_x then axis = "z" end
 
-    -- Player position is the best center for a visibly useful film set. Fall back
-    -- to the authored road/architecture centroid if the player globals are absent.
     local center_x = mean_x
     local center_z = mean_z
     if g_PlayerPosX ~= nil and g_PlayerPosZ ~= nil then
@@ -225,7 +194,6 @@ local function scan_level()
 
     return {
         templates = t,
-        architecture = architecture,
         axis = axis,
         center_x = center_x,
         center_z = center_z,
@@ -250,25 +218,49 @@ local function choose_kit(t)
     }
 end
 
-local function build_tower(scan, x, z, tier)
-    if #spawned >= MAX_CLONES - 12 then return end
+local function top_after(template, bottom_y, scale)
+    if template == nil or template <= 0 then return bottom_y end
+    local _, miny, _, _, maxy, _ = bounds(template)
+    local factor = (scale or 100) / 100.0
+    local pivot_y = bottom_y - (miny * factor)
+    return pivot_y + (maxy * factor)
+end
+
+local function queue_piece(template, x, bottom_y, z, yaw, scale, collision, shadow)
+    if template == nil or template <= 0 then return bottom_y end
+    if #jobs >= MAX_CLONES then return bottom_y end
+    jobs[#jobs + 1] = {
+        template = template,
+        x = x,
+        bottom_y = bottom_y,
+        z = z,
+        yaw = yaw or 0,
+        scale = scale or 100,
+        collision = collision == true,
+        shadow = shadow ~= false
+    }
+    return top_after(template, bottom_y, scale)
+end
+
+local function plan_tower(scan, x, z, tier)
+    if #jobs >= MAX_CLONES - 12 then return end
     local kit = choose_kit(scan.templates)
     if kit.floor == nil then return end
 
     local scale = random_range(82, 118)
     local floors = random_int(2, 4) + tier
     local yaw = random_int(0, 3) * 90
-    local _, next_y = spawn_piece(kit.base or kit.floor, x, scan.ground_y, z, yaw, scale, false, tier <= 2)
+    local next_y = scan.ground_y
 
+    next_y = queue_piece(kit.base or kit.floor, x, next_y, z, yaw, scale, false, tier <= 2)
     if kit.between ~= nil and random01() < 0.25 then
-        _, next_y = spawn_piece(kit.between, x, next_y, z, yaw, scale, false, tier <= 2)
+        next_y = queue_piece(kit.between, x, next_y, z, yaw, scale, false, tier <= 2)
     end
-
-    for i = 1, floors do
-        if #spawned >= MAX_CLONES - 2 then break end
-        _, next_y = spawn_piece(kit.floor, x, next_y, z, yaw, scale, false, tier <= 2)
+    for _ = 1, floors do
+        if #jobs >= MAX_CLONES - 2 then break end
+        next_y = queue_piece(kit.floor, x, next_y, z, yaw, scale, false, tier <= 2)
     end
-    spawn_piece(kit.top or kit.floor, x, next_y, z, yaw, scale, false, tier <= 2)
+    queue_piece(kit.top or kit.floor, x, next_y, z, yaw, scale, false, tier <= 2)
 end
 
 local function to_world(scan, along, cross)
@@ -278,52 +270,47 @@ local function to_world(scan, along, cross)
     return scan.center_x + cross, scan.center_z + along
 end
 
-local function build_dense_grid(scan)
+local function plan_dense_grid(scan)
     local t = scan.templates
     local along_step = 780
     local cross_step = 720
     local road_half = 560
 
-    -- 13 blocks long by 8 deep, with the central boulevard and three cross streets
-    -- left open. This deliberately fills the visible basin before worrying about
-    -- distant skyline shells.
     for side = -1, 1, 2 do
         for band = 1, 4 do
             local cross = side * (road_half + band * cross_step)
             for slot = -6, 6 do
-                if #spawned >= MAX_CLONES - 20 then return end
-
+                if #jobs >= MAX_CLONES - 20 then return end
                 local cross_street = (slot == -3 or slot == 0 or slot == 3)
                 if not cross_street then
                     local along = slot * along_step
                     local x, z = to_world(scan, along + random_range(-80, 80), cross + random_range(-70, 70))
-                    local tier = band
-                    build_tower(scan, x, z, tier)
+                    plan_tower(scan, x, z, band)
                     stats.blocks = stats.blocks + 1
 
-                    -- Secondary mass creates internal alleys/service canyons.
-                    if random01() < 0.72 and #spawned < MAX_CLONES - 12 then
+                    if random01() < 0.72 and #jobs < MAX_CLONES - 12 then
+                        local sign = 1
+                        if random01() < 0.5 then sign = -1 end
                         local ax, az = to_world(scan,
-                            along + random_range(230, 330) * (random01() < 0.5 and -1 or 1),
+                            along + random_range(230, 330) * sign,
                             cross + side * random_range(180, 260))
-                        build_tower(scan, ax, az, math.max(1, tier - 1))
+                        plan_tower(scan, ax, az, math.max(1, band - 1))
                     end
 
-                    -- Near-boulevard street edge gets storefront/wall fragments.
                     if band == 1 then
                         local frontage_cross = side * (road_half + 130)
                         local fx, fz = to_world(scan, along, frontage_cross)
                         local facade = t.store_window or t.store_neon or t.window or t.entry or t.wall
                         if facade ~= nil then
-                            spawn_piece(facade, fx, scan.ground_y, fz, side > 0 and 180 or 0, 100, false, true)
+                            queue_piece(facade, fx, scan.ground_y, fz, side > 0 and 180 or 0, 100, false, true)
                         end
                         if t.lamp ~= nil and slot % 2 == 0 then
                             local lx, lz = to_world(scan, along + 250, frontage_cross - side * 120)
-                            spawn_piece(t.lamp, lx, scan.ground_y, lz, 0, 100, false, false)
+                            queue_piece(t.lamp, lx, scan.ground_y, lz, 0, 100, false, false)
                         end
                         if t.planter ~= nil and slot % 3 == 1 then
                             local px, pz = to_world(scan, along - 230, frontage_cross - side * 110)
-                            spawn_piece(t.planter, px, scan.ground_y, pz, random_range(0, 360), 100, false, false)
+                            queue_piece(t.planter, px, scan.ground_y, pz, random_range(0, 360), 100, false, false)
                         end
                     end
                 end
@@ -331,52 +318,92 @@ local function build_dense_grid(scan)
         end
     end
 
-    -- Perimeter towers form an urban wall in front of the valley slopes.
     for side = -1, 1, 2 do
         local cross = side * 3850
         for slot = -6, 6 do
-            if #spawned >= MAX_CLONES - 14 then break end
+            if #jobs >= MAX_CLONES - 14 then break end
             if slot % 2 == 0 then
                 local x, z = to_world(scan, slot * 820, cross)
-                build_tower(scan, x, z, 5)
+                plan_tower(scan, x, z, 5)
             end
         end
     end
 end
 
-local function generate()
+local function spawn_job(job)
+    if job == nil then return false end
+    if SpawnNewEntity == nil then
+        last_error = "SpawnNewEntity unavailable"
+        return false
+    end
+
+    local ok, newe = pcall(SpawnNewEntity, job.template)
+    if not ok or newe == nil or newe <= 0 then
+        stats.failed = stats.failed + 1
+        last_error = "SpawnNewEntity failed at job " .. tostring(job_index)
+        return false
+    end
+
+    local _, miny, _, _, _, _ = bounds(job.template)
+    local factor = job.scale / 100.0
+    local pivot_y = job.bottom_y - (miny * factor)
+
+    if ResetPosition ~= nil then pcall(ResetPosition, newe, job.x, pivot_y, job.z) end
+    if ResetRotation ~= nil then pcall(ResetRotation, newe, 0, job.yaw, 0) end
+    if Scale ~= nil then pcall(Scale, newe, job.scale) end
+    if GravityOff ~= nil then pcall(GravityOff, newe) end
+    if job.collision then
+        if CollisionOn ~= nil then pcall(CollisionOn, newe) end
+    else
+        if CollisionOff ~= nil then pcall(CollisionOff, newe) end
+    end
+    if not job.shadow and SetEntityCastShadows ~= nil then pcall(SetEntityCastShadows, newe, 0) end
+    if Show ~= nil then pcall(Show, newe) end
+
+    spawned[#spawned + 1] = newe
+    stats.clones = #spawned
+    return true
+end
+
+local function publish_ready()
+    generated = true
+    status = "ready"
+    if g_UserGlobal ~= nil then
+        g_UserGlobal["BLACK_SIGNAL_CITY_V2_READY"] = 1
+        g_UserGlobal["BLACK_SIGNAL_CITY_V2_CLONES"] = #spawned
+        g_UserGlobal["BLACK_SIGNAL_CITY_V2_ROADS"] = stats.roads
+        g_UserGlobal["BLACK_SIGNAL_CITY_V2_TEMPLATES"] = stats.templates
+        g_UserGlobal["BLACK_SIGNAL_CITY_V2_BLOCKS"] = stats.blocks
+    end
+end
+
+local function plan_generation()
     status = "scanning"
     local scan = scan_level()
     if scan == nil then return false end
 
-    status = "building"
-    build_dense_grid(scan)
-
-    if #spawned > 0 then
-        generated = true
-        status = "ready"
-        if g_UserGlobal ~= nil then
-            g_UserGlobal["BLACK_SIGNAL_CITY_V2_READY"] = 1
-            g_UserGlobal["BLACK_SIGNAL_CITY_V2_CLONES"] = #spawned
-            g_UserGlobal["BLACK_SIGNAL_CITY_V2_ROADS"] = stats.roads
-            g_UserGlobal["BLACK_SIGNAL_CITY_V2_TEMPLATES"] = stats.templates
-            g_UserGlobal["BLACK_SIGNAL_CITY_V2_BLOCKS"] = stats.blocks
-        end
-        return true
+    status = "planning"
+    plan_dense_grid(scan)
+    stats.planned = #jobs
+    if #jobs == 0 then
+        status = "planning produced zero jobs"
+        return false
     end
 
-    status = "spawn produced zero clones"
-    return false
+    status = "building 0/" .. tostring(#jobs)
+    return true
 end
 
 function bs_city_v2.init()
     generated = false
     init_time = g_Time or 0
     spawned = {}
+    jobs = {}
+    job_index = 1
     rng_state = 12074317
     status = "waiting"
     last_error = ""
-    stats = { roads = 0, templates = 0, blocks = 0, clones = 0 }
+    stats = { roads = 0, templates = 0, blocks = 0, clones = 0, planned = 0, failed = 0 }
 end
 
 function bs_city_v2.main()
@@ -385,15 +412,42 @@ function bs_city_v2.main()
         status = "waiting for entities"
         return false
     end
-    if (g_Time or 0) < init_time + 500 then return false end
+    if (g_Time or 0) < init_time + START_DELAY_MS then return false end
 
-    local ok, result = pcall(generate)
-    if not ok then
-        last_error = tostring(result)
-        status = "ERROR: " .. last_error
+    if #jobs == 0 then
+        local ok, planned = pcall(plan_generation)
+        if not ok then
+            last_error = tostring(planned)
+            status = "ERROR planning: " .. last_error
+            return false
+        end
+        if not planned then return false end
+    end
+
+    local processed = 0
+    while job_index <= #jobs and processed < SPAWNS_PER_FRAME do
+        local job = jobs[job_index]
+        local ok, err = pcall(spawn_job, job)
+        if not ok then
+            last_error = tostring(err)
+            status = "ERROR spawn: " .. last_error
+            return false
+        end
+        job_index = job_index + 1
+        processed = processed + 1
+    end
+
+    if job_index > #jobs then
+        if #spawned > 0 then
+            publish_ready()
+            return true
+        end
+        status = "spawn produced zero clones"
         return false
     end
-    return result == true
+
+    status = "building " .. tostring(job_index - 1) .. "/" .. tostring(#jobs)
+    return false
 end
 
 function bs_city_v2.get_status()
@@ -401,10 +455,12 @@ function bs_city_v2.get_status()
 end
 
 function bs_city_v2.quit()
-    if DeleteNewEntity ~= nil then
-        for i = #spawned, 1, -1 do pcall(DeleteNewEntity, spawned[i]) end
-    end
+    -- Spawned entities are scoped to the test level and are discarded by MAX on
+    -- level teardown. Avoid deleting hundreds of entities synchronously here;
+    -- that was another potential editor stall when exiting Test Play.
     spawned = {}
+    jobs = {}
+    job_index = 1
     generated = false
 end
 
