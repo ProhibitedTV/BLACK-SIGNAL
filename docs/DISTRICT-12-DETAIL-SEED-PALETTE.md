@@ -43,4 +43,4 @@ The full neon family discovered by the audit also includes `CS_Neon_02`, `CS_Neo
 
 ## Parking posts / rails
 
-The current audit found no filenames matching the narrow `parking post`, `bollard`, `rail`, or `parking barrier` patterns. The audit tool now also prints a broader curb-protection candidate list using terms such as `post`, `pole`, `barrier`, `fence`, `guard`, `parking`, `rail`, and `bollard`. Use that list to choose the actual DLC pieces before adding them to the hidden seed palette.
+The current audit found no filenames matching the narrow `parking post`, `bollard`, `rail`, or `parking barrier` patterns. That means the visual pieces the pack exposes for curb protection are either named differently or are part of a larger sidewalk/street module. Before wiring those into DETAIL V1, inspect the installed pack for broader terms such as `post`, `pole`, `barrier`, `fence`, `guard`, `parking`, `rail`, and `bollard`, then seed the specific pieces we actually want. Do not substitute an unrelated prop merely to make the counters non-zero.
