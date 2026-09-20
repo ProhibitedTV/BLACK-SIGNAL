@@ -19,6 +19,10 @@ Thumbs.db
 /Files/mapbank/BLACK SIGNAL - District 12.lst
 /Files/scriptbank/user/black_signal/
 
+# Local FPM reverse-engineering / generated compatibility-test artifacts
+/_fpm_probe/
+/_fpm_generated/
+
 # Local render outputs; deliverables belong outside normal Git history
 renders/dailies/
 renders/final/

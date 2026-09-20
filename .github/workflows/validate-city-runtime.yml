@@ -62,7 +62,8 @@ jobs:
             './tools/fix-game.ps1',
             './tools/show-district12-block01-plan.ps1',
             './tools/sync-district12-back.ps1',
-            './tools/inspect-district12-fpm.ps1'
+            './tools/inspect-district12-fpm.ps1',
+            './tools/create-district12-clone-test.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -79,8 +80,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m py_compile tools/fpm_inspect.py tools/tests/test_fpm_inspect.py
-          python3 -m unittest discover -s tools/tests -p 'test_fpm_inspect.py' -v
+          python3 -m py_compile tools/fpm_inspect.py tools/fpm_clone_entity.py tools/tests/test_fpm_inspect.py tools/tests/test_fpm_clone_entity.py
+          python3 -m unittest discover -s tools/tests -p 'test_fpm_*.py' -v
 
       - name: Validate authored District 12 repository contract
         shell: pwsh
@@ -116,7 +117,8 @@ jobs:
             '.\tools\fix-game.ps1',
             '.\tools\show-district12-block01-plan.ps1',
             '.\tools\sync-district12-back.ps1',
-            '.\tools\inspect-district12-fpm.ps1'
+            '.\tools\inspect-district12-fpm.ps1',
+            '.\tools\create-district12-clone-test.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -129,11 +131,11 @@ jobs:
             Write-Host "[PASS] Windows PowerShell 5.1 syntax: $script"
           }
 
-      - name: Run FPM inspector unit tests on Windows
+      - name: Run FPM tooling unit tests on Windows
         shell: powershell
         run: |
-          python -m py_compile .\tools\fpm_inspect.py .\tools\tests\test_fpm_inspect.py
-          python -m unittest discover -s .\tools\tests -p test_fpm_inspect.py -v
+          python -m py_compile .\tools\fpm_inspect.py .\tools\fpm_clone_entity.py .\tools\tests\test_fpm_inspect.py .\tools\tests\test_fpm_clone_entity.py
+          python -m unittest discover -s .\tools\tests -p test_fpm_*.py -v
 
       - name: Run Block 01 checklist under Windows PowerShell 5.1
         shell: powershell
