@@ -20,6 +20,15 @@ if ($LASTEXITCODE -ne 0) {
     throw "BLACK SIGNAL deployment/repair failed."
 }
 
+# Keep the Separate Project Folder's companion dependency list in lockstep with
+# the curated authored map. This is intentionally explicit because the FPM is now
+# the physical-city source of truth.
+$repoList = Join-Path $repo "gameguru\maps\BLACK SIGNAL - District 12.lst"
+$projectMapbank = Join-Path $repo "Files\mapbank"
+if (Test-Path $repoList -and Test-Path $projectMapbank) {
+    Copy-Item -Force $repoList (Join-Path $projectMapbank "BLACK SIGNAL - District 12.lst")
+}
+
 Write-Host ""
 Write-Host "Installing verified authored-city runtime hook in the default GameGuru scriptbank..."
 & (Join-Path $PSScriptRoot "install-default-runtime-hook.ps1") -GameGuruFiles $GameGuruFiles
