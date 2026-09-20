@@ -25,7 +25,7 @@ if ($LASTEXITCODE -ne 0) {
 # the physical-city source of truth.
 $repoList = Join-Path $repo "gameguru\maps\BLACK SIGNAL - District 12.lst"
 $projectMapbank = Join-Path $repo "Files\mapbank"
-if (Test-Path $repoList -and Test-Path $projectMapbank) {
+if ((Test-Path $repoList) -and (Test-Path $projectMapbank)) {
     Copy-Item -Force $repoList (Join-Path $projectMapbank "BLACK SIGNAL - District 12.lst")
 }
 
