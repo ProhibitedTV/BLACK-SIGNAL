@@ -46,6 +46,7 @@ if ($installedHash -ne $sourceHash) {
 $requiredModules = @(
     "bs_city_v3.lua",
     "bs_city_details.lua",
+    "bs_curb_utilities.lua",
     "bs_city_arch_dressing.lua",
     "bs_city_v2.lua",
     "bs_basin_city.lua",
@@ -59,7 +60,7 @@ foreach ($module in $requiredModules) {
     }
 }
 
-$verifiedModules = @("bs_city_v3.lua", "bs_city_details.lua", "bs_city_arch_dressing.lua")
+$verifiedModules = @("bs_city_v3.lua", "bs_city_details.lua", "bs_curb_utilities.lua", "bs_city_arch_dressing.lua")
 foreach ($module in $verifiedModules) {
     $src = Join-Path $sourceModules $module
     $dst = Join-Path $destinationModules $module
@@ -71,6 +72,6 @@ foreach ($module in $verifiedModules) {
 Write-Host "[PASS] Installed BLACK SIGNAL runtime hook into default GameGuru scriptbank."
 Write-Host "       Hook: $destinationGameLoop"
 Write-Host "       Modules: $destinationModules"
-Write-Host "[PASS] Verified modular CITY V3, street DETAIL V1, and architectural ARCH V1 runtime modules."
-Write-Host "       CITY V3 builds collision-safe architecture; DETAIL V1 dresses sidewalks/service edges; ARCH V1 adds seeded facade neon, fire escapes, rooftop HVAC, and emissive companion pieces."
+Write-Host "[PASS] Verified CITY V3, DETAIL V1, CURB V1, and ARCH V1 runtime modules."
+Write-Host "       CITY V3 builds collision-safe architecture; DETAIL V1 dresses streets/service edges; CURB V1 uses exact seeded guards/dividers/lights/planters/poles; ARCH V1 adds facade and rooftop dressing."
 Write-Host "       All passes only activate when g_LevelFilename contains 'BLACK SIGNAL' or 'District 12'."
