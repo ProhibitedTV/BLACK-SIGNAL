@@ -8,8 +8,11 @@ on:
       - 'gameguru/buildplans/**'
       - 'docs/DISTRICT-12-AUTHORED-CITY.md'
       - 'docs/DISTRICT-12-BLOCK-01-HERO-JUNCTION.md'
+      - 'docs/GAMEGURU-MAX-FPM-FORMAT.md'
       - 'tools/*.ps1'
       - 'tools/*.bat'
+      - 'tools/*.py'
+      - 'tools/tests/**'
       - '.github/workflows/validate-city-runtime.yml'
   push:
     branches: [ main ]
@@ -19,8 +22,11 @@ on:
       - 'gameguru/buildplans/**'
       - 'docs/DISTRICT-12-AUTHORED-CITY.md'
       - 'docs/DISTRICT-12-BLOCK-01-HERO-JUNCTION.md'
+      - 'docs/GAMEGURU-MAX-FPM-FORMAT.md'
       - 'tools/*.ps1'
       - 'tools/*.bat'
+      - 'tools/*.py'
+      - 'tools/tests/**'
       - '.github/workflows/validate-city-runtime.yml'
 
 jobs:
@@ -55,7 +61,8 @@ jobs:
             './tools/deploy-gameguru-project.ps1',
             './tools/fix-game.ps1',
             './tools/show-district12-block01-plan.ps1',
-            './tools/sync-district12-back.ps1'
+            './tools/sync-district12-back.ps1',
+            './tools/inspect-district12-fpm.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -67,6 +74,13 @@ jobs:
             }
             Write-Host "[PASS] PowerShell syntax: $script"
           }
+
+      - name: Validate Python FPM tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/fpm_inspect.py tools/tests/test_fpm_inspect.py
+          python3 -m unittest discover -s tools/tests -p 'test_fpm_inspect.py' -v
 
       - name: Validate authored District 12 repository contract
         shell: pwsh
@@ -101,7 +115,8 @@ jobs:
             '.\tools\deploy-gameguru-project.ps1',
             '.\tools\fix-game.ps1',
             '.\tools\show-district12-block01-plan.ps1',
-            '.\tools\sync-district12-back.ps1'
+            '.\tools\sync-district12-back.ps1',
+            '.\tools\inspect-district12-fpm.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -113,6 +128,12 @@ jobs:
             }
             Write-Host "[PASS] Windows PowerShell 5.1 syntax: $script"
           }
+
+      - name: Run FPM inspector unit tests on Windows
+        shell: powershell
+        run: |
+          python -m py_compile .\tools\fpm_inspect.py .\tools\tests\test_fpm_inspect.py
+          python -m unittest discover -s .\tools\tests -p test_fpm_inspect.py -v
 
       - name: Run Block 01 checklist under Windows PowerShell 5.1
         shell: powershell
