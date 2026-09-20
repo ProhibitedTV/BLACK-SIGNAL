@@ -21,7 +21,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "Installing verified runtime hook in the default GameGuru scriptbank..."
+Write-Host "Installing verified authored-city runtime hook in the default GameGuru scriptbank..."
 & (Join-Path $PSScriptRoot "install-default-runtime-hook.ps1") -GameGuruFiles $GameGuruFiles
 if ($LASTEXITCODE -ne 0) {
     throw "BLACK SIGNAL runtime-hook installation failed."
@@ -30,8 +30,9 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host ""
 Write-Host "[PASS] BLACK SIGNAL is repaired and ready to open."
 Write-Host "       District 12 is deployed to mapbank and bound to the existing Storyboard LEVEL node."
-Write-Host "       The city runtime is installed in both the project tree and the default GameGuru scriptbank."
-Write-Host "       The default hook is level-gated and stays inert outside BLACK SIGNAL / District 12."
+Write-Host "       Runtime city spawning/dressing is disabled."
+Write-Host "       The saved FPM is now the source of truth for roads, sidewalks, buildings, skyline and street furniture."
+Write-Host "       Use the Cyberpunk Streets snap kit in MAX for physical city construction; reserve Lua for film/runtime behavior."
 
 if ($Launch) {
     Write-Host "Launching GameGuru MAX through Steam..."
