@@ -1,24 +1,20 @@
-name: Validate BLACK SIGNAL city runtime
+name: Validate BLACK SIGNAL authored city
 
 on:
   pull_request:
     paths:
       - 'gameguru/Files/scriptbank/**'
       - 'gameguru/maps/BLACK SIGNAL - District 12.lst'
-      - 'tools/validate-repo.ps1'
-      - 'tools/audit-cyberpunk-detail-assets.ps1'
-      - 'tools/find-cyberpunk-curb-candidates.ps1'
-      - 'tools/install-default-runtime-hook.ps1'
+      - 'docs/DISTRICT-12-AUTHORED-CITY.md'
+      - 'tools/*.ps1'
       - '.github/workflows/validate-city-runtime.yml'
   push:
     branches: [ main ]
     paths:
       - 'gameguru/Files/scriptbank/**'
       - 'gameguru/maps/BLACK SIGNAL - District 12.lst'
-      - 'tools/validate-repo.ps1'
-      - 'tools/audit-cyberpunk-detail-assets.ps1'
-      - 'tools/find-cyberpunk-curb-candidates.ps1'
-      - 'tools/install-default-runtime-hook.ps1'
+      - 'docs/DISTRICT-12-AUTHORED-CITY.md'
+      - 'tools/*.ps1'
       - '.github/workflows/validate-city-runtime.yml'
 
 jobs:
@@ -46,9 +42,12 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $scripts = @(
             './tools/validate-repo.ps1',
+            './tools/audit-district12-authored-kit.ps1',
             './tools/audit-cyberpunk-detail-assets.ps1',
             './tools/find-cyberpunk-curb-candidates.ps1',
-            './tools/install-default-runtime-hook.ps1'
+            './tools/install-default-runtime-hook.ps1',
+            './tools/deploy-gameguru-project.ps1',
+            './tools/fix-game.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -61,6 +60,10 @@ jobs:
             Write-Host "[PASS] PowerShell syntax: $script"
           }
 
-      - name: Validate repository structure and CITY V3 seed assets
+      - name: Validate authored District 12 repository contract
         shell: pwsh
         run: ./tools/validate-repo.ps1 -GameGuruFiles /tmp/gameguru-not-installed
+
+      - name: Audit authored Cyberpunk Streets kit coverage
+        shell: pwsh
+        run: ./tools/audit-district12-authored-kit.ps1
