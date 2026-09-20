@@ -12,6 +12,29 @@ if (-not (Test-Path $mapListPath)) {
     throw "District 12 dependency list was not found: $mapListPath"
 }
 
+function Combine-PathSafe {
+    param(
+        [string]$Base,
+        [string]$Child
+    )
+    if ([string]::IsNullOrWhiteSpace($Base)) { return "" }
+    try {
+        return [IO.Path]::Combine($Base, $Child)
+    } catch {
+        return ""
+    }
+}
+
+function Test-ExistingPath {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+    try {
+        return (Test-Path -LiteralPath $Path -ErrorAction SilentlyContinue)
+    } catch {
+        return $false
+    }
+}
+
 function Add-UniquePath {
     param(
         [System.Collections.Generic.List[string]]$List,
@@ -29,9 +52,18 @@ function Add-UniquePath {
 function Get-SteamRoots {
     $roots = [System.Collections.Generic.List[string]]::new()
 
-    Add-UniquePath $roots $SteamRoot
-    Add-UniquePath $roots (Join-Path ${env:ProgramFiles(x86)} "Steam")
-    Add-UniquePath $roots (Join-Path $env:ProgramFiles "Steam")
+    if (-not [string]::IsNullOrWhiteSpace($SteamRoot)) {
+        if (Test-ExistingPath $SteamRoot) {
+            Add-UniquePath $roots $SteamRoot
+        } else {
+            Write-Host "[SKIP] Explicit Steam root is unavailable: $SteamRoot"
+        }
+    }
+
+    $programFilesX86Steam = Combine-PathSafe ${env:ProgramFiles(x86)} "Steam"
+    $programFilesSteam = Combine-PathSafe $env:ProgramFiles "Steam"
+    Add-UniquePath $roots $programFilesX86Steam
+    Add-UniquePath $roots $programFilesSteam
 
     $registryCandidates = @(
         "HKCU:\Software\Valve\Steam",
@@ -56,19 +88,27 @@ function Get-SteamLibraries {
 
     $libraries = [System.Collections.Generic.List[string]]::new()
     foreach ($root in $SteamRoots) {
-        if (-not (Test-Path $root)) { continue }
+        if (-not (Test-ExistingPath $root)) { continue }
         Add-UniquePath $libraries $root
 
-        $vdf = Join-Path $root "steamapps\libraryfolders.vdf"
-        if (-not (Test-Path $vdf)) { continue }
+        $vdf = Combine-PathSafe $root "steamapps\libraryfolders.vdf"
+        if (-not (Test-ExistingPath $vdf)) { continue }
 
         try {
-            $text = Get-Content -Raw -Path $vdf
+            $text = Get-Content -Raw -LiteralPath $vdf
             foreach ($match in [regex]::Matches($text, '"path"\s+"([^"]+)"')) {
                 $path = $match.Groups[1].Value -replace '\\\\', '\'
-                Add-UniquePath $libraries $path
+                if (Test-ExistingPath $path) {
+                    Add-UniquePath $libraries $path
+                } else {
+                    # Steam commonly leaves stale/offline library entries in libraryfolders.vdf.
+                    # Never let one missing drive abort discovery of the libraries that are online.
+                    Write-Host "[SKIP] Steam library is offline or unavailable: $path"
+                }
             }
-        } catch {}
+        } catch {
+            Write-Host "[SKIP] Could not read Steam library list: $vdf"
+        }
     }
     return $libraries
 }
@@ -77,14 +117,21 @@ function Find-PackRoot {
     $candidateFileRoots = [System.Collections.Generic.List[string]]::new()
 
     if (-not [string]::IsNullOrWhiteSpace($PackRoot)) {
-        if (Test-Path $PackRoot) {
-            return [pscustomobject]@{ PackRoot = (Resolve-Path $PackRoot).Path; FilesRoot = (Split-Path -Parent (Split-Path -Parent (Resolve-Path $PackRoot).Path)); Source = "explicit -PackRoot" }
+        if (Test-ExistingPath $PackRoot) {
+            $resolvedPack = (Resolve-Path -LiteralPath $PackRoot).Path
+            $entitybankRoot = Split-Path -Parent $resolvedPack
+            $filesRoot = Split-Path -Parent $entitybankRoot
+            return [pscustomobject]@{
+                PackRoot = $resolvedPack
+                FilesRoot = $filesRoot
+                Source = "explicit -PackRoot"
+            }
         }
-        throw "Explicit -PackRoot does not exist: $PackRoot"
+        throw "Explicit -PackRoot does not exist or is offline: $PackRoot"
     }
 
     Add-UniquePath $candidateFileRoots $GameGuruFiles
-    Add-UniquePath $candidateFileRoots (Join-Path $repo "Files")
+    Add-UniquePath $candidateFileRoots (Combine-PathSafe $repo "Files")
 
     if ($env:GAMEGURU_MAX_FILES) {
         Add-UniquePath $candidateFileRoots $env:GAMEGURU_MAX_FILES
@@ -99,7 +146,7 @@ function Find-PackRoot {
         try {
             $props = Get-ItemProperty -Path $key -ErrorAction Stop
             if ($props.InstallLocation) {
-                Add-UniquePath $candidateFileRoots (Join-Path $props.InstallLocation "Files")
+                Add-UniquePath $candidateFileRoots (Combine-PathSafe $props.InstallLocation "Files")
             }
         } catch {}
     }
@@ -107,38 +154,56 @@ function Find-PackRoot {
     $steamRoots = Get-SteamRoots
     $libraries = Get-SteamLibraries $steamRoots
     foreach ($library in $libraries) {
-        $steamApps = Join-Path $library "steamapps"
-        $manifest = Join-Path $steamApps "appmanifest_1247290.acf"
+        if (-not (Test-ExistingPath $library)) {
+            Write-Host "[SKIP] Steam library disappeared during discovery: $library"
+            continue
+        }
+
+        # Use System.IO.Path.Combine instead of Join-Path here. Join-Path asks the
+        # PowerShell provider to resolve the drive immediately and throws when a
+        # stale Steam library points at an offline drive such as D:.
+        $steamApps = Combine-PathSafe $library "steamapps"
+        if ([string]::IsNullOrWhiteSpace($steamApps)) { continue }
+
+        $manifest = Combine-PathSafe $steamApps "appmanifest_1247290.acf"
         $installDir = "GameGuru MAX"
 
-        if (Test-Path $manifest) {
+        if (Test-ExistingPath $manifest) {
             try {
-                $manifestText = Get-Content -Raw -Path $manifest
+                $manifestText = Get-Content -Raw -LiteralPath $manifest
                 $match = [regex]::Match($manifestText, '"installdir"\s+"([^"]+)"')
                 if ($match.Success) { $installDir = $match.Groups[1].Value }
             } catch {}
         }
 
-        Add-UniquePath $candidateFileRoots (Join-Path $steamApps "common\$installDir\Files")
-        Add-UniquePath $candidateFileRoots (Join-Path $steamApps "common\GameGuru MAX\Files")
+        Add-UniquePath $candidateFileRoots (Combine-PathSafe $steamApps "common\$installDir\Files")
+        Add-UniquePath $candidateFileRoots (Combine-PathSafe $steamApps "common\GameGuru MAX\Files")
     }
 
     foreach ($filesRoot in $candidateFileRoots) {
-        if (-not (Test-Path $filesRoot)) { continue }
+        if (-not (Test-ExistingPath $filesRoot)) { continue }
 
-        $direct = Join-Path $filesRoot "entitybank\cyberpunk streets booster pack"
-        if (Test-Path $direct) {
-            return [pscustomobject]@{ PackRoot = (Resolve-Path $direct).Path; FilesRoot = (Resolve-Path $filesRoot).Path; Source = "direct Files root" }
+        $direct = Combine-PathSafe $filesRoot "entitybank\cyberpunk streets booster pack"
+        if (Test-ExistingPath $direct) {
+            return [pscustomobject]@{
+                PackRoot = (Resolve-Path -LiteralPath $direct).Path
+                FilesRoot = (Resolve-Path -LiteralPath $filesRoot).Path
+                Source = "direct Files root"
+            }
         }
 
-        $entitybank = Join-Path $filesRoot "entitybank"
-        if (Test-Path $entitybank) {
+        $entitybank = Combine-PathSafe $filesRoot "entitybank"
+        if (Test-ExistingPath $entitybank) {
             try {
-                $found = Get-ChildItem -Path $entitybank -Directory -Recurse -ErrorAction SilentlyContinue |
+                $found = Get-ChildItem -LiteralPath $entitybank -Directory -Recurse -ErrorAction SilentlyContinue |
                     Where-Object { $_.Name -match '(?i)cyber.*street' } |
                     Select-Object -First 1
                 if ($found) {
-                    return [pscustomobject]@{ PackRoot = $found.FullName; FilesRoot = (Resolve-Path $filesRoot).Path; Source = "recursive entitybank discovery" }
+                    return [pscustomobject]@{
+                        PackRoot = $found.FullName
+                        FilesRoot = (Resolve-Path -LiteralPath $filesRoot).Path
+                        Source = "recursive entitybank discovery"
+                    }
                 }
             } catch {}
         }
@@ -152,19 +217,21 @@ Tested GameGuru MAX Files roots:
 $tested
 
 The Documents\GameGuruApps path is the writable/user Files tree and may not contain commercial DLC assets.
-The audit now also checks Steam libraries and the GameGuru MAX install location. If your Steam library is nonstandard, rerun with:
-  powershell -ExecutionPolicy Bypass -File .\tools\audit-cyberpunk-detail-assets.ps1 -SteamRoot "D:\Steam"
+The audit also checks online Steam libraries and the GameGuru MAX install location. Offline/stale Steam libraries are skipped instead of aborting discovery.
+
+If your Steam library is nonstandard, provide the REAL mounted Steam root, for example:
+  powershell -ExecutionPolicy Bypass -File .\tools\audit-cyberpunk-detail-assets.ps1 -SteamRoot "E:\SteamLibrary"
 
 Or provide the pack folder directly:
-  powershell -ExecutionPolicy Bypass -File .\tools\audit-cyberpunk-detail-assets.ps1 -PackRoot "D:\SteamLibrary\steamapps\common\GameGuru MAX\Files\entitybank\cyberpunk streets booster pack"
+  powershell -ExecutionPolicy Bypass -File .\tools\audit-cyberpunk-detail-assets.ps1 -PackRoot "E:\SteamLibrary\steamapps\common\GameGuru MAX\Files\entitybank\cyberpunk streets booster pack"
 "@
 }
 
 $discovery = Find-PackRoot
 $packRootResolved = $discovery.PackRoot
 $assetFilesRoot = $discovery.FilesRoot
-$mapList = (Get-Content -Raw $mapListPath).ToLowerInvariant()
-$all = @(Get-ChildItem -Path $packRootResolved -Filter "*.fpe" -File -Recurse | Sort-Object FullName)
+$mapList = (Get-Content -Raw -LiteralPath $mapListPath).ToLowerInvariant()
+$all = @(Get-ChildItem -LiteralPath $packRootResolved -Filter "*.fpe" -File -Recurse | Sort-Object FullName)
 
 $families = [ordered]@{
     "Parking posts / bollards" = { param($n) ($n -match 'parking.*post') -or ($n -match 'bollard') }
