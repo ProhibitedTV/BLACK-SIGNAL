@@ -1,0 +1,43 @@
+phase,zone,asset,required,placement_rule,rotation_rule,notes
+1,intersection,CS_Street_4_Way_2,yes,Use as local origin and keep carriageway clear,0/90/180/270 only,Do not place any prop or building in road footprint
+1,intersection,CS_Sidewalk_Corner1_DropCurb,yes,One at each pedestrian corner aligned to road edges,orthogonal,Keep crossing mouths clear
+1,intersection,CS_Sidewalk_Straight_Edge,yes,Continue curb line between corners,follow street axis,No arbitrary offsets
+1,intersection,CS_Sidewalk_Tile_4x4,yes,Fill walkable sidewalk interior behind curb edge,orthogonal,Maintain uninterrupted clear walking path
+2,NW Vale Exchange,CS_Wall_Corner_01,yes,Use true corners on a 6x4-bay shell,orthogonal,No overlapping straight walls at corners
+2,NW Vale Exchange,CS_Wall_01,yes,Use for solid facade and rear/service runs,orthogonal,100 percent scale
+2,NW Vale Exchange,CS_Walls_01_Window_With_Bars,yes,Alternate with solid wall on floors 2-5,orthogonal,Repeat in regular bay rhythm
+2,NW Vale Exchange,CS_Wall_01_Entry_01,yes,Primary entrance faces main sidewalk,orthogonal,Keep entry bay and sidewalk clear
+2,NW Vale Exchange,CS_Wall_01_Overhang,yes,Continuous band above ground floor on street faces,orthogonal,Use native snap dimensions
+2,NW Vale Exchange,CS_Wall_01_Overhang_Corner,yes,Turn overhang cleanly around intersection corner,orthogonal,No overlap with straight overhang
+2,NW Vale Exchange,CS_Store_Front_02_Corner_With_Window,yes,Ground-floor corner accent toward intersection,orthogonal,Use sparingly
+2,NW Vale Exchange,CS_Roof_Tile_4x4,yes,Primary roof fill,orthogonal,Complete shell before props
+2,NW Vale Exchange,CS_Roof_Tile_2x2,yes,Fill remaining roof gaps,orthogonal,No floating roof tiles
+2,NE Municipal Annex,CS_Wall_Corner_01,yes,Use true corners on about a 5x5-bay shell,orthogonal,8-floor target
+2,NE Municipal Annex,CS_Wall_01,yes,Use more solid wall than NW block,orthogonal,Formal civic massing
+2,NE Municipal Annex,CS_Walls_01_Window_With_Bars,yes,Regular vertical rhythm on upper floors,orthogonal,Keep rows aligned
+2,NE Municipal Annex,CS_Wall_01_Entry_04,yes,Formal sidewalk-facing entrance,orthogonal,Keep approach clear
+2,NE Municipal Annex,CS_Store_Front_02_Corner_Neon_Opposite,yes,Single illuminated corner accent toward junction,orthogonal,Do not repeat neon on every floor
+2,NE Municipal Annex,CS_Roof_Tile_4x4,yes,Roof cap,orthogonal,Setback only if modules snap cleanly
+2,SW Service Works,CS_Wall_Corner_01,yes,Use true corners on about a 7x3-bay shell,orthogonal,4-floor target
+2,SW Service Works,CS_Wall_01,yes,Long solid industrial runs,orthogonal,Heavier and darker than other blocks
+2,SW Service Works,CS_Walls_01_Window_With_Bars,yes,Sparse upper-floor windows,orthogonal,Do not over-light this block
+2,SW Service Works,CS_Wall_01_Entry_01,yes,Service-facing entrances on usable sidewalk/service side,orthogonal,Reserve rear alley
+2,SW Service Works,CS_Roof_Tile_4x4,yes,Broad flat roof,orthogonal,Future HVAC zone
+2,SE Signal House,CS_Wall_Corner_01,yes,Use true corners on about a 4x4-bay shell,orthogonal,10-floor target
+2,SE Signal House,CS_Wall_01,yes,Structural solid bays,orthogonal,Keep footprint narrow
+2,SE Signal House,CS_Walls_01_Window_With_Bars,yes,Repeated upper-floor window rhythm,orthogonal,Use consistent vertical stacks
+2,SE Signal House,CS_Wall_01_Entry_04,yes,Ground-floor sidewalk entry,orthogonal,Do not face bare terrain
+2,SE Signal House,CS_Wall_01_Overhang,yes,One band above ground floor,orthogonal,No arbitrary vertical jitter
+2,SE Signal House,CS_Store_Front_02_Corner_With_Window,yes,Intersection-facing ground-floor corner,orthogonal,Hero corner treatment
+2,SE Signal House,CS_Roof_Tile_4x4,yes,Primary roof fill,orthogonal,Setback upper floors only if cleanly snapped
+4,curb rhythm,CS_Street_Lamp,yes,Place at corners and repeated frontage intervals without blocking path,follow curb line,Align lamps in rows
+4,curb rhythm,CS_Planter_01,yes,Outer furniture strip every few bays,orthogonal or asset-natural,Do not center in pedestrian path
+4,curb rhythm,CS_Trash_Can,yes,Near entries transit pockets and service zones,asset-natural,Not uniformly scattered
+4,service alley,CS_Bottle_Can_Cluster_01,no,Use only in service/rear pockets,asset-natural,Sparse clutter
+4,service alley,CS_Newspaper_01,no,Use only in a few sheltered curb/service pockets,asset-natural,Avoid repeating everywhere
+4,service alley,CS_Newspaper_02,no,Use as variation with newspaper 01,asset-natural,Avoid uniform distribution
+5,secondary mass,CS_Wall_01,yes,Build simplified complete shells behind hero blocks,orthogonal,Leave deliberate alley/service gaps
+5,secondary mass,CS_Walls_01_Window_With_Bars,yes,Use simpler facade rhythm than hero row,orthogonal,6-14 floor visual hierarchy
+6,background skyline,CS_BG_Building_01_Floor,yes,Only beyond playable blocks to screen terrain and add depth,orthogonal,Never first-row street wall
+6,background skyline,CS_BG_Building_03_Floor,yes,Alternate skyline family for silhouette variety,orthogonal,Keep behind secondary mass
+6,background skyline,CS_BG_Building_04_Floor,yes,Alternate skyline family for silhouette variety,orthogonal,Use perimeter only
