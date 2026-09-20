@@ -44,7 +44,9 @@ $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
 if (-not $python) { throw 'Python 3 is required but python/py was not found on PATH.' }
 
-$tool = Join-Path $PSScriptRoot 'fpm_author_street_fabric.py'
+# Compatibility entry point normalizes legacy/re-saved v329 quaternion mode on
+# cloned yaw-only street pieces before delegating to the core authoring engine.
+$tool = Join-Path $PSScriptRoot 'fpm_author_street_fabric_compat.py'
 $reportPath = [System.IO.Path]::ChangeExtension($OutputPath, '.report.json')
 
 Write-Host 'BLACK SIGNAL - District 12 authored street fabric'
