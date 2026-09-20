@@ -7,6 +7,7 @@ on:
       - 'gameguru/maps/BLACK SIGNAL - District 12.lst'
       - 'tools/validate-repo.ps1'
       - 'tools/audit-cyberpunk-detail-assets.ps1'
+      - 'tools/find-cyberpunk-curb-candidates.ps1'
       - 'tools/install-default-runtime-hook.ps1'
       - '.github/workflows/validate-city-runtime.yml'
   push:
@@ -16,6 +17,7 @@ on:
       - 'gameguru/maps/BLACK SIGNAL - District 12.lst'
       - 'tools/validate-repo.ps1'
       - 'tools/audit-cyberpunk-detail-assets.ps1'
+      - 'tools/find-cyberpunk-curb-candidates.ps1'
       - 'tools/install-default-runtime-hook.ps1'
       - '.github/workflows/validate-city-runtime.yml'
 
@@ -45,6 +47,7 @@ jobs:
           $scripts = @(
             './tools/validate-repo.ps1',
             './tools/audit-cyberpunk-detail-assets.ps1',
+            './tools/find-cyberpunk-curb-candidates.ps1',
             './tools/install-default-runtime-hook.ps1'
           )
           foreach ($script in $scripts) {
