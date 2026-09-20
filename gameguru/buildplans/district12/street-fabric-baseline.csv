@@ -1,0 +1,10 @@
+role,asset,required,placement_scope,source_policy,spacing_units,y_offset,notes
+road_center_yellow,CS_Street_Double_Center_Line.fpe,yes,Every authored straight road module,target_or_same_version_donor,per road module,2,Yellow double center indication is baseline street language not optional dressing
+crosswalk,CS_Street_Crosswalk_Decal.fpe,yes,Each approach to a four way hero intersection,target_or_same_version_donor,per approach,2,Keep pedestrian crossing mouths readable
+street_lamp,CS_Street_Lamp.fpe,yes,Both curb sides on alternating straight road modules,target_or_same_version_donor,800,0,Physical emissive lamp mesh
+street_dynamic_light,CS_Street_Light_Marker.fpe,yes,One light marker at each authored street lamp,same_version_donor_required,800,280,Actual GameGuru MAX dynamic light marker paired with lamp mesh
+sidewalk_light,CS_Sidewalk_Light.fpe,yes,Both sidewalk furniture strips between street lamps,target_or_same_version_donor,400,3,Low level sidewalk illumination and visual rhythm
+curb_guard,CS_Sidewalk_Guard.fpe,yes,Curb edge and intersection protection,target_or_same_version_donor,800,0,Pedestrian rail guard aligned with curb
+bollard_stop,CS_Street_Crosswalk_Metal_Blocker_Post.fpe,yes,Intersection corners and crossing protection,target_or_same_version_donor,per intersection,0,Pole stop or bollard language around crossing mouths
+utility_pole,CS_Street_Electrical_Pole_01.fpe,yes,One curb side every few straight modules,target_or_same_version_donor,1200,0,Service infrastructure rhythm without random scatter
+plastic_divider,CS_Plastic_Divider_1.fpe,no,Selected service or protection pockets,target_or_same_version_donor,sparse,0,Use only where a hard curb separator improves readability
