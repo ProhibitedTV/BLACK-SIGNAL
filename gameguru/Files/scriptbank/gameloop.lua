@@ -28,7 +28,7 @@ local function start_black_signal_runtime()
 
     if g_UserGlobal ~= nil then
         -- Hook version 8 marks the authored/snap-driven city reset. Physical
-        -- District 12 geometry now belongs in the saved FPM, not SpawnNewEntity.
+        -- District 12 geometry now belongs in the saved FPM, not runtime cloning.
         g_UserGlobal["BLACK_SIGNAL_RUNTIME_HOOK"] = 8
         g_UserGlobal["BLACK_SIGNAL_AUTHORED_CITY"] = 1
         g_UserGlobal["BLACK_SIGNAL_RUNTIME_GEOMETRY"] = 0
