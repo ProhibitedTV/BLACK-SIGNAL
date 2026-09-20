@@ -12,6 +12,16 @@ The Cyberpunk Streets pack is designed around snap-friendly construction:
 
 BLACK SIGNAL should use those categories according to their intended purpose instead of treating every asset as an interchangeable runtime prop.
 
+## Current production target
+
+The next authored construction pass is **Block 01 — Hero Junction**:
+
+- build plan: `docs/DISTRICT-12-BLOCK-01-HERO-JUNCTION.md`
+- machine-readable checklist: `gameguru/buildplans/district12/block-01-hero-junction.csv`
+- readiness/checklist tool: `tools/show-district12-block01-plan.ps1`
+
+Block 01 turns the current sparse four-way junction into the first finished District 12 city canyon with four distinct hero parcels, secondary urban mass, deliberate curb rhythm and a background skyline ring.
+
 ## Hard rules
 
 1. **The FPM is the source of truth for physical city geometry.**
