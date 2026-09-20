@@ -16,7 +16,7 @@ if (-not (Test-Path $sourceGameLoop)) {
     throw "BLACK SIGNAL gameloop source is missing: $sourceGameLoop"
 }
 if (-not (Test-Path $sourceModules)) {
-    throw "BLACK SIGNAL runtime module folder is missing: $sourceModules"
+    throw "BLACK SIGNAL script folder is missing: $sourceModules"
 }
 
 $destinationDir = Split-Path -Parent $destinationGameLoop
@@ -43,35 +43,18 @@ if ($installedHash -ne $sourceHash) {
     throw "Default GameGuru gameloop verification failed after copy."
 }
 
-$requiredModules = @(
-    "bs_city_v3.lua",
-    "bs_city_details.lua",
-    "bs_curb_utilities.lua",
-    "bs_city_arch_dressing.lua",
-    "bs_city_v2.lua",
-    "bs_basin_city.lua",
-    "bs_city_fabric.lua",
-    "bs_city_runtime.lua"
-)
-foreach ($module in $requiredModules) {
-    $path = Join-Path $destinationModules $module
-    if (-not (Test-Path $path)) {
-        throw "Runtime hook installed but module is missing: $path"
-    }
+$installedText = Get-Content -Raw $destinationGameLoop
+if ($installedText -notmatch 'BLACK_SIGNAL_AUTHORED_CITY') {
+    throw "Installed gameloop is not the authored-city runtime hook."
+}
+if ($installedText -match 'bs_city_v3|bs_city_details|bs_curb_utilities|bs_city_arch_dressing|SpawnNewEntity') {
+    throw "Installed gameloop still references retired runtime city-generation code."
 }
 
-$verifiedModules = @("bs_city_v3.lua", "bs_city_details.lua", "bs_curb_utilities.lua", "bs_city_arch_dressing.lua")
-foreach ($module in $verifiedModules) {
-    $src = Join-Path $sourceModules $module
-    $dst = Join-Path $destinationModules $module
-    if ((Get-FileHash -Algorithm SHA256 $src).Hash -ne (Get-FileHash -Algorithm SHA256 $dst).Hash) {
-        throw "$module hash verification failed after copy."
-    }
-}
-
-Write-Host "[PASS] Installed BLACK SIGNAL runtime hook into default GameGuru scriptbank."
+Write-Host "[PASS] Installed BLACK SIGNAL authored-city runtime hook into default GameGuru scriptbank."
 Write-Host "       Hook: $destinationGameLoop"
-Write-Host "       Modules: $destinationModules"
-Write-Host "[PASS] Verified CITY V3, DETAIL V1, CURB V1, and ARCH V1 runtime modules."
-Write-Host "       CITY V3 builds collision-safe architecture; DETAIL V1 dresses streets/service edges; CURB V1 uses exact seeded guards/dividers/lights/planters/poles; ARCH V1 adds facade and rooftop dressing."
-Write-Host "       All passes only activate when g_LevelFilename contains 'BLACK SIGNAL' or 'District 12'."
+Write-Host "       Project scripts: $destinationModules"
+Write-Host "[PASS] Runtime geometry generation is disabled."
+Write-Host "       District 12 physical geometry must be authored and snap-aligned in the FPM."
+Write-Host "       Legacy generator scripts remain available for source-history/reference only and are not required or invoked by gameloop.lua."
+Write-Host "       The hook only activates when g_LevelFilename contains 'BLACK SIGNAL' or 'District 12'."
