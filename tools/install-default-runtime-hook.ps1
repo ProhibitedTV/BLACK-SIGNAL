@@ -46,6 +46,7 @@ if ($installedHash -ne $sourceHash) {
 $requiredModules = @(
     "bs_city_v3.lua",
     "bs_city_details.lua",
+    "bs_city_arch_dressing.lua",
     "bs_city_v2.lua",
     "bs_basin_city.lua",
     "bs_city_fabric.lua",
@@ -58,7 +59,7 @@ foreach ($module in $requiredModules) {
     }
 }
 
-$verifiedModules = @("bs_city_v3.lua", "bs_city_details.lua")
+$verifiedModules = @("bs_city_v3.lua", "bs_city_details.lua", "bs_city_arch_dressing.lua")
 foreach ($module in $verifiedModules) {
     $src = Join-Path $sourceModules $module
     $dst = Join-Path $destinationModules $module
@@ -70,6 +71,6 @@ foreach ($module in $verifiedModules) {
 Write-Host "[PASS] Installed BLACK SIGNAL runtime hook into default GameGuru scriptbank."
 Write-Host "       Hook: $destinationGameLoop"
 Write-Host "       Modules: $destinationModules"
-Write-Host "[PASS] Verified modular District 12 CITY V3 and street-detail runtime modules."
-Write-Host "       CITY V3 builds collision-safe modular architecture first. DETAIL V1 then dresses sidewalks and service edges using available Cyberpunk Streets furniture exemplars."
-Write-Host "       Both only activate when g_LevelFilename contains 'BLACK SIGNAL' or 'District 12'."
+Write-Host "[PASS] Verified modular CITY V3, street DETAIL V1, and architectural ARCH V1 runtime modules."
+Write-Host "       CITY V3 builds collision-safe architecture; DETAIL V1 dresses sidewalks/service edges; ARCH V1 adds seeded facade neon, fire escapes, rooftop HVAC, and emissive companion pieces."
+Write-Host "       All passes only activate when g_LevelFilename contains 'BLACK SIGNAL' or 'District 12'."
