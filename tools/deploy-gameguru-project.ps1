@@ -30,7 +30,8 @@ function Copy-ProjectOwnedFiles([string]$SourceFiles, [string]$DestinationFiles,
         $relative = $_.FullName.Substring($sourceRoot.Length).TrimStart('\')
 
         # gameloop.lua is a BLACK SIGNAL project override. Never copy it into the
-        # default user Files tree where it could affect unrelated GameGuru projects.
+        # default user Files tree here; install-default-runtime-hook.ps1 performs
+        # the deliberate, backed-up global install after validation.
         if ($ExcludeProjectGameLoop -and $relative -ieq "scriptbank\gameloop.lua") {
             return
         }
@@ -76,13 +77,13 @@ if (-not (Test-Path $GameGuruFiles)) {
 
 # FPMs are versioned through Git LFS. A normal Git clone can contain only the
 # tiny pointer text if LFS smudging was skipped, which GameGuru MAX cannot load.
-# Try to materialize the production map before validating or copying it.
-$git = Get-Command git -ErrorAction SilentlyContinue
-if ($git) {
+try {
     & git -C $repo lfs pull --include="gameguru/maps/*.fpm"
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "git lfs pull failed. Deployment will continue only if the FPM is already materialized."
     }
+} catch {
+    Write-Warning "git lfs pull could not be started: $($_.Exception.Message)"
 }
 
 if (-not $SkipValidation) {
@@ -108,31 +109,29 @@ if ((Test-LfsPointer $mapSource) -or $sourceInfo.Length -lt 1MB) {
 
 $projectOwnedFiles = Join-Path $repo "gameguru\Files"
 
-# Always deploy the raw map and BLACK SIGNAL behaviours to the default GameGuru
-# MAX user Files tree for direct-level isolation testing. The project-specific
-# gameloop override is intentionally excluded here so other projects are not changed.
+# Deploy the authored FPM and project behaviours to the default GameGuru Files
+# tree for direct-level testing. Physical city geometry is never synthesized here.
 $globalMap = Deploy-Map -MapSource $mapSource -ListSource $listSource -DestinationFiles $GameGuruFiles -BackupFolderName "_black_signal_deploy_backups"
 Copy-ProjectOwnedFiles -SourceFiles $projectOwnedFiles -DestinationFiles $GameGuruFiles -ExcludeProjectGameLoop
 
 Write-Host ""
-Write-Host "BLACK SIGNAL deployed to default GameGuru MAX Files."
+Write-Host "BLACK SIGNAL authored District 12 deployed to default GameGuru MAX Files."
 Write-Host "Map: $globalMap"
 Write-Host "Custom behaviours: $(Join-Path $GameGuruFiles 'scriptbank\user\black_signal')"
 
-# BLACK SIGNAL uses the repository root as its GameGuru MAX Separate Project
-# Folder. Mirror curated runtime content there and repair the existing wired
-# Level 1 Storyboard placeholder so it points at District 12. The project-local
-# gameloop is included here and automatically activates the expanded city shell.
+# The repository root is also the Separate Project Folder. Mirror the authored
+# FPM there and retain the project-local gameloop, which intentionally does not
+# generate city geometry.
 $repoProjectFiles = Join-Path $repo "Files"
 $repoProjectDescriptor = Join-Path $repoProjectFiles "projectbank\BLACK SIGNAL\project203.dat"
 if (Test-Path $repoProjectDescriptor) {
     Write-Host ""
     Write-Host "Detected BLACK SIGNAL GameGuru MAX Separate Project Folder."
 
-    $projectMap = Deploy-Map -MapSource $mapSource -ListSource $listSource -DestinationFiles $repoProjectFiles -BackupFolderName "_black_signal_deploy_backups"
+    $projectMap = Deploy-Map -MapSource $mapSource -ListSource $listName -DestinationFiles $repoProjectFiles -BackupFolderName "_black_signal_deploy_backups"
     Copy-ProjectOwnedFiles -SourceFiles $projectOwnedFiles -DestinationFiles $repoProjectFiles
 
-    Write-Host "Project-local map mirror: $projectMap"
+    Write-Host "Project-local authored map mirror: $projectMap"
     Write-Host "Project-local behaviours: $(Join-Path $repoProjectFiles 'scriptbank\user\black_signal')"
     Write-Host "Project-local gameloop: $(Join-Path $repoProjectFiles 'scriptbank\gameloop.lua')"
 
@@ -168,6 +167,6 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host ""
 Write-Host "BLACK SIGNAL deployment complete."
-Write-Host "District 12 is deployed, the Storyboard Level node is bound, and the project-local city expansion runtime is installed."
-Write-Host "Open the BLACK SIGNAL project in GameGuru MAX and use Normal Single Level/Test Play."
-Write-Host "Use CineGuru for cinematic cameras/actors/triggers and BLACK SIGNAL scripts for project-specific metadata/glue."
+Write-Host "District 12 is deployed and its Storyboard level binding is repaired."
+Write-Host "The authored FPM is the source of truth for roads, sidewalks, buildings, skyline and street furniture."
+Write-Host "Use Cyberpunk Streets snapping for physical construction and BLACK SIGNAL/CineGuru scripts only for runtime film behavior."
