@@ -50,9 +50,9 @@ def write_v342_record(
     ry: float,
 ):
     # v101 base
-    w.i(1)  # maintype
+    w.i(1)
     w.i(bankindex)
-    w.i(1)  # staticflag
+    w.i(1)
     w.f(x)
     w.f(y)
     w.f(z)
@@ -63,7 +63,7 @@ def write_v342_record(
     w.s("")
     w.s("no_behavior_selected.lua")
     w.s("")
-    w.i(0)  # isobjective
+    w.i(0)
     w.s(count=3)
     w.i()
     w.s(count=3)
@@ -73,7 +73,7 @@ def write_v342_record(
     w.s()
     w.s()
     w.i(count=4)
-    w.f(100.0)  # profile scale
+    w.f(100.0)
     w.f(count=2)
     w.i(count=9)
     w.s()
@@ -96,21 +96,21 @@ def write_v342_record(
     w.i(count=17)
     w.i()
 
-    # v301-v313 (302 adds no data)
+    # v301-v313
     w.s(count=4)
-    w.i()  # 303 animspeed
-    w.f()  # 304 conerange
-    w.f(100.0, count=3)  # 305 xyz scale
+    w.i()
+    w.f()
+    w.f(100.0, count=3)
     w.i(count=2)
-    w.i()  # 306
-    w.i()  # 307
-    w.i()  # 308
-    w.i()  # 309
-    w.i(count=5)  # 310
+    w.i()
+    w.i()
+    w.i()
+    w.i()
+    w.i(count=5)
     w.s(count=3)
-    w.f()  # 311
-    w.i()  # 312
-    w.s()  # 313 voiceset
+    w.f()
+    w.i()
+    w.s()
     w.i()
 
     # v314 material slot zero
@@ -135,14 +135,14 @@ def write_v342_record(
     for _ in range(1, fpm_inspect.MAX_MESH_MATERIALS):
         write_material_slot(w)
 
-    # v318 render order bias, all 100 slots
+    # v318 render order bias
     w.f(count=fpm_inspect.MAX_MESH_MATERIALS)
 
     # v319 group table is physically present only on entity 1.
     if record_index == 1:
-        w.i(77)  # unique group id
-        w.i(2)  # number of groups
-        w.i(1)  # group 0 item count
+        w.i(77)
+        w.i(2)
+        w.i(1)
         w.i(10)
         w.i(0)
         w.i(1)
@@ -153,9 +153,9 @@ def write_v342_record(
         w.f(0.0)
         w.f(0.0)
         w.f(1.0)
-        w.i(0)  # group 1 item count
-        w.i(1)  # group 0 image present
-        w.i(0)  # group 1 image absent
+        w.i(0)
+        w.i(1)
+        w.i(0)
     else:
         w.i(0)
         w.i(0)
@@ -192,8 +192,9 @@ def write_v342_record(
     for gi in range(100):
         w.s(f"group-{gi}" if gi < 2 else "")
 
-    # v335-v338
-    w.i(record_index)
+    # v335-v338. Synthetic static entities are intentionally ungrouped so the
+    # write-path tests can safely clone record 2 without inheriting group state.
+    w.i(0)
     w.i(count=3)
     w.i()
     w.i(count=3)
@@ -266,7 +267,10 @@ class FpmInspectorTests(unittest.TestCase):
             self.assertEqual(second["asset"], bank_path())
             self.assertAlmostEqual(second["position"]["x"], 500.0)
             self.assertAlmostEqual(second["rotation_euler"]["y"], 90.0)
-            self.assertGreater(second["record_start_offset"], first["record_end_offset"] - 1)
+            self.assertEqual(second["creation_of_group_id"], 0)
+            self.assertGreater(
+                second["record_start_offset"], first["record_end_offset"] - 1
+            )
 
     def test_trailing_data_fails_gate_b(self):
         with tempfile.TemporaryDirectory() as td:
