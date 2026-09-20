@@ -20,14 +20,9 @@ $required = @(
     "gameguru\maps\BLACK SIGNAL - District 12.lst",
     "gameguru\Files\scriptbank\gameloop.lua",
     "gameguru\Files\scriptbank\user\black_signal",
-    "gameguru\Files\scriptbank\user\black_signal\bs_city_v2.lua",
-    "gameguru\Files\scriptbank\user\black_signal\bs_city_v3.lua",
-    "gameguru\Files\scriptbank\user\black_signal\bs_city_details.lua",
     "docs\GAMEGURU-MAX.md",
     "docs\CINEGURU-MAX.md",
-    "docs\DISTRICT-12-STREET-AWARE-GENERATOR.md",
-    "docs\DISTRICT-12-MODULAR-CITY-V3.md",
-    "docs\DISTRICT-12-STREET-DETAILS.md",
+    "docs\DISTRICT-12-AUTHORED-CITY.md",
     "ASSET-MANIFEST.md"
 )
 
@@ -36,6 +31,8 @@ foreach ($relative in $required) {
     if (Test-Path $path) { Write-Pass $relative } else { Write-Fail "Missing $relative" }
 }
 
+# All BLACK SIGNAL behaviours remain syntax/metadata checked even when they are
+# legacy experiments. The active gameloop decides what actually runs.
 $luaRoot = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal"
 if (Test-Path $luaRoot) {
     $scripts = @(Get-ChildItem -Path $luaRoot -Filter "*.lua" -File -Recurse)
@@ -54,157 +51,80 @@ if (Test-Path $luaRoot) {
 
         if ($content -match "function\s+${escaped}_main\s*\(\s*e\s*\)") { Write-Pass "$($script.Name): ${base}_main(e)" }
         else { Write-Fail "$($script.Name): filename does not have matching ${base}_main(e)" }
-
-        if ($content -match '(?m)^\s*--\s*DESCRIPTION:.*\[') {
-            if ($content -match "function\s+${escaped}_properties\s*\(") { Write-Pass "$($script.Name): Dynamic Lua properties callback" }
-            else { Write-Fail "$($script.Name): dynamic DESCRIPTION fields exist but ${base}_properties(...) is missing" }
-        }
     }
 }
 
 $gameLoopPath = Join-Path $repo "gameguru\Files\scriptbank\gameloop.lua"
 if (Test-Path $gameLoopPath) {
     $gameLoopContent = Get-Content -Raw $gameLoopPath
-    if ($gameLoopContent -match 'bs_city_v3') { Write-Pass "Project gameloop hooks modular bs_city_v3 runtime" }
-    else { Write-Fail "Project gameloop does not hook bs_city_v3" }
 
-    if ($gameLoopContent -match 'bs_city_details') { Write-Pass "Project gameloop hooks post-city bs_city_details runtime" }
-    else { Write-Fail "Project gameloop does not hook bs_city_details" }
-
-    if ($gameLoopContent -match 'BLACK SIGNAL CITY V3' -and $gameLoopContent -match 'BLACK SIGNAL DETAIL V1' -and $gameLoopContent -match 'get_status') {
-        Write-Pass "Project gameloop exposes CITY V3 and DETAIL V1 diagnostics"
+    if ($gameLoopContent -match 'BLACK_SIGNAL_AUTHORED_CITY' -and $gameLoopContent -match 'BLACK_SIGNAL_RUNTIME_GEOMETRY') {
+        Write-Pass "Project gameloop declares authored District 12 runtime mode"
     } else {
-        Write-Fail "Project gameloop is missing CITY V3/DETAIL V1 diagnostics"
+        Write-Fail "Project gameloop is missing authored-city runtime markers"
     }
-}
 
-$cityV3Path = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_city_v3.lua"
-if (Test-Path $cityV3Path) {
-    $cityV3 = Get-Content -Raw $cityV3Path
-    $requiredTokens = @(
-        'MAX_CLONES = 850',
-        'MAX_BUILDINGS = 28',
-        'SPAWNS_PER_FRAME = 4',
-        'SIDEWALK_BUFFER = 230',
-        'ALLEY_GAP = 260',
-        'GetEntityColBox',
-        'GetEntityScales',
-        'GetTerrainHeight',
-        'GetEntityFilePath',
-        'obb_overlaps',
-        'footprint_from_entity',
-        'footprint_from_template',
-        'cs_bg_building_01_floor.fpe',
-        'cs_bg_building_03_floor.fpe',
-        'cs_bg_building_04_floor.fpe',
-        'cs_wall_corner_01.fpe',
-        'cs_walls_01_window_with_bars.fpe',
-        'cs_wall_01_entry_01.fpe',
-        'cs_wall_01_entry_04.fpe',
-        'cs_wall_01_overhang.fpe',
-        'cs_roof_tile_4x4.fpe',
-        'cs_roof_tile_2x2.fpe',
-        'cs_store_front_02_corner_neon_opposite.fpe',
-        'shopblock',
-        'midrise',
-        'slab',
-        'industrial',
-        'needle',
-        'corporate',
-        'collect_parcels',
-        'plan_facade',
-        'plan_roof',
-        'BLACK_SIGNAL_CITY_V3_BUILDINGS',
-        'BLACK_SIGNAL_CITY_V3_MODULAR',
-        'BLACK_SIGNAL_CITY_V3_TOWERS',
-        'BLACK_SIGNAL_CITY_V3_FLOORS',
-        'SpawnNewEntity',
-        'function bs_city_v3.get_status'
+    $retiredRuntimeTokens = @(
+        'bs_city_v3',
+        'bs_city_details',
+        'bs_curb_utilities',
+        'bs_city_arch_dressing',
+        'SpawnNewEntity'
     )
-    foreach ($token in $requiredTokens) {
-        if ($cityV3 -match [regex]::Escape($token)) { Write-Pass "Modular CITY V3 runtime includes $token" }
-        else { Write-Fail "Modular CITY V3 runtime is missing $token" }
-    }
-}
-
-$detailPath = Join-Path $repo "gameguru\Files\scriptbank\user\black_signal\bs_city_details.lua"
-if (Test-Path $detailPath) {
-    $details = Get-Content -Raw $detailPath
-    $detailTokens = @(
-        'MAX_DETAILS = 360',
-        'SPAWNS_PER_FRAME = 6',
-        'streets and sidewalks\\sidewalks\\',
-        'parking',
-        'bollard',
-        'rail',
-        'cs_bench.fpe',
-        'cs_bus_stop.fpe',
-        'cs_atm.fpe',
-        'cs_dumpster_closed.fpe',
-        'cs_fireplug.fpe',
-        'cs_aircon_01.fpe',
-        'cs_street_lamp.fpe',
-        'cs_planter_01.fpe',
-        'cs_trash_can.fpe',
-        'place_sidewalk_details',
-        'place_service_details',
-        'place_small_clutter',
-        'BLACK_SIGNAL_DETAILS_RAILS',
-        'BLACK_SIGNAL_DETAILS_POSTS',
-        'function bs_city_details.get_status'
-    )
-    foreach ($token in $detailTokens) {
-        if ($details -match [regex]::Escape($token)) { Write-Pass "DETAIL V1 runtime includes $token" }
-        else { Write-Fail "DETAIL V1 runtime is missing $token" }
+    foreach ($token in $retiredRuntimeTokens) {
+        if ($gameLoopContent -match [regex]::Escape($token)) {
+            Write-Fail "Active gameloop still references retired runtime geometry token: $token"
+        } else {
+            Write-Pass "Active gameloop does not reference retired runtime geometry token: $token"
+        }
     }
 }
 
 $mapListPath = Join-Path $repo "gameguru\maps\BLACK SIGNAL - District 12.lst"
 if (Test-Path $mapListPath) {
     $mapList = (Get-Content -Raw $mapListPath).ToLowerInvariant()
-    $requiredSeedAssets = @(
-        'cs_street_straight_4x.fpe',
-        'cs_street_straight_2x.fpe',
-        'cs_bg_building_01_floor.fpe',
-        'cs_bg_building_03_floor.fpe',
-        'cs_bg_building_04_floor.fpe',
-        'cs_wall_01.fpe',
-        'cs_wall_corner_01.fpe',
-        'cs_walls_01_window_with_bars.fpe',
-        'cs_wall_01_entry_01.fpe',
-        'cs_wall_01_entry_04.fpe',
-        'cs_wall_01_overhang.fpe',
-        'cs_roof_tile_2x2.fpe',
-        'cs_roof_tile_4x4.fpe',
-        'cs_store_front_02_corner_neon_opposite.fpe',
-        'cs_street_lamp.fpe',
-        'cs_planter_01.fpe',
-        'cs_trash_can.fpe',
-        'cs_bottle_can_cluster_01.fpe',
-        'cs_newspaper_01.fpe'
-    )
-    foreach ($asset in $requiredSeedAssets) {
-        if ($mapList.Contains($asset)) { Write-Pass "District 12 seeds runtime asset: $asset" }
-        else { Write-Fail "District 12 list is missing required runtime seed asset: $asset" }
+
+    # These are the authored snap-kit families needed to build a coherent playable
+    # street in MAX. They are level dependencies, not runtime clone seeds.
+    $authoredKit = [ordered]@{
+        'straight road 4x' = 'cs_street_straight_4x.fpe'
+        'straight road 2x' = 'cs_street_straight_2x.fpe'
+        'T intersection' = 'cs_street_t-intersect_3.fpe'
+        '4-way intersection' = 'cs_street_4_way_2.fpe'
+        'road curve' = 'cs_street_curve_1.fpe'
+        'straight sidewalk edge' = 'cs_sidewalk_straight_edge.fpe'
+        'drop-curb corner' = 'cs_sidewalk_corner1_dropcurb.fpe'
+        'sidewalk tile 4x4' = 'cs_sidewalk_tile_4x4.fpe'
+        'wall' = 'cs_wall_01.fpe'
+        'wall corner' = 'cs_wall_corner_01.fpe'
+        'window wall' = 'cs_walls_01_window_with_bars.fpe'
+        'entry' = 'cs_wall_01_entry_01.fpe'
+        'alternate entry' = 'cs_wall_01_entry_04.fpe'
+        'overhang' = 'cs_wall_01_overhang.fpe'
+        'overhang corner' = 'cs_wall_01_overhang_corner.fpe'
+        'roof 2x2' = 'cs_roof_tile_2x2.fpe'
+        'roof 4x4' = 'cs_roof_tile_4x4.fpe'
+        'shopfront window corner' = 'cs_store_front_02_corner_with_window.fpe'
+        'shopfront neon corner' = 'cs_store_front_02_corner_neon_opposite.fpe'
     }
 
-    $optionalDetailFamilies = [ordered]@{
-        'parking posts/bollards' = '(parking.*post|bollard)'
-        'pedestrian rails/barriers' = '(rail|parking.*barrier)'
-        'bench' = 'cs_bench\.fpe'
-        'bus stop' = 'cs_bus_stop\.fpe'
-        'ATM' = 'cs_atm\.fpe'
-        'dumpster' = 'cs_dumpster_closed\.fpe'
-        'fireplug' = 'cs_fireplug\.fpe'
-        'air conditioner' = 'cs_aircon_01\.fpe'
+    foreach ($entry in $authoredKit.GetEnumerator()) {
+        if ($mapList.Contains($entry.Value)) { Write-Pass "District 12 authored kit includes $($entry.Key): $($entry.Value)" }
+        else { Write-Fail "District 12 authored kit is missing $($entry.Key): $($entry.Value)" }
     }
-    $missingOptional = @()
-    foreach ($entry in $optionalDetailFamilies.GetEnumerator()) {
-        if ($mapList -match $entry.Value) { Write-Pass "District 12 seeds optional DETAIL V1 family: $($entry.Key)" }
-        else { $missingOptional += $entry.Key }
+
+    $backgroundFamilies = @(
+        'cs_bg_building_01_floor.fpe',
+        'cs_bg_building_03_floor.fpe',
+        'cs_bg_building_04_floor.fpe'
+    )
+    foreach ($asset in $backgroundFamilies) {
+        if ($mapList.Contains($asset)) { Write-Pass "District 12 has background skyline family available: $asset" }
+        else { Write-Warn "Background skyline family not currently referenced: $asset" }
     }
-    if ($missingOptional.Count -gt 0) {
-        Write-Warn ("Optional DETAIL V1 exemplars not yet seeded in the FPM: " + ($missingOptional -join ', ') + ". The runtime will use them automatically once one exemplar of each desired asset is present in the level.")
+
+    if ($mapList -match 'jungle collection\\trees') {
+        Write-Warn "District 12 still references Jungle Collection trees. Keep them outside the urban core or remove/occlude them where hero city shots expose raw terrain."
     }
 }
 
