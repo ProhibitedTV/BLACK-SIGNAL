@@ -1,5 +1,6 @@
 import importlib.util
 import struct
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -10,6 +11,7 @@ MODULE_PATH = Path(__file__).resolve().parents[1] / "fpm_inspect.py"
 spec = importlib.util.spec_from_file_location("fpm_inspect", MODULE_PATH)
 fpm_inspect = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
+sys.modules[spec.name] = fpm_inspect
 spec.loader.exec_module(fpm_inspect)
 
 
