@@ -5,7 +5,9 @@ on:
     paths:
       - 'gameguru/Files/scriptbank/**'
       - 'gameguru/maps/BLACK SIGNAL - District 12.lst'
+      - 'gameguru/buildplans/**'
       - 'docs/DISTRICT-12-AUTHORED-CITY.md'
+      - 'docs/DISTRICT-12-BLOCK-01-HERO-JUNCTION.md'
       - 'tools/*.ps1'
       - '.github/workflows/validate-city-runtime.yml'
   push:
@@ -13,7 +15,9 @@ on:
     paths:
       - 'gameguru/Files/scriptbank/**'
       - 'gameguru/maps/BLACK SIGNAL - District 12.lst'
+      - 'gameguru/buildplans/**'
       - 'docs/DISTRICT-12-AUTHORED-CITY.md'
+      - 'docs/DISTRICT-12-BLOCK-01-HERO-JUNCTION.md'
       - 'tools/*.ps1'
       - '.github/workflows/validate-city-runtime.yml'
 
@@ -47,7 +51,8 @@ jobs:
             './tools/find-cyberpunk-curb-candidates.ps1',
             './tools/install-default-runtime-hook.ps1',
             './tools/deploy-gameguru-project.ps1',
-            './tools/fix-game.ps1'
+            './tools/fix-game.ps1',
+            './tools/show-district12-block01-plan.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -67,3 +72,7 @@ jobs:
       - name: Audit authored Cyberpunk Streets kit coverage
         shell: pwsh
         run: ./tools/audit-district12-authored-kit.ps1
+
+      - name: Validate Block 01 build manifest against current level dependencies
+        shell: pwsh
+        run: ./tools/show-district12-block01-plan.ps1
