@@ -1,4 +1,4 @@
--- DESCRIPTION: BLACK SIGNAL runtime-aware gameloop. Preserves stock MAX player-health logic, builds District 12 through CITY V3, then runs street DETAIL V1 and architectural ARCH V1 dressing passes.
+-- DESCRIPTION: BLACK SIGNAL runtime-aware gameloop. Preserves stock MAX player-health logic, builds District 12 through CITY V3, then runs street DETAIL V1, curb CURB V1 and architectural ARCH V1 dressing passes.
 
 module_cameraoverride = require "scriptbank\\ai\\module_cameraoverride"
 
@@ -20,6 +20,15 @@ else
     details_load_error = tostring(details_result)
 end
 
+local curb_ok, curb_result = pcall(require, "scriptbank\\user\\black_signal\\bs_curb_utilities")
+local bs_curb_utilities = nil
+local curb_load_error = ""
+if curb_ok then
+    bs_curb_utilities = curb_result
+else
+    curb_load_error = tostring(curb_result)
+end
+
 local arch_ok, arch_result = pcall(require, "scriptbank\\user\\black_signal\\bs_city_arch_dressing")
 local bs_city_arch_dressing = nil
 local arch_load_error = ""
@@ -34,6 +43,7 @@ gameloop_RegenTickTime = 0
 local gameloop = {}
 local runtime_started = false
 local details_started = false
+local curb_started = false
 local arch_started = false
 local runtime_start_time = 0
 local runtime_ready_time = 0
@@ -56,13 +66,14 @@ local function start_black_signal_runtime()
     if runtime_started then return end
     runtime_started = true
     details_started = false
+    curb_started = false
     arch_started = false
     runtime_start_time = g_Time or 0
     runtime_ready_time = 0
     runtime_error = ""
 
     if g_UserGlobal ~= nil then
-        g_UserGlobal["BLACK_SIGNAL_RUNTIME_HOOK"] = 6
+        g_UserGlobal["BLACK_SIGNAL_RUNTIME_HOOK"] = 7
     end
 
     if cityv3_ok and bs_city_v3 ~= nil and bs_city_v3.init ~= nil then
@@ -87,6 +98,21 @@ local function start_detail_runtime()
         runtime_error = details_load_error
     else
         runtime_error = "bs_city_details module did not load"
+    end
+end
+
+local function start_curb_runtime()
+    if curb_started then return end
+    curb_started = true
+    runtime_ready_time = 0
+
+    if curb_ok and bs_curb_utilities ~= nil and bs_curb_utilities.init ~= nil then
+        local ok, err = pcall(bs_curb_utilities.init)
+        if not ok then runtime_error = tostring(err) end
+    elseif curb_load_error ~= "" then
+        runtime_error = curb_load_error
+    else
+        runtime_error = "bs_curb_utilities module did not load"
     end
 end
 
@@ -136,7 +162,7 @@ local function show_detail_status(now)
 
     if tostring(state) == "ready" then
         if runtime_ready_time == 0 then runtime_ready_time = now end
-        if now > runtime_ready_time + 3500 then return end
+        if now > runtime_ready_time + 3000 then return end
     elseif now > runtime_start_time + 60000 then
         return
     end
@@ -162,6 +188,39 @@ local function show_detail_status(now)
     Prompt(message)
 end
 
+local function show_curb_status(now)
+    if bs_curb_utilities == nil or bs_curb_utilities.get_status == nil then return end
+    local ok, state, clones, roads, sidewalks, templates, guards, dividers, lights, planters, poles, reject_road, reject_overlap, reject_terrain, err = pcall(bs_curb_utilities.get_status)
+    if not ok then return end
+
+    if string.find(tostring(state), "skipped:", 1, true) == 1 then
+        if runtime_ready_time == 0 then runtime_ready_time = now end
+        if now > runtime_ready_time + 1800 then return end
+    elseif tostring(state) == "ready" then
+        if runtime_ready_time == 0 then runtime_ready_time = now end
+        if now > runtime_ready_time + 3500 then return end
+    elseif now > runtime_start_time + 70000 then
+        return
+    end
+
+    local message = "BLACK SIGNAL CURB V1 | " .. tostring(state) ..
+        " | clones " .. tostring(clones or 0) ..
+        " | guards " .. tostring(guards or 0) ..
+        " | dividers " .. tostring(dividers or 0) ..
+        " | lights " .. tostring(lights or 0) ..
+        " | planters " .. tostring(planters or 0) ..
+        " | poles " .. tostring(poles or 0) ..
+        " | sidewalks " .. tostring(sidewalks or 0)
+    if tostring(state) == "ready" then
+        message = message ..
+            " | reject road " .. tostring(reject_road or 0) ..
+            " overlap " .. tostring(reject_overlap or 0) ..
+            " terrain " .. tostring(reject_terrain or 0)
+    end
+    if err ~= nil and tostring(err) ~= "" then message = message .. " | " .. tostring(err) end
+    Prompt(message)
+end
+
 local function show_arch_status(now)
     if bs_city_arch_dressing == nil or bs_city_arch_dressing.get_status == nil then return end
     local ok, state, clones, templates, anchors, signs, fireescapes, rooftop, emissives, err = pcall(bs_city_arch_dressing.get_status)
@@ -170,7 +229,7 @@ local function show_arch_status(now)
     if tostring(state) == "ready" then
         if runtime_ready_time == 0 then runtime_ready_time = now end
         if now > runtime_ready_time + 6000 then return end
-    elseif now > runtime_start_time + 75000 then
+    elseif now > runtime_start_time + 85000 then
         return
     end
 
@@ -197,6 +256,8 @@ local function show_runtime_status()
 
     if arch_started then
         show_arch_status(now)
+    elseif curb_started then
+        show_curb_status(now)
     elseif details_started then
         show_detail_status(now)
     else
@@ -208,6 +269,7 @@ function gameloop.init()
     gameloop_RegenTickTime = 0
     runtime_started = false
     details_started = false
+    curb_started = false
     arch_started = false
     runtime_start_time = g_Time or 0
     runtime_ready_time = 0
@@ -256,6 +318,17 @@ function gameloop.main()
     end
 
     if details_ready and runtime_error == "" then
+        start_curb_runtime()
+    end
+
+    local curb_ready = false
+    if curb_started and curb_ok and bs_curb_utilities ~= nil and bs_curb_utilities.main ~= nil and runtime_error == "" then
+        local ok, result = pcall(bs_curb_utilities.main)
+        if not ok then runtime_error = tostring(result)
+        else curb_ready = (result == true) end
+    end
+
+    if curb_ready and runtime_error == "" then
         start_arch_runtime()
     end
 
@@ -271,6 +344,9 @@ function gameloop.quit()
     if arch_started and bs_city_arch_dressing ~= nil and bs_city_arch_dressing.quit ~= nil then
         pcall(bs_city_arch_dressing.quit)
     end
+    if curb_started and bs_curb_utilities ~= nil and bs_curb_utilities.quit ~= nil then
+        pcall(bs_curb_utilities.quit)
+    end
     if details_started and bs_city_details ~= nil and bs_city_details.quit ~= nil then
         pcall(bs_city_details.quit)
     end
@@ -280,6 +356,7 @@ function gameloop.quit()
 
     runtime_started = false
     details_started = false
+    curb_started = false
     arch_started = false
     runtime_ready_time = 0
     runtime_error = ""
