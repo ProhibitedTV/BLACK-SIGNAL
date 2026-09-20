@@ -76,3 +76,40 @@ jobs:
       - name: Validate Block 01 build manifest against current level dependencies
         shell: pwsh
         run: ./tools/show-district12-block01-plan.ps1
+
+  windows-powershell-compat:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Parse project PowerShell with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $scripts = @(
+            '.\tools\validate-repo.ps1',
+            '.\tools\audit-district12-authored-kit.ps1',
+            '.\tools\audit-cyberpunk-detail-assets.ps1',
+            '.\tools\find-cyberpunk-curb-candidates.ps1',
+            '.\tools\install-default-runtime-hook.ps1',
+            '.\tools\deploy-gameguru-project.ps1',
+            '.\tools\fix-game.ps1',
+            '.\tools\show-district12-block01-plan.ps1'
+          )
+          foreach ($script in $scripts) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              throw "Windows PowerShell 5.1 syntax check failed: $script"
+            }
+            Write-Host "[PASS] Windows PowerShell 5.1 syntax: $script"
+          }
+
+      - name: Run Block 01 checklist under Windows PowerShell 5.1
+        shell: powershell
+        run: .\tools\show-district12-block01-plan.ps1
