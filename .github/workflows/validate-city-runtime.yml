@@ -9,6 +9,7 @@ on:
       - 'docs/DISTRICT-12-AUTHORED-CITY.md'
       - 'docs/DISTRICT-12-BLOCK-01-HERO-JUNCTION.md'
       - 'tools/*.ps1'
+      - 'tools/*.bat'
       - '.github/workflows/validate-city-runtime.yml'
   push:
     branches: [ main ]
@@ -19,6 +20,7 @@ on:
       - 'docs/DISTRICT-12-AUTHORED-CITY.md'
       - 'docs/DISTRICT-12-BLOCK-01-HERO-JUNCTION.md'
       - 'tools/*.ps1'
+      - 'tools/*.bat'
       - '.github/workflows/validate-city-runtime.yml'
 
 jobs:
@@ -52,7 +54,8 @@ jobs:
             './tools/install-default-runtime-hook.ps1',
             './tools/deploy-gameguru-project.ps1',
             './tools/fix-game.ps1',
-            './tools/show-district12-block01-plan.ps1'
+            './tools/show-district12-block01-plan.ps1',
+            './tools/sync-district12-back.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -97,7 +100,8 @@ jobs:
             '.\tools\install-default-runtime-hook.ps1',
             '.\tools\deploy-gameguru-project.ps1',
             '.\tools\fix-game.ps1',
-            '.\tools\show-district12-block01-plan.ps1'
+            '.\tools\show-district12-block01-plan.ps1',
+            '.\tools\sync-district12-back.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
