@@ -23,9 +23,7 @@ from __future__ import annotations
 
 import argparse
 import binascii
-import datetime as _dt
 import hashlib
-import os
 import struct
 import sys
 import zlib
@@ -42,9 +40,6 @@ from fpm_inspect import (
 )
 
 
-# Fixed offsets within every ELE v101+ entity record. These are guaranteed by
-# the current GameGuru MAX serializer and are intentionally the only bytes the
-# controlled clone test mutates.
 ELE_MAINTYPE_OFFSET = 0x00
 ELE_BANKINDEX_OFFSET = 0x04
 ELE_STATICFLAG_OFFSET = 0x08
@@ -79,12 +74,7 @@ def _dos_datetime(date_time: tuple[int, int, int, int, int, int]) -> tuple[int, 
 
 
 def _crc_update(value: int, byte: int) -> int:
-    """PKZIP traditional-encryption CRC primitive.
-
-    This is the same state transition used by Python's ZipCrypto decrypter,
-    expressed directly so the project can create legacy encrypted ZIP entries
-    without requiring a third-party package.
-    """
+    """PKZIP traditional-encryption CRC primitive."""
     if not hasattr(_crc_update, "table"):
         table: list[int] = []
         for i in range(256):
@@ -129,19 +119,21 @@ def _compress(payload: bytes, method: int) -> bytes:
     if method == 8:
         compressor = zlib.compressobj(level=6, method=zlib.DEFLATED, wbits=-15)
         return compressor.compress(payload) + compressor.flush()
-    raise FpmError(f"Unsupported ZIP compression method {method}; expected stored(0) or deflate(8).")
+    raise FpmError(
+        f"Unsupported ZIP compression method {method}; expected stored(0) or deflate(8)."
+    )
 
 
 def _deterministic_crypto_header(name: str, crc32: int) -> bytes:
-    # Traditional ZipCrypto uses an arbitrary 11-byte prefix and checks the
-    # final byte against the high byte of CRC when bit 3 is clear. A deterministic
-    # header keeps test artifacts reproducible without weakening a security
-    # boundary; GameGuru's FPM password is a compatibility mechanism, not secrecy.
     seed = hashlib.sha256(name.encode("utf-8") + struct.pack("<I", crc32)).digest()
     return seed[:11] + bytes([(crc32 >> 24) & 0xFF])
 
 
-def write_zipcrypto_archive(path: Path, members: Iterable[ArchiveMember], password: bytes = FPM_PASSWORD) -> None:
+def write_zipcrypto_archive(
+    path: Path,
+    members: Iterable[ArchiveMember],
+    password: bytes = FPM_PASSWORD,
+) -> None:
     """Write a conventional encrypted ZIP compatible with GameGuru MAX/minizip."""
     path.parent.mkdir(parents=True, exist_ok=True)
     central_entries: list[bytes] = []
@@ -160,7 +152,7 @@ def write_zipcrypto_archive(path: Path, members: Iterable[ArchiveMember], passwo
             encrypted = cipher.encrypt(crypto_header + compressed)
             compressed_size = len(encrypted)
             dos_time, dos_date = _dos_datetime(member.date_time)
-            flags = 0x0001 | 0x0800  # encrypted + UTF-8 names
+            flags = 0x0001 | 0x0800
             version_needed = 20
 
             local_header = struct.pack(
@@ -186,7 +178,7 @@ def write_zipcrypto_archive(path: Path, members: Iterable[ArchiveMember], passwo
             central = struct.pack(
                 "<IHHHHHHIIIHHHHHII",
                 0x02014B50,
-                20,  # version made by
+                20,
                 version_needed,
                 flags,
                 member.compress_type,
@@ -196,10 +188,10 @@ def write_zipcrypto_archive(path: Path, members: Iterable[ArchiveMember], passwo
                 compressed_size,
                 len(payload),
                 len(name_bytes),
-                0,  # extra length
-                0,  # comment length
-                0,  # disk number
-                0,  # internal attrs
+                0,
+                0,
+                0,
+                0,
                 member.external_attr,
                 local_offset,
             ) + name_bytes
@@ -213,24 +205,29 @@ def write_zipcrypto_archive(path: Path, members: Iterable[ArchiveMember], passwo
 
         if count > 0xFFFF:
             raise FpmError("ZIP64 output is not implemented; too many FPM members.")
-        eocd = struct.pack(
-            "<IHHHHIIH",
-            0x06054B50,
-            0,
-            0,
-            count,
-            count,
-            central_size,
-            central_offset,
-            0,
+        fp.write(
+            struct.pack(
+                "<IHHHHIIH",
+                0x06054B50,
+                0,
+                0,
+                count,
+                count,
+                central_size,
+                central_offset,
+                0,
+            )
         )
-        fp.write(eocd)
 
 
-def _archive_members(source: FpmArchive, replacement_map_ele: bytes) -> list[ArchiveMember]:
+def _archive_members(
+    source: FpmArchive,
+    replacement_map_ele: bytes,
+) -> list[ArchiveMember]:
     members: list[ArchiveMember] = []
     for info in source.zip.infolist():
-        payload = replacement_map_ele if info.filename.replace("\\", "/").lower() == "map.ele" else source.read(info.filename)
+        is_ele = info.filename.replace("\\", "/").lower() == "map.ele"
+        payload = replacement_map_ele if is_ele else source.read(info.filename)
         method = info.compress_type if info.compress_type in (0, 8) else 8
         members.append(
             ArchiveMember(
@@ -249,13 +246,12 @@ def verify_raw_ele_roundtrip(ele_data: bytes, parsed: dict[str, Any]) -> None:
     header_bytes = parsed["header_bytes"]
     rebuilt = bytearray(ele_data[:header_bytes])
     for entity in parsed["entities"]:
-        start = entity["record_start_offset"]
-        end = entity["record_end_offset"]
-        rebuilt += ele_data[start:end]
+        rebuilt += ele_data[
+            entity["record_start_offset"] : entity["record_end_offset"]
+        ]
     if bytes(rebuilt) != ele_data:
         raise FpmError(
-            "Gate C failed: concatenating the parsed header and raw entity spans did not "
-            "reproduce map.ele byte-for-byte."
+            "Gate C failed: parsed header + entity spans did not reproduce map.ele byte-for-byte."
         )
 
 
@@ -263,7 +259,11 @@ def _normalize_asset(value: str | None) -> str:
     return (value or "").replace("/", "\\").lower()
 
 
-def select_clone_source(parsed: dict[str, Any], asset_query: str, entity_index: int | None = None) -> dict[str, Any]:
+def select_clone_source(
+    parsed: dict[str, Any],
+    asset_query: str,
+    entity_index: int | None = None,
+) -> dict[str, Any]:
     entities = parsed["entities"]
     if entity_index is not None:
         if entity_index < 1 or entity_index > len(entities):
@@ -313,14 +313,16 @@ def clone_ele_record(
 ) -> tuple[bytes, dict[str, Any]]:
     if parsed["legacy_preversion"]:
         raise FpmError("Cannot clone pre-version ELE data.")
-    if parsed["trailing_bytes"] != 0 or not parsed["traversal_complete"]:
-        raise FpmError("Refusing to write because Gate B traversal did not end exactly at EOF.")
+    if parsed["trailing_bytes"] != 0 or not parsed["fully_traversed"]:
+        raise FpmError(
+            "Refusing to write because Gate B traversal did not end exactly at EOF."
+        )
 
     start = source_entity["record_start_offset"]
     end = source_entity["record_end_offset"]
     record = bytearray(ele_data[start:end])
     if len(record) < ELE_RZ_OFFSET + 4:
-        raise FpmError("Source entity record is too short to contain the fixed transform prefix.")
+        raise FpmError("Source entity record is too short for the fixed transform prefix.")
 
     old_pos = source_entity["position"]
     new_pos = {
@@ -337,7 +339,7 @@ def clone_ele_record(
     struct.pack_into("<i", out, 4, new_count)
     out += record
 
-    mutation = {
+    return bytes(out), {
         "source_record_index": source_entity["record_index"],
         "source_asset": source_entity.get("asset"),
         "source_record_sha256": source_entity["record_sha256"],
@@ -348,7 +350,6 @@ def clone_ele_record(
         "old_entity_count": parsed["entity_count"],
         "new_entity_count": new_count,
     }
-    return bytes(out), mutation
 
 
 def build_clone_test(
@@ -363,36 +364,43 @@ def build_clone_test(
     source_path = source_path.resolve()
     output_path = output_path.resolve()
     if source_path == output_path:
-        raise FpmError("Output FPM must differ from the source FPM; in-place writes are forbidden.")
+        raise FpmError("Output FPM must differ from source; in-place writes are forbidden.")
 
     with FpmArchive(source_path) as source:
         ent = parse_map_ent(source.read("map.ent"))
         ele_data = source.read("map.ele")
         parsed = parse_map_ele(ele_data, ent["entries"])
         verify_raw_ele_roundtrip(ele_data, parsed)
-
         source_entity = select_clone_source(parsed, asset_query, entity_index)
-        new_ele, mutation = clone_ele_record(ele_data, parsed, source_entity, dx, dy, dz)
+        new_ele, mutation = clone_ele_record(
+            ele_data, parsed, source_entity, dx, dy, dz
+        )
         members = _archive_members(source, new_ele)
-        source_manifest = {row["name"]: row["sha256"] for row in source.member_manifest()}
+        source_manifest = {
+            row["name"]: row["sha256"] for row in source.member_manifest()
+        }
 
     write_zipcrypto_archive(output_path, members)
 
-    # Re-open with the same read path GameGuru-compatible archives use and prove
-    # the modified map is structurally valid while all non-ELE payloads match.
     with FpmArchive(output_path) as generated:
         generated_ent = parse_map_ent(generated.read("map.ent"))
         generated_ele_data = generated.read("map.ele")
-        generated_parsed = parse_map_ele(generated_ele_data, generated_ent["entries"])
-        generated_manifest = {row["name"]: row["sha256"] for row in generated.member_manifest()}
+        generated_parsed = parse_map_ele(
+            generated_ele_data, generated_ent["entries"]
+        )
+        generated_manifest = {
+            row["name"]: row["sha256"] for row in generated.member_manifest()
+        }
 
     if generated_parsed["entity_count"] != mutation["new_entity_count"]:
-        raise FpmError("Generated FPM entity count did not survive encrypted archive round trip.")
+        raise FpmError("Generated FPM entity count did not survive archive round trip.")
     if generated_parsed["trailing_bytes"] != 0:
         raise FpmError("Generated FPM map.ele has trailing bytes after traversal.")
 
     changed_members = sorted(
-        name for name, sha in generated_manifest.items() if source_manifest.get(name) != sha
+        name
+        for name, sha in generated_manifest.items()
+        if source_manifest.get(name) != sha
     )
     missing_members = sorted(set(source_manifest) - set(generated_manifest))
     extra_members = sorted(set(generated_manifest) - set(source_manifest))
@@ -400,9 +408,15 @@ def build_clone_test(
         raise FpmError(
             f"Archive membership changed unexpectedly. missing={missing_members}, extra={extra_members}"
         )
-    if changed_members != [next(name for name in generated_manifest if name.replace('\\', '/').lower() == 'map.ele')]:
+    map_ele_name = next(
+        name
+        for name in generated_manifest
+        if name.replace("\\", "/").lower() == "map.ele"
+    )
+    if changed_members != [map_ele_name]:
         raise FpmError(
-            "Generated FPM changed payloads other than map.ele: " + ", ".join(changed_members)
+            "Generated FPM changed payloads other than map.ele: "
+            + ", ".join(changed_members)
         )
 
     new_entity = generated_parsed["entities"][-1]
@@ -410,7 +424,8 @@ def build_clone_test(
         "source_fpm": str(source_path),
         "output_fpm": str(output_path),
         "ele_version": parsed["version"],
-        "gate_b_traversal": parsed["traversal_complete"] and parsed["trailing_bytes"] == 0,
+        "gate_b_traversal": parsed["fully_traversed"]
+        and parsed["trailing_bytes"] == 0,
         "gate_c_byte_identical_raw_roundtrip": True,
         "gate_d_clone": mutation,
         "generated_last_entity": {
@@ -449,7 +464,10 @@ def _print_report(report: dict[str, Any]) -> None:
     print(f"  source record bytes preserved: {clone['source_record_bytes']}")
     print("  mutation: element count + XYZ only")
     print()
-    print("This is a test artifact. Open the generated FPM directly in MAX; do not overwrite the production map yet.")
+    print(
+        "This is a test artifact. Open the generated FPM directly in MAX; "
+        "do not overwrite the production map yet."
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -461,10 +479,10 @@ def main(argv: list[str] | None = None) -> int:
         default="CS_Street_Lamp.fpe",
         help="Case-insensitive asset-path substring used to choose a safe clone source",
     )
-    parser.add_argument("--entity-index", type=int, default=None, help="Explicit source entity index override")
-    parser.add_argument("--dx", type=float, default=1000.0, help="X offset for the clone")
-    parser.add_argument("--dy", type=float, default=0.0, help="Y offset for the clone")
-    parser.add_argument("--dz", type=float, default=0.0, help="Z offset for the clone")
+    parser.add_argument("--entity-index", type=int, default=None)
+    parser.add_argument("--dx", type=float, default=1000.0)
+    parser.add_argument("--dy", type=float, default=0.0)
+    parser.add_argument("--dz", type=float, default=0.0)
     args = parser.parse_args(argv)
 
     try:
