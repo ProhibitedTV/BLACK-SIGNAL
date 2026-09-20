@@ -1,23 +1,16 @@
 #!/usr/bin/env python3
 """Read-only GameGuru MAX FPM inspection utilities.
 
-BLACK SIGNAL uses this as the first safety gate before any direct FPM authoring.
-The current GameGuru MAX source shows FPM files are ZIP containers whose members
-are encrypted with the password ``mypassword``.  This tool deliberately does not
-write or repack FPM files yet.
+The current GameGuru MAX source shows FPM files are passworded ZIP containers
+and that placed entities live in a versioned binary stream named ``map.ele``.
+This tool is deliberately read-only: it can decrypt, inspect, traverse, hash,
+and extract an FPM, but it does not write or repack one.
 
-It can:
-- list/archive-inspect an FPM without extracting it;
-- read header.dat version fields;
-- decode map.ent's entity-bank strings;
-- decode the stable placement prefix of the first map.ele entity record;
-- extract archive members for offline analysis;
-- emit a SHA-256 member manifest so round-trip experiments can prove that
-  unrelated level data stayed byte-identical.
-
-The map.ele serializer is versioned and large.  We intentionally stop after the
-stable v101 record prefix until the complete v342 schema is implemented and
-validated against a real MAX-produced level.
+The ELE parser below mirrors the field order written by the current
+``entity_saveelementsdata`` implementation through ELE version 342. Its core
+safety property is structural: every declared entity record must be consumed
+and the final parser offset must land exactly at EOF. No heuristic record
+scanning is used.
 """
 
 from __future__ import annotations
@@ -26,7 +19,6 @@ import argparse
 import hashlib
 import json
 import math
-import os
 import struct
 import sys
 import zipfile
@@ -36,6 +28,7 @@ from typing import Any, Iterable
 
 FPM_PASSWORD = b"mypassword"
 EXPECTED_ELE_VERSION = 342
+MAX_MESH_MATERIALS = 100
 
 
 class FpmError(RuntimeError):
@@ -75,23 +68,34 @@ class BinaryReader:
         self.offset += 4
         return value
 
-    def crlf_string(self, label: str, allow_lf: bool = True) -> str:
+    def crlf_string(self, label: str) -> str:
         start = self.offset
-        crlf = self.data.find(b"\r\n", start)
-        lf = self.data.find(b"\n", start) if allow_lf else -1
-        if crlf >= 0 and (lf < 0 or crlf <= lf):
-            end = crlf
-            self.offset = crlf + 2
-        elif lf >= 0:
-            end = lf
-            self.offset = lf + 1
-        else:
+        end = self.data.find(b"\r\n", start)
+        if end < 0:
             raise FpmError(
-                f"Could not find CRLF/LF terminator for {label} starting at "
+                f"Could not find CRLF terminator for {label} starting at "
                 f"offset 0x{start:X}."
             )
-        raw = self.data[start:end]
-        return raw.decode("utf-8", errors="replace")
+        self.offset = end + 2
+        return self.data[start:end].decode("utf-8", errors="replace")
+
+    def skip_i32(self, count: int, label: str) -> None:
+        if count < 0:
+            raise FpmError(f"Negative integer count for {label}: {count}")
+        self.require(count * 4, label)
+        self.offset += count * 4
+
+    def skip_f32(self, count: int, label: str) -> None:
+        if count < 0:
+            raise FpmError(f"Negative float count for {label}: {count}")
+        self.require(count * 4, label)
+        self.offset += count * 4
+
+    def skip_strings(self, count: int, label: str) -> None:
+        if count < 0:
+            raise FpmError(f"Negative string count for {label}: {count}")
+        for i in range(count):
+            self.crlf_string(f"{label}[{i}]")
 
 
 class FpmArchive:
@@ -136,19 +140,17 @@ class FpmArchive:
             ) from exc
 
     def archive_rows(self) -> list[dict[str, Any]]:
-        rows: list[dict[str, Any]] = []
-        for info in self.zip.infolist():
-            rows.append(
-                {
-                    "name": info.filename,
-                    "compressed_bytes": info.compress_size,
-                    "uncompressed_bytes": info.file_size,
-                    "encrypted": bool(info.flag_bits & 0x1),
-                    "compression": info.compress_type,
-                    "crc32": f"{info.CRC:08x}",
-                }
-            )
-        return rows
+        return [
+            {
+                "name": info.filename,
+                "compressed_bytes": info.compress_size,
+                "uncompressed_bytes": info.file_size,
+                "encrypted": bool(info.flag_bits & 0x1),
+                "compression": info.compress_type,
+                "crc32": f"{info.CRC:08x}",
+            }
+            for info in self.zip.infolist()
+        ]
 
     def member_manifest(self) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
@@ -203,12 +205,6 @@ def _parse_ent_crlf(data: bytes, count: int) -> list[str]:
 
 
 def _parse_ent_length_prefixed(data: bytes, count: int) -> list[str]:
-    """Fallback for historical/variant DBPro string serialization.
-
-    Current MAX builds are expected to use line strings here, but this fallback
-    keeps the inspector diagnostic rather than destructive if a legacy FPM is
-    encountered.
-    """
     r = BinaryReader(data, 4)
     items: list[str] = []
     for i in range(count):
@@ -217,8 +213,7 @@ def _parse_ent_length_prefixed(data: bytes, count: int) -> list[str]:
             raise FpmError(f"Implausible map.ent string length {n} at index {i + 1}.")
         raw = data[r.offset : r.offset + n]
         r.offset += n
-        raw = raw.rstrip(b"\x00")
-        items.append(raw.decode("utf-8", errors="replace"))
+        items.append(raw.rstrip(b"\x00").decode("utf-8", errors="replace"))
     return items
 
 
@@ -229,12 +224,11 @@ def parse_map_ent(data: bytes) -> dict[str, Any]:
     if count < 0 or count > 1_000_000:
         raise FpmError(f"Implausible map.ent entity-bank count: {count}")
 
-    parsers = (
+    errors: list[str] = []
+    for mode, parser in (
         ("crlf", _parse_ent_crlf),
         ("length-prefixed-fallback", _parse_ent_length_prefixed),
-    )
-    errors: list[str] = []
-    for mode, parser in parsers:
+    ):
         try:
             items = parser(data, count)
             return {
@@ -274,38 +268,238 @@ def parse_ele_header(data: bytes) -> dict[str, Any]:
     }
 
 
-def parse_first_ele_prefix(data: bytes, bank: list[dict[str, Any]]) -> dict[str, Any] | None:
-    header = parse_ele_header(data)
-    if header["entity_count"] <= 0:
-        return None
-    if header["version"] < 101:
-        raise FpmError("Cannot decode entity placement prefix for ELE versions below 101.")
+def _checked_count(value: int, label: str, maximum: int) -> int:
+    if value < 0 or value > maximum:
+        raise FpmError(f"Implausible {label}: {value}")
+    return value
 
-    r = BinaryReader(data, header["header_bytes"])
+
+def _parse_material_slot(r: BinaryReader, label: str) -> None:
+    r.skip_i32(4, f"{label} flags")
+    r.skip_strings(2, f"{label} colors")
+    r.skip_f32(1, f"{label} reflectance")
+    r.skip_strings(6, f"{label} textures")
+    r.skip_f32(5, f"{label} scalar settings")
+
+
+def parse_ele_record(
+    r: BinaryReader,
+    version: int,
+    record_index: int,
+    bank: list[dict[str, Any]],
+) -> dict[str, Any]:
     start = r.offset
     result: dict[str, Any] = {
-        "record_index": 1,
+        "record_index": record_index,
         "record_start_offset": start,
-        "maintype": r.i32("entity maintype"),
-        "bankindex": r.i32("entity bankindex"),
-        "staticflag": r.i32("entity staticflag"),
+        "maintype": r.i32(f"entity {record_index} maintype"),
+        "bankindex": r.i32(f"entity {record_index} bankindex"),
+        "staticflag": r.i32(f"entity {record_index} staticflag"),
         "position": {
-            "x": r.f32("entity x"),
-            "y": r.f32("entity y"),
-            "z": r.f32("entity z"),
+            "x": r.f32(f"entity {record_index} x"),
+            "y": r.f32(f"entity {record_index} y"),
+            "z": r.f32(f"entity {record_index} z"),
         },
         "rotation_euler": {
-            "x": r.f32("entity rx"),
-            "y": r.f32("entity ry"),
-            "z": r.f32("entity rz"),
+            "x": r.f32(f"entity {record_index} rx"),
+            "y": r.f32(f"entity {record_index} ry"),
+            "z": r.f32(f"entity {record_index} rz"),
         },
-        "name": r.crlf_string("entity name"),
-        "legacy_aiinit": r.crlf_string("legacy aiinit"),
-        "aimain": r.crlf_string("entity aimain"),
-        "legacy_aidestroy": r.crlf_string("legacy aidestroy"),
-        "isobjective": r.i32("entity isobjective"),
+        "name": r.crlf_string(f"entity {record_index} name"),
     }
-    result["prefix_end_offset"] = r.offset
+
+    # Version 101 base record.
+    r.crlf_string(f"entity {record_index} legacy aiinit")
+    result["aimain"] = r.crlf_string(f"entity {record_index} aimain")
+    r.crlf_string(f"entity {record_index} legacy aidestroy")
+    result["isobjective"] = r.i32(f"entity {record_index} isobjective")
+    r.skip_strings(3, f"entity {record_index} use/ifused strings")
+    r.skip_i32(1, f"entity {record_index} uniqueelement")
+    r.skip_strings(3, f"entity {record_index} texture/effect strings")
+    r.skip_i32(2, f"entity {record_index} transparency/editorfixed")
+    r.skip_strings(2, f"entity {record_index} soundset strings")
+    r.skip_i32(7, f"entity {record_index} spawn/render/speed")
+    r.skip_strings(1, f"entity {record_index} legacy aishoot")
+    r.crlf_string(f"entity {record_index} hasweapon")
+    r.skip_i32(4, f"entity {record_index} lives/spawn runtime")
+    result["profile_scale"] = r.f32(f"entity {record_index} profile scale")
+    r.skip_f32(2, f"entity {record_index} cone fields")
+    r.skip_i32(9, f"entity {record_index} strength/light/trigger")
+    r.skip_strings(1, f"entity {record_index} legacy basedecal")
+
+    if version >= 102:
+        r.skip_i32(6, f"entity {record_index} v102 weapon")
+        r.skip_f32(2, f"entity {record_index} v102 throw")
+        r.skip_i32(12, f"entity {record_index} v102 spawn/flags")
+    if version >= 103:
+        r.skip_i32(9, f"entity {record_index} v103 physics")
+    if version >= 104:
+        r.skip_i32(1, f"entity {record_index} v104 phyalways")
+    if version >= 105:
+        r.skip_i32(6, f"entity {record_index} v105 random spawn")
+    if version >= 106:
+        r.skip_i32(2, f"entity {record_index} v106 spawn lifecycle")
+    if version >= 107:
+        r.skip_i32(1, f"entity {record_index} v107 light index")
+    if version >= 199:
+        r.skip_i32(17, f"entity {record_index} v199 placeholders")
+    if version >= 200:
+        r.skip_i32(6, f"entity {record_index} v200 placeholders")
+    if version >= 217:
+        r.skip_i32(17, f"entity {record_index} v217 particle")
+    if version >= 218:
+        r.skip_i32(1, f"entity {record_index} v218 particle animated")
+    if version >= 301:
+        r.skip_strings(4, f"entity {record_index} v301 AI names")
+    if version >= 303:
+        r.skip_i32(1, f"entity {record_index} v303 animspeed")
+    if version >= 304:
+        r.skip_f32(1, f"entity {record_index} v304 conerange")
+    if version >= 305:
+        result["scale_xyz"] = {
+            "x": r.f32(f"entity {record_index} scalex"),
+            "y": r.f32(f"entity {record_index} scaley"),
+            "z": r.f32(f"entity {record_index} scalez"),
+        }
+        r.skip_i32(2, f"entity {record_index} v305 range/dropoff")
+    if version >= 306:
+        r.skip_i32(1, f"entity {record_index} v306 violent")
+    if version >= 307:
+        r.skip_i32(1, f"entity {record_index} v307 explodeheight")
+    if version >= 308:
+        r.skip_i32(1, f"entity {record_index} v308 spotlighting")
+    if version >= 309:
+        r.skip_i32(1, f"entity {record_index} v309 lodmodifier")
+    if version >= 310:
+        r.skip_i32(5, f"entity {record_index} v310 occlusion/parent")
+        r.skip_strings(3, f"entity {record_index} v310 soundsets")
+    if version >= 311:
+        r.skip_f32(1, f"entity {record_index} v311 lootpercentage")
+    if version >= 312:
+        r.skip_i32(1, f"entity {record_index} v312 parent index")
+    if version >= 313:
+        r.skip_strings(1, f"entity {record_index} v313 voiceset")
+        r.skip_i32(1, f"entity {record_index} v313 voicerate")
+    if version >= 314:
+        r.skip_i32(6, f"entity {record_index} v314 material flags")
+        r.skip_strings(2, f"entity {record_index} v314 material colors")
+        r.skip_f32(1, f"entity {record_index} v314 reflectance")
+        r.skip_i32(1, f"entity {record_index} v314 material reserved")
+        r.skip_strings(6, f"entity {record_index} v314 textures")
+        r.skip_f32(5, f"entity {record_index} v314 material scalars")
+    if version >= 315:
+        r.skip_i32(1, f"entity {record_index} v315 light probe")
+    if version >= 316:
+        r.skip_i32(7, f"entity {record_index} v316 relationship header")
+        r.skip_f32(2, f"entity {record_index} v316 ranges")
+        for rel in range(10):
+            r.skip_f32(1, f"entity {record_index} v316 relation {rel} data")
+            r.skip_i32(3, f"entity {record_index} v316 relation {rel} ids")
+    if version >= 317:
+        for slot in range(1, MAX_MESH_MATERIALS):
+            _parse_material_slot(r, f"entity {record_index} v317 material {slot}")
+    if version >= 318:
+        r.skip_f32(MAX_MESH_MATERIALS, f"entity {record_index} v318 render bias")
+    if version >= 319:
+        result["v319_unique_group_id"] = r.i32(
+            f"entity {record_index} v319 unique group id"
+        )
+        group_count = _checked_count(
+            r.i32(f"entity {record_index} v319 group count"),
+            f"entity {record_index} v319 group count",
+            10_000,
+        )
+        result["v319_group_count"] = group_count
+        if record_index == 1:
+            for gi in range(group_count):
+                item_count = _checked_count(
+                    r.i32(f"entity 1 v319 group {gi} item count"),
+                    f"entity 1 v319 group {gi} item count",
+                    1_000_000,
+                )
+                for item in range(item_count):
+                    r.skip_i32(3, f"entity 1 v319 group {gi} item {item} ids")
+                    r.skip_f32(7, f"entity 1 v319 group {gi} item {item} transform")
+            r.skip_i32(group_count, "entity 1 v319 group image flags")
+        elif group_count != 0:
+            raise FpmError(
+                f"Entity {record_index} has non-zero v319 group count {group_count}; "
+                "current MAX writes the group table only on entity 1."
+            )
+    if version >= 320:
+        r.skip_i32(4, f"entity {record_index} v320 particle flags")
+        r.skip_f32(3, f"entity {record_index} v320 transition timing")
+        r.skip_strings(1, f"entity {record_index} v320 transition")
+        r.skip_f32(2, f"entity {record_index} v320 speed/opacity")
+    if version >= 321:
+        r.skip_strings(1, f"entity {record_index} v321 emitter")
+    if version >= 322:
+        r.skip_f32(2, f"entity {record_index} v322 decal")
+    if version >= 323:
+        r.skip_i32(1, f"entity {record_index} v323 collision override")
+    if version >= 324:
+        r.skip_f32(2, f"entity {record_index} v324 damage multipliers")
+    if version >= 325:
+        r.skip_i32(3, f"entity {record_index} v325 movement/gravity")
+    if version >= 326:
+        r.skip_i32(1, f"entity {record_index} v326 spot radius")
+    if version >= 327:
+        r.skip_strings(2, f"entity {record_index} v327 soundsets")
+    if version >= 328:
+        r.skip_i32(1, f"entity {record_index} v328 sound variants")
+    if version >= 329:
+        result["quaternion"] = {
+            "mode": r.f32(f"entity {record_index} quatmode"),
+            "x": r.f32(f"entity {record_index} quatx"),
+            "y": r.f32(f"entity {record_index} quaty"),
+            "z": r.f32(f"entity {record_index} quatz"),
+            "w": r.f32(f"entity {record_index} quatw"),
+        }
+    if version >= 330:
+        r.skip_f32(1, f"entity {record_index} v330 autoflatten")
+    if version >= 331:
+        r.skip_strings(1, f"entity {record_index} v331 override anim set")
+    if version >= 332:
+        r.skip_i32(1, f"entity {record_index} v332 collectable")
+    if version >= 333:
+        r.skip_i32(1, f"entity {record_index} v333 swim speed")
+    if version >= 334:
+        group_name_count = _checked_count(
+            r.i32(f"entity {record_index} v334 group name count"),
+            f"entity {record_index} v334 group name count",
+            10_000,
+        )
+        result["v334_group_name_count"] = group_name_count
+        r.skip_strings(group_name_count, f"entity {record_index} v334 group names")
+    if version >= 335:
+        result["creation_of_group_id"] = r.i32(
+            f"entity {record_index} v335 creationOfGroupID"
+        )
+    if version >= 336:
+        r.skip_i32(3, f"entity {record_index} v336 probe xyz")
+    if version >= 337:
+        r.skip_i32(1, f"entity {record_index} v337 underwater")
+    if version >= 338:
+        r.skip_i32(3, f"entity {record_index} v338 weapon fields")
+    if version >= 339:
+        r.skip_i32(1, f"entity {record_index} v339 shader id")
+        r.skip_f32(7, f"entity {record_index} v339 shader params")
+        r.skip_strings(1, f"entity {record_index} v339 decal name")
+    if version >= 340:
+        r.skip_strings(1, f"entity {record_index} v340 effect")
+        r.skip_f32(1, f"entity {record_index} v340 probe brightness")
+        r.skip_i32(2, f"entity {record_index} v340 bullet/material sound")
+        r.skip_f32(2, f"entity {record_index} v340 fillers")
+        r.skip_i32(3, f"entity {record_index} v340 project flags")
+        r.skip_strings(3, f"entity {record_index} v340 filler strings")
+    if version >= 341:
+        r.skip_i32(1, f"entity {record_index} v341 FPE settings")
+    if version >= 342:
+        r.skip_strings(1, f"entity {record_index} v342 soundset4a")
+
+    result["record_end_offset"] = r.offset
+    result["record_bytes"] = r.offset - start
+    result["record_sha256"] = hashlib.sha256(r.data[start:r.offset]).hexdigest()
 
     idx = result["bankindex"]
     if 1 <= idx <= len(bank):
@@ -316,10 +510,55 @@ def parse_first_ele_prefix(data: bytes, bank: list[dict[str, Any]]) -> dict[str,
             f"bankindex {idx} is outside map.ent range 1..{len(bank)}"
         )
 
-    floats = list(result["position"].values()) + list(result["rotation_euler"].values())
-    if not all(math.isfinite(v) for v in floats):
+    transform_values = list(result["position"].values()) + list(
+        result["rotation_euler"].values()
+    )
+    if "scale_xyz" in result:
+        transform_values.extend(result["scale_xyz"].values())
+    if not all(math.isfinite(v) for v in transform_values):
         result["transform_warning"] = "Non-finite transform value detected."
     return result
+
+
+def parse_map_ele(data: bytes, bank: list[dict[str, Any]]) -> dict[str, Any]:
+    header = parse_ele_header(data)
+    if header["legacy_preversion"]:
+        raise FpmError("Pre-version ELE files are not supported by safe traversal.")
+    version = header["version"]
+    if version < 101 or version > EXPECTED_ELE_VERSION:
+        raise FpmError(
+            f"ELE version {version} is outside supported range 101..{EXPECTED_ELE_VERSION}."
+        )
+
+    r = BinaryReader(data, header["header_bytes"])
+    entities: list[dict[str, Any]] = []
+    for index in range(1, header["entity_count"] + 1):
+        try:
+            entities.append(parse_ele_record(r, version, index, bank))
+        except FpmError as exc:
+            raise FpmError(
+                f"map.ele traversal failed in entity {index} near offset "
+                f"0x{r.offset:X}: {exc}"
+            ) from exc
+
+    trailing = len(data) - r.offset
+    if trailing != 0:
+        trailer = data[r.offset : r.offset + min(trailing, 32)].hex(" ")
+        raise FpmError(
+            f"map.ele schema consumed {r.offset} of {len(data)} bytes; "
+            f"{trailing} trailing byte(s) remain at 0x{r.offset:X}. "
+            f"Trailer begins: {trailer}"
+        )
+
+    return {
+        **header,
+        "expected_current_version": EXPECTED_ELE_VERSION,
+        "version_matches_current_source": version == EXPECTED_ELE_VERSION,
+        "fully_traversed": True,
+        "parsed_bytes": r.offset,
+        "trailing_bytes": 0,
+        "entities": entities,
+    }
 
 
 def inspect_fpm(path: Path) -> dict[str, Any]:
@@ -332,31 +571,21 @@ def inspect_fpm(path: Path) -> dict[str, Any]:
 
         header = parse_header_dat(fpm.read("header.dat"))
         ent = parse_map_ent(fpm.read("map.ent"))
-        ele_data = fpm.read("map.ele")
-        ele = parse_ele_header(ele_data)
-        first = parse_first_ele_prefix(ele_data, ent["entries"])
+        ele = parse_map_ele(fpm.read("map.ele"), ent["entries"])
+        archive_rows = fpm.archive_rows()
 
         return {
             "fpm": str(path),
             "archive": {
-                "member_count": len(fpm.names()),
+                "member_count": len(archive_rows),
                 "encrypted_member_count": sum(
-                    1 for row in fpm.archive_rows() if row["encrypted"]
+                    1 for row in archive_rows if row["encrypted"]
                 ),
-                "members": fpm.archive_rows(),
+                "members": archive_rows,
             },
             "header_dat": header,
             "map_ent": ent,
-            "map_ele": {
-                **ele,
-                "expected_current_version": EXPECTED_ELE_VERSION,
-                "version_matches_current_source": ele["version"] == EXPECTED_ELE_VERSION,
-                "first_entity_prefix": first,
-                "scope": (
-                    "Read-only v101 placement prefix only. Full v342 record traversal "
-                    "is intentionally not implemented yet."
-                ),
-            },
+            "map_ele": ele,
         }
 
 
@@ -382,23 +611,27 @@ def print_human(report: dict[str, Any]) -> None:
         f"map.ele: version {ele['version']}, {ele['entity_count']} placed element(s) "
         f"[{marker}: current source={ele['expected_current_version']}]"
     )
-    first = ele["first_entity_prefix"]
-    if first:
-        p = first["position"]
-        rot = first["rotation_euler"]
+    print(
+        f"Traversal: PASS - {ele['parsed_bytes']} / {ele['bytes']} bytes, "
+        f"trailing={ele['trailing_bytes']}"
+    )
+
+    entities = ele["entities"]
+    if entities:
         print()
-        print("First placed entity (stable v101 prefix):")
-        print(f"  bankindex: {first['bankindex']}")
-        print(f"  asset:     {first.get('asset') or '<unresolved>'}")
-        print(f"  name:      {first['name']!r}")
-        print(f"  position:  ({p['x']:.3f}, {p['y']:.3f}, {p['z']:.3f})")
-        print(f"  rotation:  ({rot['x']:.3f}, {rot['y']:.3f}, {rot['z']:.3f})")
-        print(
-            f"  byte span decoded: 0x{first['record_start_offset']:X}.."
-            f"0x{first['prefix_end_offset']:X}"
-        )
-    print()
-    print(ele["scope"])
+        print("Placed entity summary (first 12):")
+        for e in entities[:12]:
+            p = e["position"]
+            rot = e["rotation_euler"]
+            asset = e.get("asset") or "<unresolved>"
+            print(
+                f"  #{e['record_index']:>4} bank={e['bankindex']:<4} "
+                f"pos=({p['x']:.1f},{p['y']:.1f},{p['z']:.1f}) "
+                f"rot=({rot['x']:.1f},{rot['y']:.1f},{rot['z']:.1f}) "
+                f"{asset}"
+            )
+        if len(entities) > 12:
+            print(f"  ... {len(entities) - 12} more; use --json for every record")
 
 
 def cmd_inspect(args: argparse.Namespace) -> int:
@@ -413,10 +646,7 @@ def cmd_inspect(args: argparse.Namespace) -> int:
 def cmd_manifest(args: argparse.Namespace) -> int:
     path = Path(args.fpm)
     with FpmArchive(path) as fpm:
-        payload = {
-            "fpm": str(path),
-            "members": fpm.member_manifest(),
-        }
+        payload = {"fpm": str(path), "members": fpm.member_manifest()}
     print(json.dumps(payload, indent=2))
     return 0
 
@@ -432,11 +662,11 @@ def cmd_extract(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Read-only GameGuru MAX FPM archive and entity-format inspector."
+        description="Read-only GameGuru MAX FPM archive and ELE v342 inspector."
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p = sub.add_parser("inspect", help="Inspect archive, map.ent, and ELE header/prefix.")
+    p = sub.add_parser("inspect", help="Inspect archive and fully traverse map.ele.")
     p.add_argument("fpm")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_inspect)
