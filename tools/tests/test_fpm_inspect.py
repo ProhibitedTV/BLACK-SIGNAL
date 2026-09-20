@@ -15,60 +15,266 @@ sys.modules[spec.name] = fpm_inspect
 spec.loader.exec_module(fpm_inspect)
 
 
-def crlf(text: str) -> bytes:
-    return text.encode("utf-8") + b"\r\n"
+class Writer:
+    def __init__(self):
+        self.data = bytearray()
+
+    def i(self, value=0, count=1):
+        for _ in range(count):
+            self.data += struct.pack("<i", value)
+
+    def f(self, value=0.0, count=1):
+        for _ in range(count):
+            self.data += struct.pack("<f", value)
+
+    def s(self, value="", count=1):
+        for _ in range(count):
+            self.data += value.encode("utf-8") + b"\r\n"
 
 
-def make_fixture(path: Path) -> None:
+def write_material_slot(w: Writer):
+    w.i(count=4)
+    w.s(count=2)
+    w.f()
+    w.s(count=6)
+    w.f(count=5)
+
+
+def write_v342_record(
+    w: Writer,
+    record_index: int,
+    bankindex: int,
+    x: float,
+    y: float,
+    z: float,
+    ry: float,
+):
+    # v101 base
+    w.i(1)  # maintype
+    w.i(bankindex)
+    w.i(1)  # staticflag
+    w.f(x)
+    w.f(y)
+    w.f(z)
+    w.f(0.0)
+    w.f(ry)
+    w.f(0.0)
+    w.s(f"entity-{record_index}")
+    w.s("")
+    w.s("no_behavior_selected.lua")
+    w.s("")
+    w.i(0)  # isobjective
+    w.s(count=3)
+    w.i()
+    w.s(count=3)
+    w.i(count=2)
+    w.s(count=2)
+    w.i(count=7)
+    w.s()
+    w.s()
+    w.i(count=4)
+    w.f(100.0)  # profile scale
+    w.f(count=2)
+    w.i(count=9)
+    w.s()
+
+    # v102-v107
+    w.i(count=6)
+    w.f(count=2)
+    w.i(count=12)
+    w.i(count=9)
+    w.i()
+    w.i(count=6)
+    w.i(count=2)
+    w.i()
+
+    # v199/v200
+    w.i(count=17)
+    w.i(count=6)
+
+    # v217/v218
+    w.i(count=17)
+    w.i()
+
+    # v301-v313 (302 adds no data)
+    w.s(count=4)
+    w.i()  # 303 animspeed
+    w.f()  # 304 conerange
+    w.f(100.0, count=3)  # 305 xyz scale
+    w.i(count=2)
+    w.i()  # 306
+    w.i()  # 307
+    w.i()  # 308
+    w.i()  # 309
+    w.i(count=5)  # 310
+    w.s(count=3)
+    w.f()  # 311
+    w.i()  # 312
+    w.s()  # 313 voiceset
+    w.i()
+
+    # v314 material slot zero
+    w.i(count=6)
+    w.s(count=2)
+    w.f()
+    w.i()
+    w.s(count=6)
+    w.f(count=5)
+
+    # v315
+    w.i()
+
+    # v316 relationship header + 10 relationship entries
+    w.i(count=7)
+    w.f(count=2)
+    for _ in range(10):
+        w.f()
+        w.i(count=3)
+
+    # v317 remaining 99 material slots
+    for _ in range(1, fpm_inspect.MAX_MESH_MATERIALS):
+        write_material_slot(w)
+
+    # v318 render order bias, all 100 slots
+    w.f(count=fpm_inspect.MAX_MESH_MATERIALS)
+
+    # v319 group table is physically present only on entity 1.
+    if record_index == 1:
+        w.i(77)  # unique group id
+        w.i(2)  # number of groups
+        w.i(1)  # group 0 item count
+        w.i(10)
+        w.i(0)
+        w.i(1)
+        w.f(1.0)
+        w.f(2.0)
+        w.f(3.0)
+        w.f(0.0)
+        w.f(0.0)
+        w.f(0.0)
+        w.f(1.0)
+        w.i(0)  # group 1 item count
+        w.i(1)  # group 0 image present
+        w.i(0)  # group 1 image absent
+    else:
+        w.i(0)
+        w.i(0)
+
+    # v320-v328
+    w.i(count=4)
+    w.f(count=3)
+    w.s()
+    w.f(count=2)
+    w.s()
+    w.f(count=2)
+    w.i()
+    w.f(count=2)
+    w.i(count=3)
+    w.i()
+    w.s(count=2)
+    w.i()
+
+    # v329 quaternion
+    w.f(1.0)
+    w.f(0.0)
+    w.f(0.0)
+    w.f(0.0)
+    w.f(1.0)
+
+    # v330-v333
+    w.f()
+    w.s()
+    w.i()
+    w.i()
+
+    # v334 currently writes 100 group-name strings on every entity.
+    w.i(100)
+    for gi in range(100):
+        w.s(f"group-{gi}" if gi < 2 else "")
+
+    # v335-v338
+    w.i(record_index)
+    w.i(count=3)
+    w.i()
+    w.i(count=3)
+
+    # v339
+    w.i()
+    w.f(count=7)
+    w.s()
+
+    # v340
+    w.s()
+    w.f()
+    w.i(count=2)
+    w.f(count=2)
+    w.i(count=3)
+    w.s(count=3)
+
+    # v341/v342
+    w.i()
+    w.s()
+
+
+def make_fixture(path: Path, add_trailing_byte=False):
     header = struct.pack("<ii", 1, 0)
-
     bank = [
         r"markerbank\Player Start.fpe",
         r"cyberpunk streets booster pack\Buildings\CS_Wall_01.fpe",
     ]
-    map_ent = struct.pack("<i", len(bank)) + b"".join(crlf(x) for x in bank)
+    map_ent = struct.pack("<i", len(bank)) + b"".join(
+        x.encode("utf-8") + b"\r\n" for x in bank
+    )
 
-    # Only the stable v101 prefix is required by the current read-only probe.
-    prefix = bytearray()
-    prefix += struct.pack("<ii", 342, 1)  # ELE version, entity count
-    prefix += struct.pack("<iii", 1, 2, 1)  # maintype, bankindex, staticflag
-    prefix += struct.pack("<ffffff", 100.0, 20.0, 300.0, 0.0, 90.0, 0.0)
-    prefix += crlf("wall-test")
-    prefix += crlf("")
-    prefix += crlf("no_behavior_selected.lua")
-    prefix += crlf("")
-    prefix += struct.pack("<i", 0)
-    # The real record contains many more versioned fields. Add opaque bytes so
-    # the inspector proves it does not pretend to parse beyond the safe prefix.
-    prefix += b"OPAQUE-V342-TAIL"
+    ele = Writer()
+    ele.i(342)
+    ele.i(2)
+    write_v342_record(ele, 1, 1, 100.0, 20.0, 300.0, 0.0)
+    write_v342_record(ele, 2, 2, 500.0, 20.0, 300.0, 90.0)
+    if add_trailing_byte:
+        ele.data += b"X"
 
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("header.dat", header)
         zf.writestr("map.ent", map_ent)
-        zf.writestr("map.ele", bytes(prefix))
+        zf.writestr("map.ele", bytes(ele.data))
         zf.writestr("cfg.cfg", b"fixture")
 
 
 class FpmInspectorTests(unittest.TestCase):
-    def test_inspect_fixture(self):
+    def test_full_v342_traversal(self):
         with tempfile.TemporaryDirectory() as td:
             fpm = Path(td) / "fixture.fpm"
             make_fixture(fpm)
             report = fpm_inspect.inspect_fpm(fpm)
 
             self.assertEqual(report["header_dat"]["major"], 1)
-            self.assertEqual(report["header_dat"]["minor"], 0)
             self.assertEqual(report["map_ent"]["count"], 2)
-            self.assertEqual(report["map_ent"]["encoding"], "crlf")
             self.assertEqual(report["map_ele"]["version"], 342)
-            self.assertEqual(report["map_ele"]["entity_count"], 1)
+            self.assertEqual(report["map_ele"]["entity_count"], 2)
+            self.assertTrue(report["map_ele"]["fully_traversed"])
+            self.assertEqual(report["map_ele"]["trailing_bytes"], 0)
+            self.assertEqual(
+                report["map_ele"]["parsed_bytes"], report["map_ele"]["bytes"]
+            )
 
-            first = report["map_ele"]["first_entity_prefix"]
-            self.assertEqual(first["bankindex"], 2)
-            self.assertEqual(first["name"], "wall-test")
-            self.assertEqual(first["asset"], bank_path())
-            self.assertAlmostEqual(first["position"]["x"], 100.0)
-            self.assertAlmostEqual(first["rotation_euler"]["y"], 90.0)
+            first, second = report["map_ele"]["entities"]
+            self.assertEqual(first["bankindex"], 1)
+            self.assertEqual(first["v319_group_count"], 2)
+            self.assertEqual(first["v334_group_name_count"], 100)
+            self.assertEqual(second["bankindex"], 2)
+            self.assertEqual(second["asset"], bank_path())
+            self.assertAlmostEqual(second["position"]["x"], 500.0)
+            self.assertAlmostEqual(second["rotation_euler"]["y"], 90.0)
+            self.assertGreater(second["record_start_offset"], first["record_end_offset"] - 1)
+
+    def test_trailing_data_fails_gate_b(self):
+        with tempfile.TemporaryDirectory() as td:
+            fpm = Path(td) / "fixture-bad.fpm"
+            make_fixture(fpm, add_trailing_byte=True)
+            with self.assertRaises(fpm_inspect.FpmError) as ctx:
+                fpm_inspect.inspect_fpm(fpm)
+            self.assertIn("trailing byte", str(ctx.exception))
 
     def test_extract_and_manifest(self):
         with tempfile.TemporaryDirectory() as td:
