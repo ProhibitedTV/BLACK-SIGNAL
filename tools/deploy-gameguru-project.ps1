@@ -128,7 +128,7 @@ if (Test-Path $repoProjectDescriptor) {
     Write-Host ""
     Write-Host "Detected BLACK SIGNAL GameGuru MAX Separate Project Folder."
 
-    $projectMap = Deploy-Map -MapSource $mapSource -ListSource $listName -DestinationFiles $repoProjectFiles -BackupFolderName "_black_signal_deploy_backups"
+    $projectMap = Deploy-Map -MapSource $mapSource -ListSource $listSource -DestinationFiles $repoProjectFiles -BackupFolderName "_black_signal_deploy_backups"
     Copy-ProjectOwnedFiles -SourceFiles $projectOwnedFiles -DestinationFiles $repoProjectFiles
 
     Write-Host "Project-local authored map mirror: $projectMap"
