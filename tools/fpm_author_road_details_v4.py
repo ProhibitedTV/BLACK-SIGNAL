@@ -59,6 +59,15 @@ DETAIL_ROLE_BY_BASENAME = {
 }
 PROFILE_DETAIL_BASENAMES = frozenset(DETAIL_ROLE_BY_BASENAME)
 
+# Cyber City's double-center-line decal has its long visual axis rotated a quarter
+# turn from the Straight 4X road module's heading. The donor-relative transform is
+# still correct for position, but copying the raw Euler delta makes the decal run
+# across the road. Apply the asset-axis correction only to that role so lamps,
+# crosswalks and other profile members keep their authored orientation.
+ROLE_YAW_CORRECTION_DEGREES: dict[str, float] = {
+    "road_center_yellow": 90.0,
+}
+
 
 @dataclass(frozen=True)
 class AssemblyMember:
@@ -234,12 +243,13 @@ def placement_for_member(
     rp = target_road["position"]
     yaw = float(target_road["rotation_euler"]["y"])
     ox, oz = fabric.rotate_local(member.local_x, member.local_z, yaw)
+    role_yaw_correction = ROLE_YAW_CORRECTION_DEGREES.get(member.role, 0.0)
     return fabric.Placement(
         role=member.role,
         x=float(rp["x"]) + ox,
         y=float(rp["y"]) + member.y_offset,
         z=float(rp["z"]) + oz,
-        ry=(yaw + member.relative_yaw) % 360.0,
+        ry=(yaw + member.relative_yaw + role_yaw_correction) % 360.0,
         note=(
             f"{member.role} from CyberCity road profile "
             f"#{member.donor_record_index} -> target road #{target_road['record_index']}"
@@ -466,6 +476,7 @@ def print_report(report: dict[str, Any]) -> None:
     print(f"Added detail entities: {report['added_detail_entities']}")
     print("[PASS] Main streets contain no 2X/1X/quarter road substitutions.")
     print("[PASS] Detail transforms come from one CyberCity exemplar per road kind.")
+    print("[PASS] Center-line decal asset-axis correction is applied after donor-relative rotation.")
     print("[PASS] No guessed curb/sidewalk offsets are synthesized.")
     print("[PASS] Generated FPM reopens and traverses exactly to EOF.")
     print(f"SHA-256: {report['sha256']}")
