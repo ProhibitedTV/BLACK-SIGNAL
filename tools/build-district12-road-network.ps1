@@ -1,5 +1,6 @@
 param(
-    [int]$GridSize = 7
+    [int]$GridSize = 7,
+    [int]$MaxDetailAdditions = 2500
 )
 
 $ErrorActionPreference = 'Stop'
@@ -22,30 +23,53 @@ if ($GridSize -lt 5 -or ($GridSize % 2) -eq 0) {
 
 $outDir = Join-Path $repo '_fpm_generated'
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-$outMap = Join-Path $outDir ($districtName + ' - road-foundation-v3.fpm')
-$outReport = Join-Path $outDir ($districtName + ' - road-foundation-v3.report.json')
+$foundationMap = Join-Path $outDir ($districtName + ' - road-foundation-v3-base.fpm')
+$foundationReport = Join-Path $outDir ($districtName + ' - road-foundation-v3-base.report.json')
+$outMap = Join-Path $outDir ($districtName + ' - road-system-v4.fpm')
+$outReport = Join-Path $outDir ($districtName + ' - road-system-v4.report.json')
 
 $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
 if (-not $python) { throw 'Python 3 is required.' }
-$tool = Join-Path $PSScriptRoot 'fpm_author_road_network_v3.py'
+$foundationTool = Join-Path $PSScriptRoot 'fpm_author_road_network_v3.py'
+$detailTool = Join-Path $PSScriptRoot 'fpm_author_road_details_v4.py'
 
-Write-Host 'BLACK SIGNAL - rebuild District 12 uniform road foundation v3'
-Write-Host "Base: $cyberCity"
+Write-Host 'BLACK SIGNAL - rebuild District 12 coherent road system v4'
+Write-Host "CyberCity donor: $cyberCity"
 Write-Host "Grid: $GridSize x $GridSize"
-Write-Host "Output: $outMap"
+Write-Host ''
+Write-Host 'Stage 1/2: uniform road surface grammar'
+Write-Host '  junction -> Straight 4X -> Straight 4X -> Straight 4X -> junction'
+Write-Host '  no 2X / 1X / quarter substitutions in main traffic streets'
+Write-Host "  output: $foundationMap"
 Write-Host ''
 
 if ($python.Name -ieq 'py.exe' -or $python.Name -ieq 'py') {
-    & $python.Source -3 $tool $cyberCity $outMap --grid-size $GridSize --report-json $outReport
+    & $python.Source -3 $foundationTool $cyberCity $foundationMap --grid-size $GridSize --report-json $foundationReport
 }
 else {
-    & $python.Source $tool $cyberCity $outMap --grid-size $GridSize --report-json $outReport
+    & $python.Source $foundationTool $cyberCity $foundationMap --grid-size $GridSize --report-json $foundationReport
 }
 if ($LASTEXITCODE -ne 0) { throw "Road-foundation v3 compiler failed with exit code $LASTEXITCODE" }
 
+Write-Host ''
+Write-Host 'Stage 2/2: CyberCity-calibrated road detail profile'
+Write-Host '  one donor profile per road kind; repeated consistently'
+Write-Host '  center markings, intersection markings and street lighting come from exemplar-relative transforms'
+Write-Host '  no guessed curb offsets'
+Write-Host "  output: $outMap"
+Write-Host ''
+
+if ($python.Name -ieq 'py.exe' -or $python.Name -ieq 'py') {
+    & $python.Source -3 $detailTool $foundationMap $outMap --donor-fpm $cyberCity --max-additions $MaxDetailAdditions --report-json $outReport
+}
+else {
+    & $python.Source $detailTool $foundationMap $outMap --donor-fpm $cyberCity --max-additions $MaxDetailAdditions --report-json $outReport
+}
+if ($LASTEXITCODE -ne 0) { throw "Road-detail v4 compiler failed with exit code $LASTEXITCODE" }
+
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$backup = Join-Path $repo ("_fpm_backups\road-foundation-v3-$stamp")
+$backup = Join-Path $repo ("_fpm_backups\road-system-v4-$stamp")
 New-Item -ItemType Directory -Force -Path $backup | Out-Null
 foreach ($pair in @(
     @{ Path = $projectMap; Name = 'project-before.fpm' },
@@ -72,8 +96,11 @@ if (Test-Path -LiteralPath $cyberLst) {
 }
 
 Write-Host ''
-Write-Host '[PASS] District 12 uniform road foundation promoted to project + global mapbanks.'
+Write-Host '[PASS] District 12 coherent road system v4 promoted to project + global mapbanks.'
+Write-Host '[PASS] Main streets use one full-width surface family and one repeatable detail profile.'
 Write-Host "Backup: $backup"
-Write-Host "Report: $outReport"
+Write-Host "Foundation report: $foundationReport"
+Write-Host "Detail report: $outReport"
 Write-Host "SHA-256: $hash"
 Write-Host '[NEXT] Start GameGuru MAX normally, open BLACK SIGNAL, and Test Play.'
+Write-Host '[CHECK] Inspect one long avenue and one hero intersection before adding buildings.'
