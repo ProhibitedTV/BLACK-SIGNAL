@@ -20,6 +20,15 @@ if ($LASTEXITCODE -ne 0) {
     throw "BLACK SIGNAL deployment/repair failed."
 }
 
+Write-Host ""
+Write-Host "Building and installing BLACK SIGNAL Storyboard UI..."
+$projectFiles = Join-Path $repo "Files"
+$projectFile = Join-Path $projectFiles "projectbank\BLACK SIGNAL\project203.dat"
+& (Join-Path $PSScriptRoot "install-black-signal-ui.ps1") -ProjectFile $projectFile -ProjectFiles $projectFiles -GameGuruFiles $GameGuruFiles
+if ($LASTEXITCODE -ne 0) {
+    throw "BLACK SIGNAL Storyboard UI installation failed."
+}
+
 # Keep the Separate Project Folder's companion dependency list in lockstep with
 # the curated authored map. This is intentionally explicit because the FPM is now
 # the physical-city source of truth.
@@ -39,6 +48,7 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host ""
 Write-Host "[PASS] BLACK SIGNAL is repaired and ready to open."
 Write-Host "       District 12 is deployed to mapbank and bound to the existing Storyboard LEVEL node."
+Write-Host "       Splash/title/loading/pause/game-over and submenu screens use the BLACK SIGNAL visual system."
 Write-Host "       Runtime city spawning/dressing is disabled."
 Write-Host "       The saved FPM is now the source of truth for roads, sidewalks, buildings, skyline and street furniture."
 Write-Host "       Use the Cyberpunk Streets snap kit in MAX for physical city construction; reserve Lua for film/runtime behavior."
