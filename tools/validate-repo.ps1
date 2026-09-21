@@ -20,6 +20,7 @@ $required = @(
     "gameguru\maps\BLACK SIGNAL - District 12.lst",
     "gameguru\Files\scriptbank\gameloop.lua",
     "gameguru\Files\scriptbank\user\black_signal",
+    "tools\install-black-signal-ui.ps1",
     "docs\GAMEGURU-MAX.md",
     "docs\CINEGURU-MAX.md",
     "docs\DISTRICT-12-AUTHORED-CITY.md",
@@ -29,6 +30,15 @@ $required = @(
 foreach ($relative in $required) {
     $path = Join-Path $repo $relative
     if (Test-Path $path) { Write-Pass $relative } else { Write-Fail "Missing $relative" }
+}
+
+$uiInstaller = Join-Path $repo "tools\install-black-signal-ui.ps1"
+if (Test-Path $uiInstaller) {
+    $uiContent = Get-Content -Raw $uiInstaller
+    foreach ($token in @("Splash Screen", "Title Screen", "Loading Screen", "Game Paused", "Game Over Screen", "ScreenBackdropOffset", "System.Drawing")) {
+        if ($uiContent -match [regex]::Escape($token)) { Write-Pass "Storyboard UI installer contains $token" }
+        else { Write-Fail "Storyboard UI installer is missing required token: $token" }
+    }
 }
 
 # All BLACK SIGNAL behaviours remain syntax/metadata checked even when they are
