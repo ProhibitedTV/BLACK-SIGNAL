@@ -25,7 +25,7 @@ $outReport = Join-Path $outDir ($districtName + ' - dense-city.report.json')
 $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
 if (-not $python) { throw 'Python 3 is required.' }
-$tool = Join-Path $PSScriptRoot 'fpm_author_city_mass.py'
+$tool = Join-Path $PSScriptRoot 'fpm_author_city_mass_compat.py'
 
 Write-Host 'BLACK SIGNAL - build dense District 12 city'
 Write-Host "Base: $cyberCity"
