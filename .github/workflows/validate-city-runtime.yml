@@ -68,7 +68,8 @@ jobs:
             './tools/create-district12-clone-test.ps1',
             './tools/create-district12-street-fabric.ps1',
             './tools/promote-district12-street-fabric.ps1',
-            './tools/rebase-district12-on-cybercity.ps1'
+            './tools/rebase-district12-on-cybercity.ps1',
+            './tools/build-district12-city.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -90,10 +91,12 @@ jobs:
             tools/fpm_clone_entity.py \
             tools/fpm_author_street_fabric.py \
             tools/fpm_author_street_fabric_compat.py \
+            tools/fpm_author_city_mass.py \
             tools/tests/test_fpm_inspect.py \
             tools/tests/test_fpm_clone_entity.py \
             tools/tests/test_fpm_author_street_fabric.py \
-            tools/tests/test_fpm_street_fabric_quat_compat.py
+            tools/tests/test_fpm_street_fabric_quat_compat.py \
+            tools/tests/test_fpm_author_city_mass.py
           python3 -m unittest discover -s tools/tests -p 'test_fpm_*.py' -v
 
       - name: Validate authored District 12 repository contract
@@ -134,7 +137,8 @@ jobs:
             '.\tools\create-district12-clone-test.ps1',
             '.\tools\create-district12-street-fabric.ps1',
             '.\tools\promote-district12-street-fabric.ps1',
-            '.\tools\rebase-district12-on-cybercity.ps1'
+            '.\tools\rebase-district12-on-cybercity.ps1',
+            '.\tools\build-district12-city.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -150,7 +154,7 @@ jobs:
       - name: Run FPM tooling unit tests on Windows
         shell: powershell
         run: |
-          python -m py_compile .\tools\fpm_inspect.py .\tools\fpm_clone_entity.py .\tools\fpm_author_street_fabric.py .\tools\fpm_author_street_fabric_compat.py .\tools\tests\test_fpm_inspect.py .\tools\tests\test_fpm_clone_entity.py .\tools\tests\test_fpm_author_street_fabric.py .\tools\tests\test_fpm_street_fabric_quat_compat.py
+          python -m py_compile .\tools\fpm_inspect.py .\tools\fpm_clone_entity.py .\tools\fpm_author_street_fabric.py .\tools\fpm_author_street_fabric_compat.py .\tools\fpm_author_city_mass.py .\tools\tests\test_fpm_inspect.py .\tools\tests\test_fpm_clone_entity.py .\tools\tests\test_fpm_author_street_fabric.py .\tools\tests\test_fpm_street_fabric_quat_compat.py .\tools\tests\test_fpm_author_city_mass.py
           python -m unittest discover -s .\tools\tests -p test_fpm_*.py -v
 
       - name: Run Block 01 checklist under Windows PowerShell 5.1
