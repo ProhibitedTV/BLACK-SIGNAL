@@ -1,81 +1,45 @@
 # District 12 authored street fabric
 
-District 12's streets are not considered visually complete when only road and sidewalk geometry exists. The following are baseline city infrastructure, not optional prop dressing:
+District 12's streets are not visually complete when only road and sidewalk geometry exists. The baseline still needs road markings, lamps, dynamic lights, sidewalk lighting, curb protection, bollards, and utility infrastructure.
 
-- yellow center-road indication using `CS_Street_Double_Center_Line.fpe`;
-- crosswalk decals at hero four-way junction approaches;
-- physical `CS_Street_Lamp.fpe` meshes on a repeated curb rhythm;
-- actual GameGuru MAX `CS_Street_Light_Marker.fpe` dynamic light entities paired with street lamps;
-- `CS_Sidewalk_Light.fpe` low sidewalk lighting;
-- `CS_Sidewalk_Guard.fpe` pedestrian/curb rails;
-- `CS_Street_Crosswalk_Metal_Blocker_Post.fpe` as crossing pole stops / bollards;
-- `CS_Street_Electrical_Pole_01.fpe` utility infrastructure;
-- `CS_Plastic_Divider_1.fpe` only where a harder service/curb separator is useful.
+## Important production change
 
-The exact pack assets above were confirmed by the installed Cyber City Streets / Cyberpunk Streets Booster Pack scan. In particular, the pack includes `CS_Street_Light_Marker.fpe`; a lamp mesh by itself is not treated as a dynamic light.
+The first generated street-fabric pass is **retired from production**.
 
-## Authoring model
+It proved that BLACK SIGNAL can write valid GameGuru MAX FPM entity records, but its spatial model was wrong: it treated each road entity origin as if every module shared a reliable curb coordinate system, then repeated guessed local offsets. In the real level that placed lamp bases, rails, posts, and other furniture in traffic lanes and produced an implausibly dense obstacle course.
 
-`tools/fpm_author_street_fabric.py` derives placements from the road entities already authored in the FPM and writes a separate generated FPM. It does not use runtime entity spawning.
+That is a placement-grammar failure, not an FPM-format failure.
 
-For each required asset the writer uses this template policy:
+`tools/promote-district12-street-fabric.ps1` now refuses to promote that known-bad pass unless `-ForceKnownBad` is supplied for regression testing.
 
-1. exact placed record already in District 12;
-2. otherwise an exact placed record harvested from a donor FPM with the same ELE version;
-3. for ordinary static props only, an explicitly reported generic-static bank import may reuse a known-good static record while changing the `map.ent` bank reference.
+## New ground truth: the installed CyberCity exemplar
 
-The third path is a compatibility experiment and must be visually checked in MAX. It is never used for the dynamic light marker.
+The Cyber City Streets DLC ships with modular road/pavement pieces and road markings designed to snap cleanly together, plus modular building pieces, shop fronts, background buildings, street furniture, lights, and props. BLACK SIGNAL now treats the installed `CyberCity.fpm` showcase map as the spatial ground truth instead of inventing curb offsets.
 
-`CS_Street_Light_Marker.fpe` requires an exact same-version donor record when District 12 does not already contain one. This preserves the MAX-authored light fields instead of pretending that a generic prop record is a light.
+For this throwaway production test project, the fastest way to restore a coherent city is to rebase the local District 12 runtime map on that official exemplar, then iterate from a city that already demonstrates the pack's intended scale, cadence, enclosure, and prop placement.
 
-## Deterministic layout
-
-The first street-fabric pass follows a deliberately simple city rhythm:
-
-```text
-straight road
-  -> yellow double center line on every module
-  -> sidewalk lights on both sides
-  -> full street lamps on both sides every second module
-     -> one real dynamic light marker above each lamp
-  -> curb guards on the lamp rhythm
-  -> one utility pole every third module
-
-four-way junction
-  -> four crosswalk decals
-  -> four crossing blocker posts / bollards
-```
-
-The current constants intentionally favor legibility over clutter. After the first generated FPM is visually validated, offsets and cadence can be tuned from screenshots without changing the file-format architecture.
-
-## Safety rules
-
-- Production `BLACK SIGNAL - District 12.fpm` is never overwritten by the authoring command.
-- The source ELE stream must traverse exactly to EOF before any write.
-- Raw entity records are cloned; the large versioned tail remains engine-authored.
-- The generated FPM is reopened and fully parsed after writing.
-- Only decrypted `map.ent` and `map.ele` are allowed to change.
-- Dynamic light markers may not use generic static records.
-- Donor records must use the same ELE version as the target map.
-- Generated output belongs under `_fpm_generated/` and is not committed.
-
-## Command
-
-Close GameGuru MAX before generating the test map, then run:
+Run with GameGuru MAX closed:
 
 ```bat
 cd /d "%USERPROFILE%\Desktop\BLACK SIGNAL\BLACK SIGNAL"
 git pull
-powershell -ExecutionPolicy Bypass -File .\tools\create-district12-street-fabric.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\rebase-district12-on-cybercity.ps1
 ```
 
-The output is:
+The rebase tool:
 
-```text
-_fpm_generated\BLACK SIGNAL - District 12 - street-fabric.fpm
-_fpm_generated\BLACK SIGNAL - District 12 - street-fabric.report.json
-```
+- locates the installed `CyberCity.fpm` in the normal GameGuru MAX / Steam mapbanks;
+- validates the donor FPM with the BLACK SIGNAL parser before use;
+- backs up the current project/global District 12 FPM and LST;
+- copies the CyberCity FPM into the active Separate Project Folder and normal GameGuru MAX mapbank under the District 12 filename;
+- copies the companion LST when present;
+- verifies the promoted FPM byte-for-byte by SHA-256;
+- deliberately does **not** modify the tracked `gameguru/maps` FPM.
 
-Open the generated FPM directly in GameGuru MAX. Verify road-center markings, rail/post placement, poles, lamp meshes, and actual light contribution before any production promotion.
+The last rule is important because the repository is public and the Cyber City Streets license does not permit redistributing the DLC assets as an asset pack. The exemplar remains local to the licensed GameGuru MAX installation.
 
-If the command reports that `CS_Street_Light_Marker.fpe` has no exact same-version donor record, the safe path is to create/save one exact marker exemplar in a disposable MAX level of the same ELE version or seed it into District 12 manually once. The writer will then harvest that engine-authored record and can reproduce it deterministically thereafter.
+## What comes next
+
+Once the project opens on the exemplar-derived city, future procedural authoring should learn from it instead of guessing. The next authoring grammar should derive relative transforms and cadence from actual exemplar neighborhoods: road module -> center marking -> sidewalk edge -> lamp/rail/bollard -> storefront/building wall. Only then should those patterns be transplanted or adapted into BLACK SIGNAL-specific blocks.
+
+The direct FPM work remains useful: full ELE traversal, raw-record cloning, same-version donor records, encrypted repacking, and verification all passed. The change is that spatial placement must be calibrated from authored source data before replication.
