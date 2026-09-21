@@ -9,7 +9,6 @@ if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
 import fpm_author_street_fabric_compat as compat
-from fpm_inspect import FpmError
 
 
 class StreetFabricQuaternionCompatTests(unittest.TestCase):
@@ -21,7 +20,7 @@ class StreetFabricQuaternionCompatTests(unittest.TestCase):
     def test_ambiguous_quaternion_payload_is_rejected(self):
         quat = {"mode": 1.0, "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}
         needle = struct.pack("<5f", 1.0, 0.0, 0.0, 0.0, 1.0)
-        with self.assertRaises(FpmError):
+        with self.assertRaises(compat.FpmError):
             compat._find_quaternion_span(b"X" + needle + b"Y" + needle, quat)
 
     def test_patch_record_normalizes_quaternion_to_euler_mode(self):
