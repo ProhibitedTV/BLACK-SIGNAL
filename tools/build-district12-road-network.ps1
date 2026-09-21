@@ -1,6 +1,7 @@
 param(
     [int]$GridSize = 7,
-    [int]$MaxDetailAdditions = 2500
+    [int]$MaxDetailAdditions = 2500,
+    [int]$MaxSurfaceAdditions = 1800
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,20 +26,23 @@ $outDir = Join-Path $repo '_fpm_generated'
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 $foundationMap = Join-Path $outDir ($districtName + ' - road-foundation-v3-base.fpm')
 $foundationReport = Join-Path $outDir ($districtName + ' - road-foundation-v3-base.report.json')
-$outMap = Join-Path $outDir ($districtName + ' - road-system-v4.fpm')
-$outReport = Join-Path $outDir ($districtName + ' - road-system-v4.report.json')
+$detailMap = Join-Path $outDir ($districtName + ' - road-system-v4-detail.fpm')
+$detailReport = Join-Path $outDir ($districtName + ' - road-system-v4-detail.report.json')
+$outMap = Join-Path $outDir ($districtName + ' - road-system-v5.fpm')
+$outReport = Join-Path $outDir ($districtName + ' - road-system-v5.report.json')
 
 $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
 if (-not $python) { throw 'Python 3 is required.' }
 $foundationTool = Join-Path $PSScriptRoot 'fpm_author_road_network_v3.py'
 $detailTool = Join-Path $PSScriptRoot 'fpm_author_road_details_v4.py'
+$surfaceTool = Join-Path $PSScriptRoot 'fpm_author_road_surface_v5.py'
 
-Write-Host 'BLACK SIGNAL - rebuild District 12 coherent road system v4'
+Write-Host 'BLACK SIGNAL - rebuild District 12 coherent road system v5'
 Write-Host "CyberCity donor: $cyberCity"
 Write-Host "Grid: $GridSize x $GridSize"
 Write-Host ''
-Write-Host 'Stage 1/2: uniform road surface grammar'
+Write-Host 'Stage 1/3: uniform road surface grammar'
 Write-Host '  junction -> Straight 4X -> Straight 4X -> Straight 4X -> junction'
 Write-Host '  no 2X / 1X / quarter substitutions in main traffic streets'
 Write-Host "  output: $foundationMap"
@@ -53,23 +57,39 @@ else {
 if ($LASTEXITCODE -ne 0) { throw "Road-foundation v3 compiler failed with exit code $LASTEXITCODE" }
 
 Write-Host ''
-Write-Host 'Stage 2/2: CyberCity-calibrated road detail profile'
-Write-Host '  one donor profile per road kind; repeated consistently'
-Write-Host '  center markings, intersection markings and street lighting come from exemplar-relative transforms'
-Write-Host '  no guessed curb offsets'
+Write-Host 'Stage 2/3: CyberCity-calibrated structural road detail profile'
+Write-Host '  center markings, crosswalks, bollards and street lighting come from exemplar-relative transforms'
+Write-Host '  center-line decal axis correction stays enforced'
+Write-Host "  output: $detailMap"
+Write-Host ''
+
+if ($python.Name -ieq 'py.exe' -or $python.Name -ieq 'py') {
+    & $python.Source -3 $detailTool $foundationMap $detailMap --donor-fpm $cyberCity --max-additions $MaxDetailAdditions --report-json $detailReport
+}
+else {
+    & $python.Source $detailTool $foundationMap $detailMap --donor-fpm $cyberCity --max-additions $MaxDetailAdditions --report-json $detailReport
+}
+if ($LASTEXITCODE -ne 0) { throw "Road-detail v4 compiler failed with exit code $LASTEXITCODE" }
+
+Write-Host ''
+Write-Host 'Stage 3/3: deterministic Cyberpunk Streets surface dressing'
+Write-Host '  asphalt wear/patch decals on every Straight 4X module'
+Write-Host '  road-aligned arrows plus sparse SLOW/ONLY approach indicators'
+Write-Host '  periodic manhole/sewer covers and junction surface wear'
+Write-Host '  v4 center lines, crosswalks, lamps and bollards are preserved'
 Write-Host "  output: $outMap"
 Write-Host ''
 
 if ($python.Name -ieq 'py.exe' -or $python.Name -ieq 'py') {
-    & $python.Source -3 $detailTool $foundationMap $outMap --donor-fpm $cyberCity --max-additions $MaxDetailAdditions --report-json $outReport
+    & $python.Source -3 $surfaceTool $detailMap $outMap --donor-fpm $cyberCity --max-additions $MaxSurfaceAdditions --report-json $outReport
 }
 else {
-    & $python.Source $detailTool $foundationMap $outMap --donor-fpm $cyberCity --max-additions $MaxDetailAdditions --report-json $outReport
+    & $python.Source $surfaceTool $detailMap $outMap --donor-fpm $cyberCity --max-additions $MaxSurfaceAdditions --report-json $outReport
 }
-if ($LASTEXITCODE -ne 0) { throw "Road-detail v4 compiler failed with exit code $LASTEXITCODE" }
+if ($LASTEXITCODE -ne 0) { throw "Road-surface v5 compiler failed with exit code $LASTEXITCODE" }
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$backup = Join-Path $repo ("_fpm_backups\road-system-v4-$stamp")
+$backup = Join-Path $repo ("_fpm_backups\road-system-v5-$stamp")
 New-Item -ItemType Directory -Force -Path $backup | Out-Null
 foreach ($pair in @(
     @{ Path = $projectMap; Name = 'project-before.fpm' },
@@ -96,11 +116,13 @@ if (Test-Path -LiteralPath $cyberLst) {
 }
 
 Write-Host ''
-Write-Host '[PASS] District 12 coherent road system v4 promoted to project + global mapbanks.'
-Write-Host '[PASS] Main streets use one full-width surface family and one repeatable detail profile.'
+Write-Host '[PASS] District 12 coherent road system v5 promoted to project + global mapbanks.'
+Write-Host '[PASS] Main streets remain one full-width road family.'
+Write-Host '[PASS] Road surfaces now include deterministic pack decals, approach indicators and utility covers.'
 Write-Host "Backup: $backup"
 Write-Host "Foundation report: $foundationReport"
-Write-Host "Detail report: $outReport"
+Write-Host "Structural detail report: $detailReport"
+Write-Host "Surface detail report: $outReport"
 Write-Host "SHA-256: $hash"
 Write-Host '[NEXT] Start GameGuru MAX normally, open BLACK SIGNAL, and Test Play.'
-Write-Host '[CHECK] Inspect one long avenue and one hero intersection before adding buildings.'
+Write-Host '[CHECK] Inspect a long avenue, a 4-way, a T, and a curve for decal orientation/height before adding more city dressing.'
