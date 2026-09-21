@@ -48,10 +48,14 @@ class CoherentRoadDetailTests(unittest.TestCase):
             detail.REQUIRED_PROFILE_ROLES["straight4"],
             frozenset(("road_center_yellow",)),
         )
+        self.assertEqual(
+            detail.ROLE_YAW_CORRECTION_DEGREES["road_center_yellow"],
+            90.0,
+        )
         self.assertIn("street_lamp", detail.PROFILE_ROLES["straight4"])
         self.assertIn("street_dynamic_light", detail.PROFILE_ROLES["straight4"])
 
-    def test_member_transform_rotates_exemplar_offset_with_target_road(self):
+    def test_centerline_transform_rotates_offset_and_corrects_asset_axis(self):
         member = detail.AssemblyMember(
             role="road_center_yellow",
             asset_path="CS_Street_Double_Center_Line.fpe",
@@ -68,6 +72,22 @@ class CoherentRoadDetailTests(unittest.TestCase):
         self.assertAlmostEqual(placement.x, 1000.0, places=4)
         self.assertAlmostEqual(placement.z, 1900.0, places=4)
         self.assertAlmostEqual(placement.y, 27.0, places=4)
+        self.assertAlmostEqual(placement.ry, 180.0, places=4)
+
+    def test_non_centerline_members_keep_donor_relative_yaw(self):
+        member = detail.AssemblyMember(
+            role="street_lamp",
+            asset_path="CS_Street_Lamp.fpe",
+            parsed={},
+            raw_record=b"",
+            local_x=100.0,
+            y_offset=2.0,
+            local_z=0.0,
+            relative_yaw=0.0,
+            donor_record_index=100,
+        )
+        target = road("CS_Street_Straight_4X.fpe", x=1000.0, y=25.0, z=2000.0, yaw=90.0, index=8)
+        placement = detail.placement_for_member(member, target)
         self.assertAlmostEqual(placement.ry, 90.0, places=4)
 
     def test_assembly_score_prefers_required_role_coverage(self):
