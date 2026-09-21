@@ -11,13 +11,15 @@ import fpm_author_city_mass_compat as compat
 
 class CityMassCompatTests(unittest.TestCase):
     @staticmethod
-    def entity(index: int, x: float, z: float, creation_group: int = 0) -> dict:
+    def entity(index: int, x: float, z: float, creation_group: int = 0, asset: str = "x.fpe") -> dict:
         return {
             "record_index": index,
             "position": {"x": x, "y": 1000.0, "z": z},
+            "rotation_euler": {"x": 0.0, "y": 0.0, "z": 0.0},
             "staticflag": 1,
             "v319_group_count": 0,
             "creation_of_group_id": creation_group,
+            "asset": asset,
         }
 
     def test_adaptive_clustering_breaks_citywide_chain_into_buildings(self):
@@ -50,6 +52,52 @@ class CityMassCompatTests(unittest.TestCase):
         e2 = self.entity(2, 0.0, 0.0)
         e2["v319_group_count"] = 2
         self.assertFalse(compat._cloneable_city_piece(e2))
+
+    def test_real_map_ent_relative_paths_are_classified(self):
+        road = self.entity(
+            2,
+            0.0,
+            0.0,
+            asset=r"Cyberpunk Streets Booster Pack\Streets and Sidewalks\Streets\CS_Street_T-Intersect_3.fpe",
+        )
+        wall = self.entity(
+            3,
+            0.0,
+            0.0,
+            asset=r"Cyberpunk Streets Booster Pack\Buildings\CS_Wall_01.fpe",
+        )
+        storefront = self.entity(
+            4,
+            0.0,
+            0.0,
+            asset=r"Cyberpunk Streets Booster Pack\Store Fronts\CS_Store_Front_02_Corner_With_Window.fpe",
+        )
+        background = self.entity(
+            5,
+            0.0,
+            0.0,
+            asset=r"Cyberpunk Streets Booster Pack\Background Buildings\CS_BG_Building_03_Floor.fpe",
+        )
+        self.assertTrue(compat._is_road(road))
+        self.assertTrue(compat._is_foreground_building(wall))
+        self.assertTrue(compat._is_foreground_building(storefront))
+        self.assertTrue(compat._is_background_building(background))
+
+    def test_dependency_list_entitybank_prefix_is_also_classified(self):
+        road = self.entity(
+            6,
+            0.0,
+            0.0,
+            asset=r"entitybank\Cyberpunk Streets Booster Pack\Streets and Sidewalks\Streets\CS_Street_Straight_4X.fpe",
+        )
+        wall = self.entity(
+            7,
+            0.0,
+            0.0,
+            asset=r"entitybank\Cyberpunk Streets Booster Pack\Buildings\CS_Wall_Corner_01.fpe",
+        )
+        self.assertTrue(compat._is_road(road))
+        self.assertTrue(compat._is_foreground_building(wall))
 
 
 if __name__ == "__main__":
