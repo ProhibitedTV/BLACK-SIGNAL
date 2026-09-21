@@ -77,10 +77,11 @@ class RoadSurfaceDetailV5Tests(unittest.TestCase):
         arrows = [p for p in plan if p.role in surface.ARROW_ROLES]
         self.assertEqual(len(arrows), 1)
         arrow = arrows[0]
-        # Junction is in the target road's +local-Z direction at yaw 90.
-        self.assertAlmostEqual(arrow.x, 612.0, places=3)
-        self.assertAlmostEqual(arrow.z, -94.0, places=3)
-        self.assertAlmostEqual(arrow.ry, 180.0, places=3)
+        # At yaw 90 the junction lies in -local-Z; the approach lane and glyph
+        # both rotate with the road and reverse travel direction.
+        self.assertAlmostEqual(arrow.x, 388.0, places=3)
+        self.assertAlmostEqual(arrow.z, 94.0, places=3)
+        self.assertAlmostEqual(arrow.ry, 0.0, places=3)
 
     def test_plan_is_repeatable_independent_of_entity_order(self):
         entities = [
