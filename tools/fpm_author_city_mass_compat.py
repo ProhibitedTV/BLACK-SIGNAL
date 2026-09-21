@@ -10,6 +10,11 @@ the actual level instead of assuming one radius fits the kit.
 It also permits ordinary placed building pieces that carry MAX editor grouping
 metadata. We clone their exact raw records and preserve that metadata; record 1
 and records carrying the global v319 group table remain excluded.
+
+The real CyberCity map.ent stores DLC paths relative to entitybank (for example
+``Cyberpunk Streets Booster Pack\\Buildings\\...``), while some dependency lists
+prefix the same path with ``entitybank\\``. Normalize both forms before classifying
+roads/buildings so the production compiler does not silently see zero candidates.
 """
 from __future__ import annotations
 
@@ -19,6 +24,33 @@ import fpm_author_city_mass as city
 
 
 _original_cluster_entities = city.cluster_entities
+
+
+def _pack_relative(asset: str | None) -> str:
+    p = city.norm(asset).lstrip("\\")
+    if p.startswith("entitybank\\"):
+        p = p[len("entitybank\\") :]
+    return p
+
+
+def _is_road(entity: dict) -> bool:
+    p = _pack_relative(entity.get("asset"))
+    return (
+        p.startswith("cyberpunk streets booster pack\\streets and sidewalks\\streets\\cs_street_")
+        and "light_marker" not in p
+    )
+
+
+def _is_foreground_building(entity: dict) -> bool:
+    p = _pack_relative(entity.get("asset"))
+    if not p.startswith("cyberpunk streets booster pack\\"):
+        return False
+    return "\\buildings\\" in ("\\" + p) or "\\store fronts\\" in ("\\" + p)
+
+
+def _is_background_building(entity: dict) -> bool:
+    p = _pack_relative(entity.get("asset"))
+    return p.startswith("cyberpunk streets booster pack\\background buildings\\")
 
 
 def _cloneable_city_piece(entity: dict) -> bool:
@@ -75,6 +107,9 @@ def _adaptive_cluster_entities(entities: list[dict], kind: str, _requested_radiu
 
 
 def main(argv: list[str] | None = None) -> int:
+    city.is_road = _is_road
+    city.is_foreground_building = _is_foreground_building
+    city.is_background_building = _is_background_building
     city.safe_static = _cloneable_city_piece
     city.cluster_entities = _adaptive_cluster_entities
     return city.main(argv)
