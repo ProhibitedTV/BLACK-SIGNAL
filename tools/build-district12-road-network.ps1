@@ -22,15 +22,15 @@ if ($GridSize -lt 5 -or ($GridSize % 2) -eq 0) {
 
 $outDir = Join-Path $repo '_fpm_generated'
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-$outMap = Join-Path $outDir ($districtName + ' - road-foundation-v2.fpm')
-$outReport = Join-Path $outDir ($districtName + ' - road-foundation-v2.report.json')
+$outMap = Join-Path $outDir ($districtName + ' - road-foundation-v3.fpm')
+$outReport = Join-Path $outDir ($districtName + ' - road-foundation-v3.report.json')
 
 $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
 if (-not $python) { throw 'Python 3 is required.' }
-$tool = Join-Path $PSScriptRoot 'fpm_author_road_network_v2.py'
+$tool = Join-Path $PSScriptRoot 'fpm_author_road_network_v3.py'
 
-Write-Host 'BLACK SIGNAL - rebuild District 12 road foundation v2'
+Write-Host 'BLACK SIGNAL - rebuild District 12 uniform road foundation v3'
 Write-Host "Base: $cyberCity"
 Write-Host "Grid: $GridSize x $GridSize"
 Write-Host "Output: $outMap"
@@ -42,10 +42,10 @@ if ($python.Name -ieq 'py.exe' -or $python.Name -ieq 'py') {
 else {
     & $python.Source $tool $cyberCity $outMap --grid-size $GridSize --report-json $outReport
 }
-if ($LASTEXITCODE -ne 0) { throw "Road-foundation v2 compiler failed with exit code $LASTEXITCODE" }
+if ($LASTEXITCODE -ne 0) { throw "Road-foundation v3 compiler failed with exit code $LASTEXITCODE" }
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$backup = Join-Path $repo ("_fpm_backups\road-foundation-v2-$stamp")
+$backup = Join-Path $repo ("_fpm_backups\road-foundation-v3-$stamp")
 New-Item -ItemType Directory -Force -Path $backup | Out-Null
 foreach ($pair in @(
     @{ Path = $projectMap; Name = 'project-before.fpm' },
@@ -72,7 +72,7 @@ if (Test-Path -LiteralPath $cyberLst) {
 }
 
 Write-Host ''
-Write-Host '[PASS] District 12 clean road foundation promoted to project + global mapbanks.'
+Write-Host '[PASS] District 12 uniform road foundation promoted to project + global mapbanks.'
 Write-Host "Backup: $backup"
 Write-Host "Report: $outReport"
 Write-Host "SHA-256: $hash"
