@@ -7,9 +7,9 @@ is an integer in memory, while load code reads the same four bytes with
 ReadLong and treats any non-zero value as "quaternion mode active".
 
 Older/re-saved levels can therefore carry very large non-zero numeric values in
-the serialized quatmode slot. For BLACK SIGNAL street-fabric clones we only
-need orthogonal/yaw Euler rotations, so this wrapper safely normalizes cloned
-records to Euler mode instead of rejecting them.
+the serialized quatmode slot. For BLACK SIGNAL authored clones we only need
+orthogonal/yaw Euler rotations, so this wrapper safely normalizes active
+quaternion records to Euler mode instead of rejecting them.
 """
 
 from __future__ import annotations
@@ -22,14 +22,7 @@ from fpm_inspect import FpmError
 
 
 def _find_quaternion_span(raw_record: bytes, quaternion: dict[str, float]) -> int:
-    """Find the exact 20-byte v329 quaternion payload in a raw record.
-
-    ``fpm_inspect`` decodes all five serialized slots as float32, matching the
-    bytes produced by current MAX's writer. Repacking those decoded values lets
-    us locate the payload without depending on offsets of earlier variable-size
-    fields. Refuse ambiguity rather than patching an uncertain location.
-    """
-
+    """Find the exact 20-byte v329 quaternion payload in a raw record."""
     needle = struct.pack(
         "<5f",
         float(quaternion.get("mode", 0.0)),
@@ -46,7 +39,6 @@ def _find_quaternion_span(raw_record: bytes, quaternion: dict[str, float]) -> in
             break
         offsets.append(pos)
         start = pos + 1
-
     if len(offsets) != 1:
         raise FpmError(
             "Could not uniquely locate serialized v329 quaternion payload "
@@ -60,8 +52,7 @@ def _patched_patch_record(
     bankindex: int,
     placement: base.Placement,
 ) -> bytes:
-    """Clone a record while forcing authored street pieces into Euler mode."""
-
+    """Clone a record while forcing active quaternion transforms into Euler mode."""
     raw = bytearray(template.raw_record)
     entity = template.parsed
     requested_ry = entity["rotation_euler"]["y"] if placement.ry is None else placement.ry
@@ -74,17 +65,16 @@ def _patched_patch_record(
     struct.pack_into("<f", raw, base.ELE_RY_OFFSET, float(requested_ry))
     struct.pack_into("<f", raw, base.ELE_RZ_OFFSET, float(placement.rz))
 
-    # Street-fabric placements are intentionally Euler/yaw driven. If this ELE
-    # version carries v329 quaternion state, explicitly disable quaternion mode
-    # so a stale/corrupt non-zero mode cannot override the authored Euler fields.
-    # Current MAX writes quatmode through WriteFloat, so 0.0f is the canonical
-    # four-byte false value; identity quaternion is retained as benign payload.
+    # Only search/rewrite the serialized quaternion payload when quaternion mode
+    # is actually active. Euler-mode records often contain a generic all-zero or
+    # identity payload that may occur elsewhere in the record; locating that by
+    # byte pattern would be needlessly ambiguous. Leaving it untouched is safe
+    # because mode==0 means MAX uses the Euler fields patched above.
     quat = entity.get("quaternion")
-    if quat is not None:
+    if quat is not None and abs(float(quat.get("mode", 0.0))) > 0.0001:
         quat_offset = _find_quaternion_span(template.raw_record, quat)
         struct.pack_into("<5f", raw, quat_offset, 0.0, 0.0, 0.0, 0.0, 1.0)
 
-    # A cloned placed entity should not inherit a non-zero unique-element token.
     unique_offset = base.record_uniqueelement_offset(bytes(raw))
     old_unique = struct.unpack_from("<i", raw, unique_offset)[0]
     if old_unique != 0:
