@@ -22,6 +22,7 @@ Thumbs.db
 # Local FPM reverse-engineering / generated compatibility-test artifacts
 /_fpm_probe/
 /_fpm_generated/
+/_fpm_backups/
 
 # Local render outputs; deliverables belong outside normal Git history
 renders/dailies/
