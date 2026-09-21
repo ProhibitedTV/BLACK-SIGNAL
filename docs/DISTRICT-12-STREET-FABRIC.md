@@ -38,6 +38,37 @@ The rebase tool:
 
 The last rule is important because the repository is public and the Cyber City Streets license does not permit redistributing the DLC assets as an asset pack. The exemplar remains local to the licensed GameGuru MAX installation.
 
+## Coherent road-system v4
+
+The production road builder now treats a road as a **profile**, not a bag of interchangeable meshes.
+
+`tools/build-district12-road-network.ps1` runs two stages:
+
+1. `fpm_author_road_network_v3.py` rebuilds the physical road surface with one full-width grammar: 4-way/T/curve junction pieces plus `CS_Street_Straight_4X` for every ordinary main-street span.
+2. `fpm_author_road_details_v4.py` reads the installed `CyberCity.fpm`, chooses one authored exemplar for each supported road kind, captures allow-listed road detail transforms around that exemplar, and repeats that same profile across the generated network.
+
+Main traffic streets therefore never substitute `Straight 2X`, `Straight`, or `Straight Quarter` pieces. A block span stays `junction -> 4X -> 4X -> 4X -> junction`, so road width and module cadence cannot change randomly mid-block.
+
+The first v4 detail profile is intentionally conservative:
+
+- Straight 4X roads inherit exemplar-relative double center markings and street lamps with their real light markers.
+- Four-way intersections inherit exemplar-relative crosswalk decals and blocker/bollard posts.
+- T intersections inherit the same intersection detail roles when the chosen donor exemplar contains them.
+- Existing copies of those profile details are stripped before re-authoring, making the pass repeatable.
+- Sidewalk/curb geometry is **not** synthesized from guessed lateral offsets. It remains a separate calibration task.
+
+The radius used while discovering a donor assembly is only a selection envelope. Final placements are copied from the chosen CyberCity exemplar's actual relative transforms and rotated with the target road module.
+
+Run with GameGuru MAX closed:
+
+```bat
+cd /d "%USERPROFILE%\Desktop\BLACK SIGNAL\BLACK SIGNAL"
+git pull
+powershell -ExecutionPolicy Bypass -File .\tools\build-district12-road-network.ps1 -GridSize 7
+```
+
+Before adding buildings, inspect at least one full avenue and one hero intersection in MAX. The road system should read as one consistent street family from end to end, with repeatable markings and lighting instead of mixed-size road patches.
+
 ## What comes next
 
 Once the project opens on the exemplar-derived city, future procedural authoring should learn from it instead of guessing. The next authoring grammar should derive relative transforms and cadence from actual exemplar neighborhoods: road module -> center marking -> sidewalk edge -> lamp/rail/bollard -> storefront/building wall. Only then should those patterns be transplanted or adapted into BLACK SIGNAL-specific blocks.
