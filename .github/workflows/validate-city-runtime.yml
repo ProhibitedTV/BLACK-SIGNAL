@@ -67,7 +67,8 @@ jobs:
             './tools/inspect-district12-fpm.ps1',
             './tools/create-district12-clone-test.ps1',
             './tools/create-district12-street-fabric.ps1',
-            './tools/promote-district12-street-fabric.ps1'
+            './tools/promote-district12-street-fabric.ps1',
+            './tools/rebase-district12-on-cybercity.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -132,7 +133,8 @@ jobs:
             '.\tools\inspect-district12-fpm.ps1',
             '.\tools\create-district12-clone-test.ps1',
             '.\tools\create-district12-street-fabric.ps1',
-            '.\tools\promote-district12-street-fabric.ps1'
+            '.\tools\promote-district12-street-fabric.ps1',
+            '.\tools\rebase-district12-on-cybercity.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null

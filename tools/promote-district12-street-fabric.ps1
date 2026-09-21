@@ -1,9 +1,23 @@
 param(
     [switch]$SkipAuthor,
-    [switch]$AlsoCurated
+    [switch]$AlsoCurated,
+    [switch]$ForceKnownBad
 )
 
 $ErrorActionPreference = 'Stop'
+
+if (-not $ForceKnownBad) {
+    throw @'
+The first District 12 street-fabric placement pass is retired from production.
+Its guessed road-local offsets produced lamp bases, rails, posts, and other props
+inside traffic lanes. Use this instead:
+
+  powershell -ExecutionPolicy Bypass -File .\tools\rebase-district12-on-cybercity.ps1
+
+Pass -ForceKnownBad only for forensic regression testing of the old generated map.
+'@
+}
+
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $mapName = 'BLACK SIGNAL - District 12.fpm'
 $projectMap = Join-Path $repo ('Files\mapbank\' + $mapName)
@@ -49,13 +63,9 @@ foreach ($target in $targets) {
 }
 
 Write-Host ''
-Write-Host 'BLACK SIGNAL - District 12 production promotion complete'
+Write-Host 'BLACK SIGNAL - District 12 legacy street-fabric promotion complete'
 Write-Host "Project backup: $projectBackup"
 if ($globalBackup) { Write-Host "Global backup:  $globalBackup" }
 Write-Host "SHA-256: $generatedHash"
 Write-Host 'Promoted:'
 foreach ($p in $promoted) { Write-Host "  $p" }
-Write-Host ''
-Write-Host '[NEXT] Start GameGuru MAX normally and open the BLACK SIGNAL project.'
-Write-Host '[NEXT] Both the Separate Project Folder and normal GameGuru MAX mapbank now contain the authored street-fabric FPM.'
-Write-Host '[NOTE] Production was backed up first. This project is safe to keep pushing aggressively.'
