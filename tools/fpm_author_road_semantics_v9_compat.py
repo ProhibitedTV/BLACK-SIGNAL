@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compatibility front-end for District 12 semantic road dressing v9.
+"""Compatibility front-end for District 12 semantic road dressing v9/v9.1.
 
 The production CyberCity exemplar contains the street-lamp mesh but may not contain
 an actually placed ``CS_Street_Light_Marker`` record. Dynamic GameGuru MAX light
@@ -10,7 +10,7 @@ markers are not safe to synthesize from an unrelated entity record, so this wrap
 3. if none exists anywhere available, keeps the visible lamp-mesh pass but omits
    dynamic markers instead of aborting the whole city build or fabricating state.
 
-All other semantic-road behavior remains in ``fpm_author_road_semantics_v9``.
+All semantic-road placement behavior is supplied by the v9.1 tuning layer.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import fpm_author_road_semantics_v9 as core
+import fpm_author_road_semantics_v9_1 as core
 import fpm_author_street_fabric as fabric
 from fpm_inspect import FpmArchive, FpmError, parse_map_ele, parse_map_ent
 
