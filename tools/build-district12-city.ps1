@@ -1,6 +1,6 @@
 param(
-    [int]$StreetwallClones = 18,
-    [int]$SkylineClones = 8,
+    [int]$StreetwallClones = 14,
+    [int]$SkylineClones = 4,
     [int]$GridSize = 7
 )
 
@@ -10,8 +10,8 @@ if (-not (Test-Path -LiteralPath $integratedBuild)) {
     throw "Integrated District 12 builder not found: $integratedBuild"
 }
 
-Write-Host 'BLACK SIGNAL - District 12 city build now uses the integrated road + city pipeline.'
-Write-Host 'The legacy standalone dense-city build is retired because it rebuilt from stock CyberCity and replaced the coherent road network.'
+Write-Host 'BLACK SIGNAL - District 12 city build uses the integrated semantic road + city pipeline.'
+Write-Host 'V9 quality-gates foreground city assemblies and rebuilds road markings/lighting from target-road semantics.'
 Write-Host ''
 
 & $integratedBuild `

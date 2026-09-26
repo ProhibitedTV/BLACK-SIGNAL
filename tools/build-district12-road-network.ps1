@@ -2,8 +2,9 @@ param(
     [int]$GridSize = 7,
     [int]$MaxDetailAdditions = 2500,
     [int]$MaxSurfaceAdditions = 1800,
-    [int]$StreetwallClones = 18,
-    [int]$SkylineClones = 8,
+    [int]$MaxSemanticAdditions = 2200,
+    [int]$StreetwallClones = 14,
+    [int]$SkylineClones = 4,
     [int]$MaxCityAdditions = 2400
 )
 
@@ -33,9 +34,11 @@ $detailMap = Join-Path $outDir ($districtName + ' - road-system-v7-structural.fp
 $detailReport = Join-Path $outDir ($districtName + ' - road-system-v7-structural.report.json')
 $surfaceMap = Join-Path $outDir ($districtName + ' - road-system-v7-surface.fpm')
 $surfaceReport = Join-Path $outDir ($districtName + ' - road-system-v7-surface.report.json')
-$outMap = Join-Path $outDir ($districtName + ' - road-system-v8-city.fpm')
-$cityReport = Join-Path $outDir ($districtName + ' - road-system-v8-city.report.json')
-$validationReport = Join-Path $outDir ($districtName + ' - road-system-v8-validation.report.json')
+$cityMap = Join-Path $outDir ($districtName + ' - road-system-v9-city-quality.fpm')
+$cityReport = Join-Path $outDir ($districtName + ' - road-system-v9-city-quality.report.json')
+$outMap = Join-Path $outDir ($districtName + ' - road-system-v9-semantic.fpm')
+$semanticReport = Join-Path $outDir ($districtName + ' - road-system-v9-semantic.report.json')
+$validationReport = Join-Path $outDir ($districtName + ' - road-system-v9-validation.report.json')
 
 $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
@@ -43,10 +46,11 @@ if (-not $python) { throw 'Python 3 is required.' }
 $foundationTool = Join-Path $PSScriptRoot 'fpm_author_road_network_v3.py'
 $detailTool = Join-Path $PSScriptRoot 'fpm_author_road_details_v7.py'
 $surfaceTool = Join-Path $PSScriptRoot 'fpm_author_road_surface_v7.py'
-$cityTool = Join-Path $PSScriptRoot 'fpm_author_city_mass_v2.py'
-$validatorTool = Join-Path $PSScriptRoot 'fpm_validate_road_system_v7.py'
+$cityTool = Join-Path $PSScriptRoot 'fpm_author_city_mass_v3.py'
+$semanticTool = Join-Path $PSScriptRoot 'fpm_author_road_semantics_v9.py'
+$validatorTool = Join-Path $PSScriptRoot 'fpm_validate_road_semantics_v9.py'
 
-foreach ($requiredTool in @($foundationTool, $detailTool, $surfaceTool, $cityTool, $validatorTool)) {
+foreach ($requiredTool in @($foundationTool, $detailTool, $surfaceTool, $cityTool, $semanticTool, $validatorTool)) {
     if (-not (Test-Path -LiteralPath $requiredTool)) {
         throw "Required District 12 compiler/validator is missing: $requiredTool"
     }
@@ -69,11 +73,11 @@ function Invoke-PythonStage {
     }
 }
 
-Write-Host 'BLACK SIGNAL - rebuild District 12 coherent road + city system v8'
+Write-Host 'BLACK SIGNAL - rebuild District 12 semantic road + city system v9'
 Write-Host "CyberCity donor: $cyberCity"
 Write-Host "Grid: $GridSize x $GridSize"
 Write-Host ''
-Write-Host 'Stage 1/5: uniform road surface grammar'
+Write-Host 'Stage 1/6: uniform road surface grammar'
 Write-Host '  junction -> Straight 4X -> Straight 4X -> Straight 4X -> junction'
 Write-Host '  no 2X / 1X / quarter substitutions in main traffic streets'
 Write-Host "  output: $foundationMap"
@@ -86,9 +90,9 @@ Invoke-PythonStage -Tool $foundationTool -ToolArguments @(
 ) -FailureMessage 'Road-foundation v3 compiler failed'
 
 Write-Host ''
-Write-Host 'Stage 2/5: ownership-validated CyberCity structural road details'
-Write-Host '  every donor detail belongs to its nearest semantically compatible road module'
-Write-Host '  neighboring intersections/segments cannot contaminate exemplar profiles'
+Write-Host 'Stage 2/6: harvest safe structural templates from CyberCity'
+Write-Host '  this temporary layer supplies exact same-version decal/lamp/light records'
+Write-Host '  v9 later strips donor-replayed placement and rebuilds semantics from the target graph'
 Write-Host "  output: $detailMap"
 Write-Host ''
 Invoke-PythonStage -Tool $detailTool -ToolArguments @(
@@ -100,9 +104,9 @@ Invoke-PythonStage -Tool $detailTool -ToolArguments @(
 ) -FailureMessage 'Road-detail v7 compiler failed'
 
 Write-Host ''
-Write-Host 'Stage 3/5: role-aware donor-calibrated road-surface dressing'
-Write-Host '  arrows/text may attach only to Straight 4X approaches'
-Write-Host '  exact donor-local X/Z/Y/yaw transforms are replayed'
+Write-Host 'Stage 3/6: harvest donor surface templates'
+Write-Host '  this remains an intermediate compatibility source only'
+Write-Host '  v9 removes turn arrows/text/wear replay before final promotion'
 Write-Host "  output: $surfaceMap"
 Write-Host ''
 Invoke-PythonStage -Tool $surfaceTool -ToolArguments @(
@@ -114,37 +118,51 @@ Invoke-PythonStage -Tool $surfaceTool -ToolArguments @(
 ) -FailureMessage 'Road-surface v7 compiler failed'
 
 Write-Host ''
-Write-Host 'Stage 4/5: compose authored city mass onto the validated road spine'
-Write-Host '  building assemblies come from CyberCity donor clusters'
-Write-Host '  only matching recognized full-width road families are used as anchors'
-Write-Host '  the coherent road FPM remains authoritative; city mass is appended to it'
-Write-Host "  output: $outMap"
+Write-Host 'Stage 4/6: compose quality-gated CyberCity building mass'
+Write-Host '  reject facade slivers, wall stacks, and implausibly tall/narrow foreground clusters'
+Write-Host '  preserve authored donor transforms for accepted complete assemblies'
+Write-Host "  output: $cityMap"
 Write-Host ''
 Invoke-PythonStage -Tool $cityTool -ToolArguments @(
     $surfaceMap,
-    $outMap,
+    $cityMap,
     '--donor-fpm', $cyberCity,
     '--streetwall-clones', "$StreetwallClones",
     '--skyline-clones', "$SkylineClones",
     '--max-additions', "$MaxCityAdditions",
     '--report-json', $cityReport
-) -FailureMessage 'Integrated city v2 compiler failed'
+) -FailureMessage 'Integrated city v3 compiler failed'
 
 Write-Host ''
-Write-Host 'Stage 5/5: fail-closed promotion validation'
-Write-Host '  final city map must still match the exact planned road graph'
-Write-Host '  duplicate pivots, missing roads, unexpected roads, policy regressions, or invalid approach markings abort promotion'
+Write-Host 'Stage 5/6: replace donor-replay decoration with target-road semantics'
+Write-Host '  one centered double-yellow treatment per Straight 4X module'
+Write-Host '  exactly four crosswalks per 4-way; T markings omitted rather than guessed'
+Write-Host '  only straight-ahead 4-way approach arrows; no turn arrows/SLOW/ONLY/wear clutter'
+Write-Host '  deterministic curb lamps paired with real GameGuru MAX light markers'
+Write-Host "  output: $outMap"
+Write-Host ''
+Invoke-PythonStage -Tool $semanticTool -ToolArguments @(
+    $cityMap,
+    $outMap,
+    '--donor-fpm', $cyberCity,
+    '--max-additions', "$MaxSemanticAdditions",
+    '--report-json', $semanticReport
+) -FailureMessage 'Road-semantics v9 compiler failed'
+
+Write-Host ''
+Write-Host 'Stage 6/6: fail-closed v9 promotion validation'
+Write-Host '  exact road graph must survive city composition + semantic dressing'
+Write-Host '  semantic counts must match final FPM and stale donor markings must be absent'
 Write-Host ''
 Invoke-PythonStage -Tool $validatorTool -ToolArguments @(
     $outMap,
     '--foundation-report', $foundationReport,
-    '--detail-report', $detailReport,
-    '--surface-report', $surfaceReport,
+    '--semantic-report', $semanticReport,
     '--report-json', $validationReport
-) -FailureMessage 'Road-system v7 promotion validation failed after city composition'
+) -FailureMessage 'Road-system v9 promotion validation failed'
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$backup = Join-Path $repo ("_fpm_backups\road-system-v8-city-$stamp")
+$backup = Join-Path $repo ("_fpm_backups\road-system-v9-semantic-$stamp")
 New-Item -ItemType Directory -Force -Path $backup | Out-Null
 foreach ($pair in @(
     @{ Path = $projectMap; Name = 'project-before.fpm' },
@@ -171,18 +189,17 @@ if (Test-Path -LiteralPath $cyberLst) {
 }
 
 Write-Host ''
-Write-Host '[PASS] District 12 coherent road + city system v8 promoted to project + global mapbanks.'
-Write-Host '[PASS] Main streets remain one full-width road family.'
-Write-Host '[PASS] Structural and surface donor ownership rules remain enforced.'
-Write-Host '[PASS] Authored CyberCity building assemblies frame the road system instead of replacing it.'
-Write-Host '[PASS] Final post-city validation proves the road graph was not damaged by city composition.'
-Write-Host '[PASS] Production refuses to promote an empty road-only city or an invalid road/city composition.'
+Write-Host '[PASS] District 12 semantic road + city system v9 promoted to project + global mapbanks.'
+Write-Host '[PASS] Main streets remain the exact validated full-width road graph.'
+Write-Host '[PASS] Donor-replayed markings were stripped before semantic final dressing.'
+Write-Host '[PASS] Final arrows are straight-ahead only and tied to 4-way approaches.'
+Write-Host '[PASS] Street lamps now have paired dynamic light markers.'
+Write-Host '[PASS] Foreground city cloning rejects sliver/wall-stack assemblies.'
 Write-Host "Backup: $backup"
 Write-Host "Foundation report: $foundationReport"
-Write-Host "Structural detail report: $detailReport"
-Write-Host "Surface detail report: $surfaceReport"
-Write-Host "Integrated city report: $cityReport"
+Write-Host "City-quality report: $cityReport"
+Write-Host "Semantic report: $semanticReport"
 Write-Host "Validation report: $validationReport"
 Write-Host "SHA-256: $hash"
-Write-Host '[NEXT] Start GameGuru MAX normally, open BLACK SIGNAL, and Test Play.'
-Write-Host '[CHECK] Verify the reference intersection first, then one long avenue, one T, one 4-way, one curve, and the city/cliff silhouette.'
+Write-Host '[NEXT] Start GameGuru MAX normally, open BLACK SIGNAL, and Test Play the same reference intersection.'
+Write-Host '[CHECK] Center lines should be centered, crosswalks limited to four per 4-way, arrows should point with traffic, and street lamps should be visible.'
