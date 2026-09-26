@@ -7,7 +7,7 @@ roles and rebuilds only the semantics we can prove from the target road graph:
 
 * one centered double-yellow treatment per Straight 4X module;
 * four deterministic crosswalks on 4-way junctions only;
-* straight-ahead lane arrows only on Straight 4X approaches to 4-way junctions;
+* straight-ahead lane arrows only on aligned Straight 4X approaches to 4-way junctions;
 * deterministic street lamps with paired real GameGuru MAX light markers;
 * no turn arrows, SLOW/ONLY text, donor wear decals, or T-junction markings until
   the generator has enough lane/exit semantics to place them correctly.
@@ -41,6 +41,7 @@ CROSSWALK_EDGE = 260.0
 ARROW_LANE_X = 94.0
 ARROW_LOCAL_Z = 120.0
 APPROACH_SEARCH_RADIUS = 650.0
+APPROACH_AXIS_TOLERANCE = 100.0
 
 FABRIC_ROLES = (
     "road_center_yellow",
@@ -52,13 +53,6 @@ ARROW_ROLE = "road_arrow_straight"
 STRIP_BASENAMES = frozenset(set(v4.PROFILE_DETAIL_BASENAMES) | set(v5.OWNED_BASENAMES))
 
 
-def _stable_seed(entity: dict[str, Any]) -> int:
-    p = entity["position"]
-    xi = int(round(float(p["x"]) / 25.0))
-    zi = int(round(float(p["z"]) / 25.0))
-    return ((xi * 73856093) ^ (zi * 19349663) ^ 0x5A17) & 0x7FFFFFFF
-
-
 def _local_offset(road: dict[str, Any], target: dict[str, Any]) -> tuple[float, float]:
     rp = road["position"]
     tp = target["position"]
@@ -68,20 +62,36 @@ def _local_offset(road: dict[str, Any], target: dict[str, Any]) -> tuple[float, 
     return fabric.rotate_local(dx, dz, -yaw)
 
 
-def _nearest_fourway(road: dict[str, Any], junctions: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, float]:
+def _nearest_fourway(
+    road: dict[str, Any], junctions: list[dict[str, Any]]
+) -> tuple[dict[str, Any] | None, float]:
     ranked: list[tuple[float, int, float, dict[str, Any]]] = []
     for junction in junctions:
         local_x, local_z = _local_offset(road, junction)
         distance = math.hypot(local_x, local_z)
-        if distance <= APPROACH_SEARCH_RADIUS:
-            ranked.append((distance, int(junction["record_index"]), local_z, junction))
+        if distance > APPROACH_SEARCH_RADIUS:
+            continue
+        # A true approach must lie on the longitudinal road axis. This prevents a
+        # nearby but perpendicular/diagonal road from receiving an arrow for the
+        # wrong intersection.
+        if abs(local_x) > APPROACH_AXIS_TOLERANCE:
+            continue
+        ranked.append((distance, int(junction["record_index"]), local_z, junction))
     if not ranked:
         return None, 0.0
     _distance, _idx, local_z, junction = min(ranked, key=lambda row: (row[0], row[1]))
     return junction, local_z
 
 
-def _placement(role: str, road: dict[str, Any], local_x: float, local_z: float, y_offset: float, yaw_offset: float, note: str) -> fabric.Placement:
+def _placement(
+    role: str,
+    road: dict[str, Any],
+    local_x: float,
+    local_z: float,
+    y_offset: float,
+    yaw_offset: float,
+    note: str,
+) -> fabric.Placement:
     p = road["position"]
     yaw = float(road["rotation_euler"]["y"])
     ox, oz = fabric.rotate_local(local_x, local_z, yaw)
@@ -112,8 +122,7 @@ def plan_semantic_dressing(parsed: dict[str, Any]) -> list[fabric.Placement]:
     fourways = [entity for entity in roads if legacy.road_kind(entity.get("asset")) == "fourway"]
     out: list[fabric.Placement] = []
 
-    for road in straights:
-        seed = _stable_seed(road)
+    for ordinal, road in enumerate(straights):
         out.append(
             _placement(
                 "road_center_yellow",
@@ -126,10 +135,13 @@ def plan_semantic_dressing(parsed: dict[str, Any]) -> list[fabric.Placement]:
             )
         )
 
-        # One lamp on alternating curb sides for every other road module. This gives
-        # a readable street-light rhythm without hundreds of paired dynamic lights.
-        if seed % 2 == 0:
-            side = -1.0 if ((seed >> 1) & 1) else 1.0
+        # One lamp on every other road module, with the curb side alternating by
+        # lamp index. Using sorted-module ordinal rather than coordinate parity is
+        # deliberate: the 1800/500/900/1300 grid cadence otherwise made every
+        # candidate share the same parity and could accidentally produce no lamps.
+        if ordinal % 2 == 0:
+            lamp_ordinal = ordinal // 2
+            side = -1.0 if lamp_ordinal % 2 else 1.0
             lamp = _placement(
                 "street_lamp",
                 road,
@@ -153,6 +165,9 @@ def plan_semantic_dressing(parsed: dict[str, Any]) -> list[fabric.Placement]:
 
         junction, local_z = _nearest_fourway(road, fourways)
         if junction is not None and abs(local_z) > 120.0:
+            # local_z points from this road module toward the junction. The lane
+            # offset flips with travel direction so the arrow remains on the
+            # right-hand approach lane instead of crossing the center line.
             direction = 1.0 if local_z > 0.0 else -1.0
             out.append(
                 _placement(
@@ -190,7 +205,15 @@ def plan_semantic_dressing(parsed: dict[str, Any]) -> list[fabric.Placement]:
     return out
 
 
-def _fabric_template(role: str, source_path: Path, parsed: dict[str, Any], ele_data: bytes, donor_path: Path, donor_parsed: dict[str, Any], donor_ele: bytes) -> fabric.Template:
+def _fabric_template(
+    role: str,
+    source_path: Path,
+    parsed: dict[str, Any],
+    ele_data: bytes,
+    donor_path: Path,
+    donor_parsed: dict[str, Any],
+    donor_ele: bytes,
+) -> fabric.Template:
     template = fabric.source_template_from_parsed(role, parsed, ele_data, source_path, "target-exact")
     if template is None:
         template = fabric.source_template_from_parsed(role, donor_parsed, donor_ele, donor_path, "cybercity-exact")
@@ -199,7 +222,14 @@ def _fabric_template(role: str, source_path: Path, parsed: dict[str, Any], ele_d
     return template
 
 
-def _arrow_template(source_path: Path, parsed: dict[str, Any], ele_data: bytes, donor_path: Path, donor_parsed: dict[str, Any], donor_ele: bytes) -> fabric.Template:
+def _arrow_template(
+    source_path: Path,
+    parsed: dict[str, Any],
+    ele_data: bytes,
+    donor_path: Path,
+    donor_parsed: dict[str, Any],
+    donor_ele: bytes,
+) -> fabric.Template:
     template = v5._exact_template(ARROW_ROLE, parsed, ele_data, source_path, "target-exact")
     if template is None:
         template = v5._exact_template(ARROW_ROLE, donor_parsed, donor_ele, donor_path, "cybercity-exact")
@@ -216,7 +246,12 @@ def _arrow_template(source_path: Path, parsed: dict[str, Any], ele_data: bytes, 
     return template
 
 
-def compile_semantic_dressing(source_path: Path, output_path: Path, donor_path: Path, max_additions: int) -> dict[str, Any]:
+def compile_semantic_dressing(
+    source_path: Path,
+    output_path: Path,
+    donor_path: Path,
+    max_additions: int,
+) -> dict[str, Any]:
     source_path = source_path.resolve()
     output_path = output_path.resolve()
     donor_path = donor_path.resolve()
@@ -242,7 +277,9 @@ def compile_semantic_dressing(source_path: Path, output_path: Path, donor_path: 
                 raise FpmError("CyberCity donor ELE version does not match target.")
 
             templates = {
-                role: _fabric_template(role, source_path, parsed, ele_data, donor_path, donor_parsed, donor_ele)
+                role: _fabric_template(
+                    role, source_path, parsed, ele_data, donor_path, donor_parsed, donor_ele
+                )
                 for role in FABRIC_ROLES
             }
             templates[ARROW_ROLE] = _arrow_template(
@@ -251,7 +288,9 @@ def compile_semantic_dressing(source_path: Path, output_path: Path, donor_path: 
 
         plan = plan_semantic_dressing(parsed)
         if len(plan) > max_additions:
-            raise FpmError(f"V9 semantic plan adds {len(plan)} entities, above --max-additions={max_additions}.")
+            raise FpmError(
+                f"V9 semantic plan adds {len(plan)} entities, above --max-additions={max_additions}."
+            )
 
         bank_paths = [entry["path"] for entry in ent["entries"]]
         bank_lookup = {fabric.norm(path): i + 1 for i, path in enumerate(bank_paths)}
@@ -269,9 +308,9 @@ def compile_semantic_dressing(source_path: Path, output_path: Path, donor_path: 
         for entity in parsed["entities"]:
             start = int(entity["record_start_offset"])
             end = int(entity["record_end_offset"])
-            base = fabric.basename(entity.get("asset"))
-            if base in STRIP_BASENAMES:
-                removed_roles[base] = removed_roles.get(base, 0) + 1
+            base_name = fabric.basename(entity.get("asset"))
+            if base_name in STRIP_BASENAMES:
+                removed_roles[base_name] = removed_roles.get(base_name, 0) + 1
                 continue
             kept_records.append(ele_data[start:end])
 
@@ -281,7 +320,12 @@ def compile_semantic_dressing(source_path: Path, output_path: Path, donor_path: 
         seen: set[tuple[str, int, int, int]] = set()
         for item in plan:
             ry_key = -1 if item.ry is None else int(round(float(item.ry) * 10.0))
-            key = (item.role, int(round(item.x * 10.0)), int(round(item.z * 10.0)), ry_key)
+            key = (
+                item.role,
+                int(round(item.x * 10.0)),
+                int(round(item.z * 10.0)),
+                ry_key,
+            )
             if key in seen:
                 continue
             seen.add(key)
@@ -321,13 +365,26 @@ def compile_semantic_dressing(source_path: Path, output_path: Path, donor_path: 
         gparsed = parse_map_ele(gele, gent["entries"])
         generated_manifest = {row["name"]: row["sha256"] for row in generated.member_manifest()}
 
-    if int(gparsed["entity_count"]) != new_count or not gparsed["fully_traversed"] or int(gparsed["trailing_bytes"]) != 0:
+    if (
+        int(gparsed["entity_count"]) != new_count
+        or not gparsed["fully_traversed"]
+        or int(gparsed["trailing_bytes"]) != 0
+    ):
         raise FpmError("Generated V9 semantic FPM failed exact ELE verification.")
 
-    changed = sorted(name for name, sha in generated_manifest.items() if source_manifest.get(name) != sha)
-    allowed = {name for name in generated_manifest if name.replace("\\", "/").lower() in {"map.ent", "map.ele"}}
+    changed = sorted(
+        name for name, sha in generated_manifest.items() if source_manifest.get(name) != sha
+    )
+    allowed = {
+        name
+        for name in generated_manifest
+        if name.replace("\\", "/").lower() in {"map.ent", "map.ele"}
+    }
     if set(changed) - allowed:
-        raise FpmError("V9 semantic pass changed unrelated FPM members: " + ", ".join(sorted(set(changed) - allowed)))
+        raise FpmError(
+            "V9 semantic pass changed unrelated FPM members: "
+            + ", ".join(sorted(set(changed) - allowed))
+        )
 
     return {
         "source_fpm": str(source_path),
@@ -353,7 +410,7 @@ def print_report(report: dict[str, Any]) -> None:
     for role, count in sorted(report["role_counts"].items()):
         print(f"  {role:24s} {count}")
     print("[PASS] Center lines are target-road-centered, not donor-offset replays.")
-    print("[PASS] Only straight-ahead arrows are authored, and only on 4-way approaches.")
+    print("[PASS] Only straight-ahead arrows are authored, and only on aligned 4-way approaches.")
     print("[PASS] T-junction arrows/text are omitted rather than guessed.")
     print("[PASS] Street lamps are paired with exact GameGuru MAX dynamic light markers.")
     print(f"SHA-256: {report['sha256']}")
@@ -368,7 +425,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report-json", type=Path)
     args = parser.parse_args(argv)
     try:
-        report = compile_semantic_dressing(args.source_fpm, args.output_fpm, args.donor_fpm, args.max_additions)
+        report = compile_semantic_dressing(
+            args.source_fpm,
+            args.output_fpm,
+            args.donor_fpm,
+            args.max_additions,
+        )
         if args.report_json:
             args.report_json.parent.mkdir(parents=True, exist_ok=True)
             args.report_json.write_text(json.dumps(report, indent=2), encoding="utf-8")
