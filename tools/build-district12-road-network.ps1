@@ -47,8 +47,8 @@ $foundationTool = Join-Path $PSScriptRoot 'fpm_author_road_network_v3.py'
 $detailTool = Join-Path $PSScriptRoot 'fpm_author_road_details_v7.py'
 $surfaceTool = Join-Path $PSScriptRoot 'fpm_author_road_surface_v7.py'
 $cityTool = Join-Path $PSScriptRoot 'fpm_author_city_mass_v3.py'
-$semanticTool = Join-Path $PSScriptRoot 'fpm_author_road_semantics_v9.py'
-$validatorTool = Join-Path $PSScriptRoot 'fpm_validate_road_semantics_v9.py'
+$semanticTool = Join-Path $PSScriptRoot 'fpm_author_road_semantics_v9_compat.py'
+$validatorTool = Join-Path $PSScriptRoot 'fpm_validate_road_semantics_v9_compat.py'
 
 foreach ($requiredTool in @($foundationTool, $detailTool, $surfaceTool, $cityTool, $semanticTool, $validatorTool)) {
     if (-not (Test-Path -LiteralPath $requiredTool)) {
@@ -138,7 +138,7 @@ Write-Host 'Stage 5/6: replace donor-replay decoration with target-road semantic
 Write-Host '  one centered double-yellow treatment per Straight 4X module'
 Write-Host '  exactly four crosswalks per 4-way; T markings omitted rather than guessed'
 Write-Host '  only straight-ahead 4-way approach arrows; no turn arrows/SLOW/ONLY/wear clutter'
-Write-Host '  deterministic curb lamps paired with real GameGuru MAX light markers'
+Write-Host '  deterministic curb lamps; exact dynamic markers are harvested from same-version mapbank FPMs when available'
 Write-Host "  output: $outMap"
 Write-Host ''
 Invoke-PythonStage -Tool $semanticTool -ToolArguments @(
@@ -193,7 +193,7 @@ Write-Host '[PASS] District 12 semantic road + city system v9 promoted to projec
 Write-Host '[PASS] Main streets remain the exact validated full-width road graph.'
 Write-Host '[PASS] Donor-replayed markings were stripped before semantic final dressing.'
 Write-Host '[PASS] Final arrows are straight-ahead only and tied to 4-way approaches.'
-Write-Host '[PASS] Street lamps now have paired dynamic light markers.'
+Write-Host '[PASS] Street-lamp meshes are authored; dynamic markers are used only when an exact same-version record is available.'
 Write-Host '[PASS] Foreground city cloning rejects sliver/wall-stack assemblies.'
 Write-Host "Backup: $backup"
 Write-Host "Foundation report: $foundationReport"
