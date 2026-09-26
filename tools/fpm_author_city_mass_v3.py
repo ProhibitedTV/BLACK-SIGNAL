@@ -18,9 +18,11 @@ import fpm_author_city_mass as city
 import fpm_author_city_mass_v2 as v2
 from fpm_inspect import FpmError
 
-MIN_FOREGROUND_SPAN = 120.0
-MIN_FOREGROUND_AREA = 60000.0
-MIN_FOREGROUND_MAJOR_SPAN = 300.0
+# Intentionally conservative: reject obvious wall/facade slivers without demanding
+# that every valid CyberCity modular building have a massive footprint.
+MIN_FOREGROUND_SPAN = 80.0
+MIN_FOREGROUND_AREA = 30000.0
+MIN_FOREGROUND_MAJOR_SPAN = 220.0
 MAX_HEIGHT_TO_MAJOR_SPAN = 6.0
 
 
@@ -44,17 +46,14 @@ def acceptable_foreground_cluster(cluster: city.Cluster) -> bool:
     return True
 
 
+_ORIGINAL_FOREGROUND = v2._foreground_clusters
+
+
 def quality_foreground_clusters(parsed: dict) -> list[city.Cluster]:
-    clusters = v2._foreground_clusters_original(parsed) if hasattr(v2, "_foreground_clusters_original") else None
-    if clusters is None:
-        # Call the original function captured before monkey-patching below.
-        clusters = _ORIGINAL_FOREGROUND(parsed)
+    clusters = _ORIGINAL_FOREGROUND(parsed)
     filtered = [cluster for cluster in clusters if acceptable_foreground_cluster(cluster)]
     filtered.sort(key=lambda cluster: (-len(cluster.entities), -(cluster.width * cluster.depth)))
     return filtered
-
-
-_ORIGINAL_FOREGROUND = v2._foreground_clusters
 
 
 def compile_city_mass(
