@@ -34,6 +34,11 @@ class CityMassV3QualityTests(unittest.TestCase):
     def test_accepts_broad_authored_building_mass(self) -> None:
         self.assertTrue(v3.acceptable_foreground_cluster(cluster(240.0, 420.0, 850.0)))
 
+    def test_accepts_compact_modular_pivot_cloud(self) -> None:
+        # MAX modular meshes can share tight X/Z pivots even though the meshes
+        # themselves form a complete authored shell. Pivot extent is not mesh extent.
+        self.assertTrue(v3.acceptable_foreground_cluster(cluster(40.0, 180.0, 700.0, count=8)))
+
     def test_rejects_tiny_component_group(self) -> None:
         self.assertFalse(v3.acceptable_foreground_cluster(cluster(240.0, 420.0, 400.0, count=3)))
 
