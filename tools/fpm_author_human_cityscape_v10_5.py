@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """V10.5 District 12 citywide street dressing learned from the human-authored corner.
 
-The v10.4 experiment proved that asset-name discovery is not art direction.  V10.5 uses
+The v10.4 experiment proved that asset-name discovery is not art direction. V10.5 uses
 only exact GameGuru-authored entity records from the captured human reference FPM and
 propagates the observed corner grammar across every validated interior four-way:
 
@@ -10,8 +10,13 @@ propagates the observed corner grammar across every validated interior four-way:
 * four low curb lights per corner, using the exact hand-authored 100-ish unit rhythm;
 * one bench per junction, rotating which corner receives it to avoid prefab repetition.
 
+The captured reference is also the preferred source for the exact same-version dynamic
+street-light marker. This keeps the production compiler on a record that has already
+survived the editor/capture roundtrip instead of re-harvesting a structurally different
+marker from an unrelated automated-backup map.
+
 The rejected v10.3/v10.4 rails, blocker-post bollards, Joshua trees, guessed planter lights
-and utility-pole dressing are not authored by this pass.  Road geometry, markings,
+and utility-pole dressing are not authored by this pass. Road geometry, markings,
 crosswalks, sidewalk corners and the proven sparse street-lamp/dynamic-light cadence remain
 owned by v9.2.
 """
@@ -66,8 +71,6 @@ CANONICAL_LIGHTS = (
 )
 CORNER_ROTATIONS = (0.0, 90.0, 180.0, 270.0)
 
-# One bench per four-way instead of stamping four identical benches at every junction.
-# The selected corner rotates by stable junction order so adjacent intersections vary.
 BENCHES_PER_FOURWAY = 1
 
 REJECTED_OLD_BASENAMES = frozenset(
@@ -137,6 +140,24 @@ def _exact_reference_templates(path: Path) -> dict[str, fabric.Template]:
     return templates
 
 
+def _exact_reference_dynamic_template(path: Path) -> fabric.Template:
+    """Return the exact editor/capture-proven dynamic marker from the human reference."""
+    parsed, ele = _load_reference(path)
+    template = fabric.source_template_from_parsed(
+        compat.DYNAMIC_ROLE,
+        parsed,
+        ele,
+        path,
+        "human-reference-exact-dynamic",
+    )
+    if template is None:
+        wanted = fabric.ASSETS[compat.DYNAMIC_ROLE]["basename"]
+        raise FpmError(
+            f"human reference is missing a safe exact dynamic-light marker: {wanted}"
+        )
+    return template
+
+
 def _rotated(local_x: float, local_z: float, rotation: float) -> tuple[float, float]:
     return fabric.rotate_local(local_x, local_z, rotation)
 
@@ -198,8 +219,6 @@ def plan_human_cityscape(parsed: dict[str, Any]) -> list[fabric.Placement]:
                     f"planter corner={corner_index}",
                 )
             )
-            # Quarter-turn variation keeps the same measured tree pivot while preventing
-            # every Broad Tree silhouette from facing exactly the same way block after block.
             tree_extra_yaw = ((junction_ordinal + corner_index) % 4) * 90.0
             out.append(
                 _placement_from_corner(
@@ -241,6 +260,7 @@ def _annotate_report(
     report_path: Path | None,
     human_reference: Path,
     templates: dict[str, fabric.Template],
+    dynamic_template: fabric.Template,
 ) -> None:
     if report_path is None or not report_path.exists():
         return
@@ -254,6 +274,11 @@ def _annotate_report(
             "source_fpm": template.source_fpm,
         }
         for role, template in sorted(templates.items())
+    }
+    report["human_dynamic_light_template"] = {
+        "asset": dynamic_template.asset_path,
+        "source_kind": dynamic_template.source_kind,
+        "source_fpm": dynamic_template.source_fpm,
     }
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
@@ -276,6 +301,7 @@ def main(argv: list[str] | None = None) -> int:
             raise FpmError("v10.5 requires --human-reference captured from the GameGuru editor")
         reference_path = Path(reference_value)
         templates = _exact_reference_templates(reference_path)
+        dynamic_template = _exact_reference_dynamic_template(reference_path)
     except (FpmError, OSError, ValueError, KeyError, TypeError) as exc:
         print(f"FPM HUMAN CITYSCAPE V10.5 ERROR: {exc}", file=sys.stderr)
         return 2
@@ -287,8 +313,8 @@ def main(argv: list[str] | None = None) -> int:
     original_template = base._fabric_template
     original_plan = base.plan_semantic_dressing
     original_strip = base.core.STRIP_BASENAMES
+    original_dynamic_resolver = compat.resolve_dynamic_template
 
-    # Register exact paths from the human reference, not guessed pack paths.
     for role, template in templates.items():
         fabric.ASSETS[role] = {
             "basename": fabric.basename(template.asset_path),
@@ -310,7 +336,6 @@ def main(argv: list[str] | None = None) -> int:
         donor_ele: bytes,
     ) -> fabric.Template:
         if role in HUMAN_ROLES:
-            # No generic carrier fallback: this is the texture/material correctness rule.
             return templates[role]
         return original_template(
             role, source_path, parsed, ele_data, donor_path, donor_parsed, donor_ele
@@ -318,6 +343,11 @@ def main(argv: list[str] | None = None) -> int:
 
     def combined_plan(parsed: dict[str, Any]) -> list[fabric.Placement]:
         return list(original_plan(parsed)) + plan_human_cityscape(parsed)
+
+    def human_dynamic_resolver(source_path: Path, donor_path: Path) -> fabric.Template:
+        # The canonical reference is already materialized and has survived a real MAX
+        # editor save/capture. Prefer that exact record over unrelated sibling backups.
+        return dynamic_template
 
     try:
         base.SEMANTIC_POLICY = SEMANTIC_POLICY
@@ -327,8 +357,10 @@ def main(argv: list[str] | None = None) -> int:
         base.core.STRIP_BASENAMES = frozenset(
             set(original_strip) | human_basenames | set(REJECTED_OLD_BASENAMES)
         )
+        compat.resolve_dynamic_template = human_dynamic_resolver
         result = compat.main(args)
     finally:
+        compat.resolve_dynamic_template = original_dynamic_resolver
         base.SEMANTIC_POLICY = original_policy
         base.FABRIC_ROLES = original_roles
         base._fabric_template = original_template
@@ -338,7 +370,7 @@ def main(argv: list[str] | None = None) -> int:
         fabric.ASSETS.update(original_assets)
 
     if result == 0:
-        _annotate_report(report_path, reference_path, templates)
+        _annotate_report(report_path, reference_path, templates, dynamic_template)
     return result
 
 
