@@ -85,6 +85,21 @@ def _tree_name_score(path: Path) -> tuple[int, str]:
     return score, value
 
 
+def _is_tree_candidate(path: Path) -> bool:
+    """Require an actual tree token; do not mistake ``street`` for ``tree``.
+
+    The original v10.4 preflight used ``"tree" in stem``.  Because the word
+    ``street`` contains that substring, assets such as CS_Street_Electrical_Pole_01
+    could enter the tree pool and even win on compact measured bounds.  Remove the
+    lexical ``street`` token first, then require tree in what remains.
+    """
+    stem = path.stem.lower()
+    reduced = stem.replace("street", "")
+    if "tree" not in reduced:
+        return False
+    return not any(token in reduced for token in ("stump", "log", "fallen"))
+
+
 def _planter_name_score(path: Path) -> tuple[int, str]:
     value = str(path).lower().replace("\\", "/")
     score = 0
@@ -146,6 +161,13 @@ def _pick_planter(rows: list[dict[str, Any]]) -> dict[str, Any]:
 def _pick_tree(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if not rows:
         raise ValueError("no measurable tree asset found")
+
+    # Defense in depth: discovery should already have filtered this list, but never
+    # promote a non-tree row if future callers provide their own measured candidates.
+    actual_trees = [row for row in rows if _is_tree_candidate(Path(str(row.get("basename") or "")))]
+    if not actual_trees:
+        raise ValueError("measured tree candidates contained no actual tree asset")
+
     def score(row: dict[str, Any]) -> tuple[float, str]:
         sx, sy, sz = map(float, row["size"])
         footprint = max(sx, sz)
@@ -158,7 +180,7 @@ def _pick_tree(rows: list[dict[str, Any]]) -> dict[str, Any]:
         name_score, _ = _tree_name_score(Path(row["basename"]))
         penalty += name_score / 20.0
         return penalty, row["asset"].lower()
-    return min(rows, key=score)
+    return min(actual_trees, key=score)
 
 
 def discover(install: Path, scratch: Path) -> dict[str, Any]:
@@ -174,11 +196,7 @@ def discover(install: Path, scratch: Path) -> dict[str, Any]:
         key=_planter_name_score,
     )
     tree_candidates = sorted(
-        [
-            p for p in bank.rglob("*.fpe")
-            if "tree" in p.stem.lower()
-            and not any(token in p.stem.lower() for token in ("stump", "log", "fallen"))
-        ],
+        [p for p in bank.rglob("*.fpe") if _is_tree_candidate(p)],
         key=_tree_name_score,
     )
 
