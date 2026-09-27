@@ -42,7 +42,9 @@ def _neon_mount(parcel, side, measured):
     _assert_neon_profile(measured)
     neon = measured[NEON_ASSET]
     x = parcel["x"] + parcel["width"] / 2
-    y = parcel["ground"] + 220
+    # 190 keeps the 580-unit authored strip fully on even the four-storey hero
+    # facade while retaining a small top/bottom margin.  Do not tune this by eye.
+    y = parcel["ground"] + 190
     if side == "north":
         z, yaw = parcel["z"], 0
     elif side == "south":
