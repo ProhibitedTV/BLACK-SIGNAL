@@ -17,6 +17,14 @@ local function animation(e,s,name)
     s.animation = name
 end
 
+-- GameGuru MAX supplies the placed entity name through the _init_name callback,
+-- which is what binds each actor to its generated BS_EXTRA_* route. Keep the
+-- conventional _init entry point as a compatibility shim for repository/runtime
+-- contracts; it intentionally does not invent a route when no name is available.
+function bs_city_extra_init(e)
+    actors[e] = nil
+end
+
 function bs_city_extra_init_name(e,name)
     local r=routes[name]
     if not r then return end
