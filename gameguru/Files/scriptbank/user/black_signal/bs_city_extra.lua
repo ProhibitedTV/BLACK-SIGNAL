@@ -28,13 +28,13 @@ end
 function bs_city_extra_init_name(e,name)
     local r=routes[name]
     if not r then return end
-    actors[e]={route=r,x=r.x,z=r.z,yaw=r.yaw,next=2,last=g_Time or 0,wait=0}
+    actors[e]={route=r,x=r.x,z=r.z,yaw=r.yaw,next=2,last=g_Time or 0,wait=0,finished=false}
     CharacterControlLimbo(e)
     CollisionOff(e) -- Cinematic extras cannot be pushed off their pavement route.
     HideEntityAttachment(e)
     SetEntityHealthSilent(e,999999)
     SetEntityAlwaysActive(e,1)
-    animation(e,actors[e],#r.points>0 and "Walk_Loop" or "Idle")
+    animation(e,actors[e],#r.points>1 and "Walk_Loop" or "Idle")
 end
 
 function bs_city_extra_main(e)
@@ -45,7 +45,7 @@ function bs_city_extra_main(e)
     s.last=now
     local r=s.route
     CharacterControlLimbo(e)
-    local moving=#r.points>0 and not s.disabled
+    local moving=#r.points>1 and not s.disabled and not s.finished
     if s.wait>0 then
         s.wait=math.max(0,s.wait-dt)
         moving=false
@@ -55,12 +55,21 @@ function bs_city_extra_main(e)
         local distance=math.sqrt(dx*dx+dz*dz)
         if distance<=r.speed*dt then
             s.x,s.z=p[1],p[2]
-            local previous=r.points[(s.next-2)%#r.points+1]
+            local previous=r.points[s.next-1]
             local segment=math.sqrt((p[1]-previous[1])^2+(p[2]-previous[2])^2)
-            s.next=s.next%#r.points+1
-            s.wait=segment>200 and r.pause or 0
-            moving=s.wait==0
-        else
+            if s.next>=#r.points then
+                -- Native review showed that wrapping a short per-block route reads
+                -- as an obvious reset/teleport. Walk the validated route once and
+                -- become a background idler at the destination instead.
+                s.finished=true
+                s.wait=0
+                moving=false
+            else
+                s.next=s.next+1
+                s.wait=segment>200 and r.pause or 0
+                moving=s.wait==0
+            end
+        elseif distance>0 then
             s.x=s.x+dx/distance*r.speed*dt
             s.z=s.z+dz/distance*r.speed*dt
             local target=math.deg(atan2(dx,dz))%360
