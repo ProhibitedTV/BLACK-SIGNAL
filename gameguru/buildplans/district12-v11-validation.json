@@ -1,0 +1,8 @@
+{
+  "status": "pass",
+  "populated_parcels": 36,
+  "entity_count": 9001,
+  "ele_version": 342,
+  "sha256": "f505154c00a1d429062bbd9340b7fdb92083f7b63c6c08d9424e7544749f8344",
+  "checked": "Exact saved asset, XYZ and yaw multiset; complete envelopes; paving; road clearance; ELE traversal"
+}

@@ -20,7 +20,7 @@ from fpm_inspect import FpmArchive, parse_map_ele, parse_map_ent
 class HumanTemplateRoundtripTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.ref = ROOT / "gameguru" / "maps" / "BLACK SIGNAL - District 12.fpm"
+        cls.ref = ROOT / "gameguru" / "references" / "District 12 - human corner.fpm"
         if not cls.ref.exists() or cls.ref.stat().st_size < 1_000_000:
             raise unittest.SkipTest("materialized canonical LFS FPM is required")
         with FpmArchive(cls.ref) as archive:

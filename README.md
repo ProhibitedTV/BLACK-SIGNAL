@@ -52,15 +52,11 @@ The canonical exterior production map is:
 gameguru/maps/BLACK SIGNAL - District 12.fpm
 ```
 
-It is tracked with Git LFS. The companion `.lst` records referenced map dependencies. Importing/versioning the map does not build the film set by itself: geometry, dressing, lighting, CineGuru cameras, camera nodes, actors and trigger entities still have to be authored and saved inside GameGuru MAX.
+It is tracked with Git LFS. The companion `.lst` records referenced map dependencies. The v11 production build contains 36 populated blocks and 9,001 saved entities, including shops, signs, street furniture and rear service clutter. See [the build, deployment and review notes](docs/DISTRICT12-CITYSCAPE-V11.md). Native visual inspection and performance qualification remain pending; CineGuru cameras and actors still need authoring.
 
-### Runtime metropolis shell
+### Saved city geometry
 
-District 12 automatically grows into a much larger city when the level runs. The project-local `gameloop.lua` loads `bs_city_runtime.lua`, which scans the already-authored Cyberpunk Streets background-building pieces and uses GameGuru MAX's `SpawnNewEntity` cloning API to build a deterministic metropolis around the hand-authored district.
-
-The expansion currently creates four skyline shells plus corner infill, with a hard ceiling of 620 cloned pieces. Towers are assembled from the existing `cs_bg_building_01_*` and `cs_bg_building_03_*` families, varied in footprint, height and orientation, and far-shell shadows/collision are disabled for production performance. The seed is fixed, so the skyline is identical from take to take. The generated shell is deliberately outside the authored district so Arrival Boulevard and other hero sets remain directly art-directable.
-
-This is a **runtime film-stage extension**, not destructive map editing: it does not duplicate marketplace assets into the repository and it does not permanently bake hundreds of background towers into the `.fpm`. Hero streets still belong in the authored map; the procedural shell supplies scale, parallax and skyline density around them.
+The active film runtime deliberately does not spawn, move or dress city geometry. The v11 FPM contains the buildings, roads and street dressing directly, so the editor and filming runtime share the same layout. Historical runtime skyline experiments remain in the repository but are not the production city builder.
 
 ## GameGuru MAX / CineGuru MAX
 

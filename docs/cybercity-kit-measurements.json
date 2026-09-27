@@ -340,5 +340,651 @@
     ],
     "mesh_sha256": "fe1918f9aa07b72ce8803de7a7b79c3e6420a29d12e00bdfa8623f7fb2ba1140",
     "asset": "Cyberpunk Streets Booster Pack\\Misc\\Sidewalk Misc\\CS_Street_Lamp.fpe"
+  },
+  "CS_Store_Front_02_Corner_With_Window": {
+    "min": [
+      -80.000008,
+      -6.3e-05,
+      -80.0
+    ],
+    "max": [
+      100.0,
+      149.999985,
+      100.0
+    ],
+    "size": [
+      180.00000799999998,
+      150.00004800000002,
+      180.0
+    ],
+    "mesh_sha256": "65e7e5eddd9b72c285f181dca3fbd00e4c56807d97557262fbe1fc59c00abb4d",
+    "asset": "Cyberpunk Streets Booster Pack\\Store Fronts\\CS_Store_Front_02_Corner_With_Window.fpe"
+  },
+  "CS_Store_Front_01": {
+    "min": [
+      -100.0,
+      0.0,
+      -32.0
+    ],
+    "max": [
+      106.499954,
+      132.0,
+      -8.0
+    ],
+    "size": [
+      206.499954,
+      132.0,
+      24.0
+    ],
+    "mesh_sha256": "08281ec499a893a88dbce55542797505c5028db23b07da6996cb9e6988343a0c",
+    "asset": "Cyberpunk Streets Booster Pack\\Store Fronts\\CS_Store_Front_01.fpe"
+  },
+  "CS_Store_Front_01_Blue": {
+    "min": [
+      -100.0,
+      0.0,
+      -32.0
+    ],
+    "max": [
+      106.499954,
+      132.0,
+      -8.0
+    ],
+    "size": [
+      206.499954,
+      132.0,
+      24.0
+    ],
+    "mesh_sha256": "8b51fadb77d35cbf062d3d8e273d866247362133c24b056e09cf31ad3c92fc55",
+    "asset": "Cyberpunk Streets Booster Pack\\Store Fronts\\CS_Store_Front_01_Blue.fpe"
+  },
+  "CS_Store_Front_01_Entrance": {
+    "min": [
+      -100.0,
+      -1e-06,
+      -32.639069
+    ],
+    "max": [
+      106.499954,
+      132.000031,
+      -8.0
+    ],
+    "size": [
+      206.499954,
+      132.000032,
+      24.639069
+    ],
+    "mesh_sha256": "db879c239020f83ecf991e8a7973ad7903c2424d093542aa0eaaa0d529194c3b",
+    "asset": "Cyberpunk Streets Booster Pack\\Store Fronts\\CS_Store_Front_01_Entrance.fpe"
+  },
+  "CS_Store_Front_01_Sign": {
+    "min": [
+      -43.04525,
+      -0.253394,
+      -11.128697
+    ],
+    "max": [
+      42.819004,
+      26.425341,
+      -9.928695
+    ],
+    "size": [
+      85.864254,
+      26.678735,
+      1.2000020000000013
+    ],
+    "mesh_sha256": "9291a63e985daaa951726baa44abeffb364832fbf2609d216202b722bd117121",
+    "asset": "Cyberpunk Streets Booster Pack\\Store Fronts\\CS_Store_Front_01_Sign.fpe"
+  },
+  "CS_Wall_01_NeonDecor_01_Sign_02_Computers": {
+    "min": [
+      -47.283554,
+      171.98317,
+      -84.356323
+    ],
+    "max": [
+      47.283554,
+      207.705017,
+      -75.643677
+    ],
+    "size": [
+      94.567108,
+      35.721847,
+      8.712646000000007
+    ],
+    "mesh_sha256": "4d9f768414377e590732030f8d0260fdcc604feaa1c0715234185ad6eadecfe2",
+    "asset": "Cyberpunk Streets Booster Pack\\Buildings\\CS_Wall_01_NeonDecor_01_Sign_02_Computers.fpe"
+  },
+  "CS_Neon_01": {
+    "min": [
+      -140.000015,
+      0.0,
+      -21.000006
+    ],
+    "max": [
+      140.000015,
+      580.0,
+      -20.999996
+    ],
+    "size": [
+      280.00003,
+      580.0,
+      9.999999999621423e-06
+    ],
+    "mesh_sha256": "9350cd6106596ab45426c0a5cf134562bcd47d74d8dc3e523bebfd7641cee0b1",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Building Misc\\CS_Neon_01.fpe"
+  },
+  "CS_Neon_02": {
+    "min": [
+      -140.000015,
+      0.0,
+      -21.000006
+    ],
+    "max": [
+      140.000015,
+      580.0,
+      -20.999996
+    ],
+    "size": [
+      280.00003,
+      580.0,
+      9.999999999621423e-06
+    ],
+    "mesh_sha256": "de4ac95d0ccf59bf7b694929cb22af9714cc534b07dc25bc4c34ed1cc3ee1bab",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Building Misc\\CS_Neon_02.fpe"
+  },
+  "CS_Neon_03": {
+    "min": [
+      -21.000051,
+      -8e-06,
+      -21.000002
+    ],
+    "max": [
+      100.0,
+      580.0,
+      100.000031
+    ],
+    "size": [
+      121.000051,
+      580.000008,
+      121.000033
+    ],
+    "mesh_sha256": "5ce1634d42a3d179a6668cdb625c86151f8588c5bb9194885f8418001a7d9645",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Building Misc\\CS_Neon_03.fpe"
+  },
+  "CS_Neon_04": {
+    "min": [
+      -71.000023,
+      -0.000248,
+      -71.0
+    ],
+    "max": [
+      390.0,
+      579.999756,
+      390.0
+    ],
+    "size": [
+      461.000023,
+      580.0000040000001,
+      461.0
+    ],
+    "mesh_sha256": "ef1632c752046f51e28c36ff4e3b17a3c3cb95dead6018a57b20424de516fda0",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Building Misc\\CS_Neon_04.fpe"
+  },
+  "CS_Neon_05": {
+    "min": [
+      -70.999985,
+      -0.000248,
+      -71.0
+    ],
+    "max": [
+      109.999992,
+      579.999756,
+      109.999992
+    ],
+    "size": [
+      180.999977,
+      580.0000040000001,
+      180.99999200000002
+    ],
+    "mesh_sha256": "595c4c480c3ecddae4f561fc06d5c111bfbab4f5e3750c9da3c3007b1a0abe5c",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Building Misc\\CS_Neon_05.fpe"
+  },
+  "CS_Dumpster_Closed": {
+    "min": [
+      -52.12812,
+      0.004081,
+      -30.71393
+    ],
+    "max": [
+      52.12812,
+      67.915695,
+      30.614283
+    ],
+    "size": [
+      104.25624,
+      67.911614,
+      61.328213000000005
+    ],
+    "mesh_sha256": "2bb6fe970c22146428d71b121b5a06fd961af83119aae483e7b7a7daaba4a09b",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\General Misc\\CS_Dumpster_Closed.fpe"
+  },
+  "CS_Trashbag_01": {
+    "min": [
+      -11.025557,
+      0.10613,
+      -10.943983
+    ],
+    "max": [
+      10.989552,
+      29.449997,
+      11.261387
+    ],
+    "size": [
+      22.015109,
+      29.343867,
+      22.20537
+    ],
+    "mesh_sha256": "9665cbae77ff5f112ca64483a905aa9b38dd226ccb791b002b01b22b7783ed76",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\General Misc\\CS_Trashbag_01.fpe"
+  },
+  "CS_Trashbag_02": {
+    "min": [
+      -12.073649,
+      0.076681,
+      -11.806079
+    ],
+    "max": [
+      12.034222,
+      21.277582,
+      12.148487
+    ],
+    "size": [
+      24.107871,
+      21.200900999999998,
+      23.954566
+    ],
+    "mesh_sha256": "eaca1b514de136bb5a110ccdf3f7165d552e3cfb9936349d1824803290b9cc5f",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\General Misc\\CS_Trashbag_02.fpe"
+  },
+  "CS_Trashbag_03": {
+    "min": [
+      -10.221996,
+      -0.029727,
+      -11.647108
+    ],
+    "max": [
+      9.493706,
+      25.288002,
+      9.549902
+    ],
+    "size": [
+      19.715702,
+      25.317729,
+      21.19701
+    ],
+    "mesh_sha256": "7da01d8cb66dc32fe96c26f9264b37bb6568dd8904f032372307e54d6f399db5",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\General Misc\\CS_Trashbag_03.fpe"
+  },
+  "CS_Box_01": {
+    "min": [
+      -16.0,
+      0.0,
+      -10.0
+    ],
+    "max": [
+      16.539316,
+      10.440466,
+      10.0
+    ],
+    "size": [
+      32.539316,
+      10.440466,
+      20.0
+    ],
+    "mesh_sha256": "3d4711233d649c37331fb25e666989317a1db930a6af6c8003ddf1cbad9c789c",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Debris\\CS_Box_01.fpe"
+  },
+  "CS_Box_02": {
+    "min": [
+      -14.924553,
+      0.0,
+      -10.453621
+    ],
+    "max": [
+      14.617921,
+      10.714603,
+      7.0
+    ],
+    "size": [
+      29.542474,
+      10.714603,
+      17.453621
+    ],
+    "mesh_sha256": "03f95e54a66551f0397a474e27a7942e3823990e7048f66dea730b73e6f1f4a9",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Debris\\CS_Box_02.fpe"
+  },
+  "CS_Cardboard": {
+    "min": [
+      -20.0,
+      0.0,
+      -20.0
+    ],
+    "max": [
+      20.0,
+      0.2,
+      20.0
+    ],
+    "size": [
+      40.0,
+      0.2,
+      40.0
+    ],
+    "mesh_sha256": "fde4b1dfd0df75a31b3178096bc722e87eafb1f2d160a88205f2acb0cf34bd0e",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Debris\\CS_Cardboard.fpe"
+  },
+  "CS_Bottle_Can_Cluster_01": {
+    "min": [
+      -21.278831,
+      -0.143315,
+      -12.657869
+    ],
+    "max": [
+      20.92329,
+      7.743123,
+      20.079742
+    ],
+    "size": [
+      42.202121000000005,
+      7.886438,
+      32.737611
+    ],
+    "mesh_sha256": "d839e78988f2ab61ee75d4d0d0aa2c86fafce924b9e98b4d146d61b7acfad82e",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Debris\\CS_Bottle_Can_Cluster_01.fpe"
+  },
+  "CS_Newspaper_01": {
+    "min": [
+      -25.0,
+      0.1,
+      -20.0
+    ],
+    "max": [
+      25.0,
+      0.627062,
+      20.0
+    ],
+    "size": [
+      50.0,
+      0.527062,
+      40.0
+    ],
+    "mesh_sha256": "b58302ab6033697fc634e551bf6ae737042761c9cd1521237e94cc44fec727ff",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Debris\\CS_Newspaper_01.fpe"
+  },
+  "CS_Newspaper_02": {
+    "min": [
+      -25.0,
+      0.1,
+      -20.0
+    ],
+    "max": [
+      25.0,
+      0.627062,
+      20.0
+    ],
+    "size": [
+      50.0,
+      0.527062,
+      40.0
+    ],
+    "mesh_sha256": "faa51d0ccda2d95f864d13eb0403ca97a11acb3637a3f61eeb206b3d1842e9d1",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Debris\\CS_Newspaper_02.fpe"
+  },
+  "CS_Can_01": {
+    "min": [
+      -3.5,
+      0.014887,
+      -2.085113
+    ],
+    "max": [
+      3.5,
+      4.185113,
+      2.085113
+    ],
+    "size": [
+      7.0,
+      4.170226,
+      4.170226
+    ],
+    "mesh_sha256": "6c290538851066cf87ebc713e8cc48f779e19d9c4744c47fa4980b489d4b15c5",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Debris\\CS_Can_01.fpe"
+  },
+  "CS_Can_03": {
+    "min": [
+      -3.5,
+      0.014887,
+      -2.085113
+    ],
+    "max": [
+      3.5,
+      4.185113,
+      2.085113
+    ],
+    "size": [
+      7.0,
+      4.170226,
+      4.170226
+    ],
+    "mesh_sha256": "09578ca37f18c15ff010269f9486955188c88bfcf91e2a7cbd19e8dde796fc56",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Debris\\CS_Can_03.fpe"
+  },
+  "CS_AirCon_01": {
+    "min": [
+      -88.698593,
+      60.000004,
+      -39.635765
+    ],
+    "max": [
+      -10.960665,
+      100.0,
+      -4.081326
+    ],
+    "size": [
+      77.737928,
+      39.999996,
+      35.554439
+    ],
+    "mesh_sha256": "9f588042c9914c0327bc8ec48b258d817fd143628bb73ddb32d66b74d306b54b",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Building Misc\\CS_AirCon_01.fpe"
+  },
+  "CS_AirCon_01_Stand": {
+    "min": [
+      -97.0,
+      58.0,
+      -41.0
+    ],
+    "max": [
+      -3.000002,
+      83.0,
+      -9.999995
+    ],
+    "size": [
+      93.999998,
+      25.0,
+      31.000005
+    ],
+    "mesh_sha256": "f424e39284ced52f303e20cf28791fabfad98f5727c6469bc17ff4fd04121bf5",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Building Misc\\CS_AirCon_01_Stand.fpe"
+  },
+  "CS_ATM": {
+    "min": [
+      -19.594196,
+      0.0,
+      -22.252005
+    ],
+    "max": [
+      19.5942,
+      80.0,
+      -0.0
+    ],
+    "size": [
+      39.188396,
+      80.0,
+      22.252005
+    ],
+    "mesh_sha256": "8038fdfa3bc2534db076826b5c4701d7352d34e36e717e07b919b0322454d9ac",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\General Misc\\CS_ATM.fpe"
+  },
+  "CS_ATM_Screen": {
+    "min": [
+      -12.392239,
+      47.149448,
+      -15.694975
+    ],
+    "max": [
+      13.392239,
+      58.698524,
+      -11.075344
+    ],
+    "size": [
+      25.784478,
+      11.549076,
+      4.619631
+    ],
+    "mesh_sha256": "98383a9c2381ca4bfb5da03b109ce25f8af430d370958535b1b1dc707341ea6b",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\General Misc\\CS_ATM_Screen.fpe"
+  },
+  "CS_Bus_Stop": {
+    "min": [
+      -78.0,
+      -7e-06,
+      -90.0
+    ],
+    "max": [
+      78.0,
+      117.066353,
+      3.0
+    ],
+    "size": [
+      156.0,
+      117.06636,
+      93.0
+    ],
+    "mesh_sha256": "cc1aca476bcef39466d1773002a4fbfd1bc41bcf084dacef1ffff9aefdd378fa",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\General Misc\\CS_Bus_Stop.fpe"
+  },
+  "CS_Bus_Stop_Neon_Sign": {
+    "min": [
+      -75.000008,
+      8.999991,
+      -68.0
+    ],
+    "max": [
+      75.0,
+      91.0,
+      -1.999998
+    ],
+    "size": [
+      150.00000799999998,
+      82.000009,
+      66.000002
+    ],
+    "mesh_sha256": "f3ecf124377945ee93f96c916aa6f2094feb31748321ddcc6517aedb308a84df",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\General Misc\\CS_Bus_Stop_Neon_Sign.fpe"
+  },
+  "CS_Bench": {
+    "min": [
+      -42.000004,
+      0.0,
+      -10.967743
+    ],
+    "max": [
+      42.000004,
+      34.925152,
+      10.99646
+    ],
+    "size": [
+      84.000008,
+      34.925152,
+      21.964203
+    ],
+    "mesh_sha256": "850536be94785db6216beacbb0936c34dd679dc093657bc91a80d68796be2139",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Sidewalk Misc\\CS_Bench.fpe"
+  },
+  "CS_Trash_Can": {
+    "min": [
+      -15.918201,
+      0.0,
+      -15.918201
+    ],
+    "max": [
+      15.918201,
+      48.0,
+      15.918201
+    ],
+    "size": [
+      31.836402,
+      48.0,
+      31.836402
+    ],
+    "mesh_sha256": "4bafffe7bdd768d04d110c10350ca2c492c44b7d067224ea0d8f16bc651866be",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\General Misc\\CS_Trash_Can.fpe"
+  },
+  "CS_Graffiti_01": {
+    "min": [
+      -40.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      40.0,
+      80.0,
+      0.0
+    ],
+    "size": [
+      80.0,
+      80.0,
+      0.0
+    ],
+    "mesh_sha256": "d082a0ff182165d8ba631460133d8c0606146d3e20218f70e0e1dc574e65e08e",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Building Misc\\CS_Graffiti_01.fpe"
+  },
+  "CS_Graffiti_02": {
+    "min": [
+      -40.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      40.0,
+      80.0,
+      0.0
+    ],
+    "size": [
+      80.0,
+      80.0,
+      0.0
+    ],
+    "mesh_sha256": "90488000b2ec3cce2a3ad8f74b70a2b5ea22ff5f3f013eae9d7edfd2ff5e2724",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Building Misc\\CS_Graffiti_02.fpe"
+  },
+  "CS_Fireplug": {
+    "min": [
+      -9.347542,
+      -3e-06,
+      -11.536997
+    ],
+    "max": [
+      9.347543,
+      46.170624,
+      7.307833
+    ],
+    "size": [
+      18.695085,
+      46.170626999999996,
+      18.844829999999998
+    ],
+    "mesh_sha256": "00b25470c863214371dcb71bc47b03f7e65903179aefba5fc27d144fa26041ab",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Sidewalk Misc\\CS_Fireplug.fpe"
   }
 }

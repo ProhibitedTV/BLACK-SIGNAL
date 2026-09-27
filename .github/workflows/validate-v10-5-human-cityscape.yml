@@ -10,7 +10,7 @@ on:
       - 'tools/build-district12-road-network.ps1'
       - 'tools/tests/test_fpm_author_human_cityscape_v10_5.py'
       - 'tools/tests/test_fpm_author_human_cityscape_v10_5_roundtrip.py'
-      - 'gameguru/maps/BLACK SIGNAL - District 12.fpm'
+      - 'gameguru/references/District 12 - human corner.fpm'
       - 'gameguru/buildplans/district12-v10-5-human-street-deps.lst'
       - '.github/workflows/validate-v10-5-human-cityscape.yml'
   workflow_dispatch:
@@ -28,9 +28,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(wc -c < 'gameguru/maps/BLACK SIGNAL - District 12.fpm')" -gt 1000000
+          test "$(wc -c < 'gameguru/references/District 12 - human corner.fpm')" -gt 1000000
           python tools/fpm_analyze_human_street_corner.py \
-            'gameguru/maps/BLACK SIGNAL - District 12.fpm' \
+            'gameguru/references/District 12 - human corner.fpm' \
             --report-json /tmp/human-corner.json
           python - <<'PY'
           import json
@@ -67,7 +67,7 @@ jobs:
           from pathlib import Path
           sys.path.insert(0, 'tools')
           import fpm_author_human_cityscape_v10_5 as v105
-          ref = Path('gameguru/maps/BLACK SIGNAL - District 12.fpm')
+          ref = Path('gameguru/references/District 12 - human corner.fpm')
           templates = v105._exact_reference_templates(ref)
           assert set(templates) == set(v105.HUMAN_ROLES)
           for role, template in templates.items():
@@ -87,7 +87,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ref='gameguru/maps/BLACK SIGNAL - District 12.fpm'
+          ref='gameguru/references/District 12 - human corner.fpm'
           rm -f /tmp/district12-v10-5-roundtrip.fpm /tmp/district12-v10-5-roundtrip.json
           python tools/fpm_author_human_cityscape_v10_5.py \
             "$ref" /tmp/district12-v10-5-roundtrip.fpm \

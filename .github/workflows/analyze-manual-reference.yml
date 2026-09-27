@@ -9,7 +9,7 @@ on:
       - 'tools/fpm_validate_road_semantics_v9.py'
       - 'tools/fpm_validate_road_semantics_v9_compat.py'
       - 'tools/tests/test_fpm_author_road_semantics_v9_2.py'
-      - 'gameguru/maps/BLACK SIGNAL - District 12.fpm'
+      - 'gameguru/references/District 12 - human corner.fpm'
       - '.github/workflows/analyze-manual-reference.yml'
   workflow_dispatch:
 
@@ -26,15 +26,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          file 'gameguru/maps/BLACK SIGNAL - District 12.fpm'
-          test "$(wc -c < 'gameguru/maps/BLACK SIGNAL - District 12.fpm')" -gt 1000000
+          file 'gameguru/references/District 12 - human corner.fpm'
+          test "$(wc -c < 'gameguru/references/District 12 - human corner.fpm')" -gt 1000000
 
       - name: Analyze manual transform reference
         shell: bash
         run: |
           set -euo pipefail
           python tools/fpm_analyze_manual_reference.py \
-            'gameguru/maps/BLACK SIGNAL - District 12.fpm' \
+            'gameguru/references/District 12 - human corner.fpm' \
             --report-json manual-reference-report.json
 
       - name: Exercise v9.2 semantic compiler on captured map
@@ -42,9 +42,9 @@ jobs:
         run: |
           set -euo pipefail
           python tools/fpm_author_road_semantics_v9_compat.py \
-            'gameguru/maps/BLACK SIGNAL - District 12.fpm' \
+            'gameguru/references/District 12 - human corner.fpm' \
             /tmp/district12-v9-2-reference-test.fpm \
-            --donor-fpm 'gameguru/maps/BLACK SIGNAL - District 12.fpm' \
+            --donor-fpm 'gameguru/references/District 12 - human corner.fpm' \
             --report-json v9-2-reference-compile.json
           python - <<'PY'
           import json

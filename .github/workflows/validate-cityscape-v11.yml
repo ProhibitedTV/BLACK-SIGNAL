@@ -1,0 +1,24 @@
+name: Validate saved District 12 cityscape
+on:
+  push:
+    paths: ['tools/**', 'gameguru/maps/**', 'gameguru/references/**', 'gameguru/buildplans/*v11*', 'docs/cybercity-kit-measurements.json', '.github/workflows/validate-cityscape-v11.yml']
+  pull_request:
+    paths: ['tools/**', 'gameguru/maps/**', 'gameguru/references/**', 'gameguru/buildplans/*v11*', 'docs/cybercity-kit-measurements.json', '.github/workflows/validate-cityscape-v11.yml']
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -B -m unittest discover -s tools/tests
+      - name: Verify actual production FPM
+        run: >-
+          python -B tools/fpm_validate_cityscape_v11.py
+          'gameguru/maps/BLACK SIGNAL - District 12.fpm'
+          --reference 'gameguru/references/District 12 - human corner.fpm'
+          --measurements docs/cybercity-kit-measurements.json

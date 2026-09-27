@@ -1,3 +1,4 @@
+
 entitybank\_markers\hybridlight.dbo
 entitybank\_markers\lightbulb_white_d.dds
 entitybank\_markers\player start.fpe
@@ -421,10 +422,10 @@ entitybank\cyberpunk streets booster pack\misc\general misc\cs_dumpster_closed.f
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_dumpster_m_color.dds
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_dumpster_m_normal.dds
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_dumpster_m_surface.dds
-entitybank\Cyberpunk Streets Booster Pack\Misc\General Misc\CS_Trash_Can_M_Color.dds
-entitybank\Cyberpunk Streets Booster Pack\Misc\General Misc\CS_Trash_Can_M_normal.dds
-entitybank\Cyberpunk Streets Booster Pack\Misc\General Misc\CS_Trash_Can_M_surface.dds
-entitybank\Cyberpunk Streets Booster Pack\Misc\General Misc\CS_Trash_Can.dbo
+entitybank\cyberpunk streets booster pack\misc\general misc\cs_trash_can_m_color.dds
+entitybank\cyberpunk streets booster pack\misc\general misc\cs_trash_can_m_normal.dds
+entitybank\cyberpunk streets booster pack\misc\general misc\cs_trash_can_m_surface.dds
+entitybank\cyberpunk streets booster pack\misc\general misc\cs_trash_can.dbo
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_trash_can.fpe
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_trashbag_01_m_color.dds
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_trashbag_01_m_normal.dds
@@ -435,7 +436,7 @@ entitybank\cyberpunk streets booster pack\misc\general misc\cs_trashbag_02.dbo
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_trashbag_02.fpe
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_trashbag_03.dbo
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_trashbag_03.fpe
-entitybank\Cyberpunk Streets Booster Pack\Misc\Sidewalk Misc\CS_Bench_M_Color.dds
+entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_bench_m_color.dds
 entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_bench_m_normal.dds
 entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_bench_m_surface.dds
 entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_bench.dbo
@@ -498,15 +499,15 @@ entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_street_lamp.dbo
 entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_street_lamp.fpe
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_lights.dbo
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_lights.fpe
-entitybank\Cyberpunk Streets Booster Pack\Misc\Street Misc\CS_Stop_Light_M_Color.dds
+entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_m_color.dds
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_m_emissive.png
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_m_normal.dds
-entitybank\Cyberpunk Streets Booster Pack\Misc\Street Misc\CS_Stop_Light_M_surface.dds
+entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_m_surface.dds
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_pole_m_color.dds
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_pole_m_normal.dds
-entitybank\Cyberpunk Streets Booster Pack\Misc\Street Misc\CS_Stop_Light_Pole_M_surface.dds
-entitybank\Cyberpunk Streets Booster Pack\Misc\Street Misc\CS_Stop_Light.dbo
-entitybank\Cyberpunk Streets Booster Pack\Misc\Street Misc\CS_Stop_Light.fpe
+entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_pole_m_surface.dds
+entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light.dbo
+entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light.fpe
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_street_divider_1_m_color.dds
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_street_divider_1_m_normal.dds
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_street_divider_1_m_surface.dds
@@ -610,8 +611,6 @@ entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_ove
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_overpass_01_m_surface.dds
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_overpass_01.dbo
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_overpass_01.fpe
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_corner1_dropcurb.dbo
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_corner1_dropcurb.fpe
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_corner1_m_color.dds
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_corner1_m_normal.dds
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_corner1_m_surface.dds
@@ -637,12 +636,6 @@ entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sid
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_straight_edge_m_surface.dds
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_straight_edge.dbo
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_straight_edge.fpe
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_2x2.dbo
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_2x2.fpe
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_3x3.dbo
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_3x3.fpe
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_4x4.dbo
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_4x4.fpe
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_crack_02_m_normal.dds
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_crack_03_m_normal.dds
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_crack_04_m_normal.dds
@@ -663,10 +656,6 @@ entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sid
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_m_color.dds
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_m_normal.dds
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_m_surface.dds
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_x2.dbo
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_x2.fpe
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_x4.dbo
-entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile_x4.fpe
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile.dbo
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_sidewalk_tile.fpe
 entitybank\cyberpunk streets booster pack\streets and sidewalks\sidewalks\cs_steps_01_m_color.dds
@@ -679,10 +668,7 @@ entitybank\cyberpunk streets booster pack\streets and sidewalks\street decals\as
 entitybank\cyberpunk streets booster pack\streets and sidewalks\street decals\asphalt_normal.dds
 entitybank\cyberpunk streets booster pack\streets and sidewalks\street decals\asphalt_surface.dds
 entitybank\cyberpunk streets booster pack\streets and sidewalks\street decals\asphalt_surface.png
-entitybank\cyberpunk streets booster pack\streets and sidewalks\street decals\center_lines.dds
 entitybank\cyberpunk streets booster pack\streets and sidewalks\street decals\crosswalk.dds
-entitybank\cyberpunk streets booster pack\streets and sidewalks\street decals\cs_street_center_line_decal.dbo
-entitybank\cyberpunk streets booster pack\streets and sidewalks\street decals\cs_street_center_line_decal.fpe
 entitybank\cyberpunk streets booster pack\streets and sidewalks\street decals\cs_street_crosswalk_decal.dbo
 entitybank\cyberpunk streets booster pack\streets and sidewalks\street decals\cs_street_crosswalk_decal.fpe
 entitybank\cyberpunk streets booster pack\streets and sidewalks\street decals\cs_street_decal_01_m_normal.png
@@ -772,10 +758,10 @@ entitybank\jungle collection\bush\medium bush.fpe
 entitybank\jungle collection\trees\broad tree fronds_color.dds
 entitybank\jungle collection\trees\broad tree fronds_normal.dds
 entitybank\jungle collection\trees\broad tree fronds_surface.dds
-entitybank\Jungle Collection\Trees\Broad Tree Trunk_color.dds
-entitybank\Jungle Collection\Trees\Broad Tree Trunk_normal.dds
+entitybank\jungle collection\trees\broad tree trunk_color.dds
+entitybank\jungle collection\trees\broad tree trunk_normal.dds
 entitybank\jungle collection\trees\broad tree trunk_surface.dds
-entitybank\Jungle Collection\Trees\Broad Tree.dbo
+entitybank\jungle collection\trees\broad tree.dbo
 entitybank\jungle collection\trees\broad tree.fpe
 entitybank\jungle collection\trees\split tree fronds_color.dds
 entitybank\jungle collection\trees\split tree fronds_normal.dds

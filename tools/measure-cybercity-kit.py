@@ -19,6 +19,15 @@ NAMES = (
     # Neon_Opposite variant is intentionally not measured/placed because its
     # signage transform failed native visual review.
     "CS_Store_Front_02_Corner_With_Window",
+    "CS_Store_Front_01", "CS_Store_Front_01_Blue", "CS_Store_Front_01_Entrance",
+    "CS_Store_Front_01_Sign", "CS_Wall_01_NeonDecor_01_Sign_02_Computers",
+    "CS_Neon_01", "CS_Neon_02", "CS_Neon_03", "CS_Neon_04", "CS_Neon_05",
+    "CS_Dumpster_Closed", "CS_Trashbag_01", "CS_Trashbag_02", "CS_Trashbag_03",
+    "CS_Box_01", "CS_Box_02", "CS_Cardboard", "CS_Bottle_Can_Cluster_01",
+    "CS_Newspaper_01", "CS_Newspaper_02", "CS_Can_01", "CS_Can_03",
+    "CS_AirCon_01", "CS_AirCon_01_Stand", "CS_ATM", "CS_ATM_Screen",
+    "CS_Bus_Stop", "CS_Bus_Stop_Neon_Sign", "CS_Bench", "CS_Trash_Can",
+    "CS_Graffiti_01", "CS_Graffiti_02", "CS_Fireplug",
 )
 
 

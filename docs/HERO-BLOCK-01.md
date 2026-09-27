@@ -1,6 +1,8 @@
 # Hero Block 01: measured assembly candidate
 
-## Current status
+## Historical status
+
+This four-building experiment has been superseded by the [v11 populated cityscape](DISTRICT12-CITYSCAPE-V11.md), which exports all 36 blocks. The notes below describe the earlier failed export, not the current production map.
 
 The builder and geometric checks are implemented. **No finished FPM has been exported or promoted.** The first export failed because C: reported zero free bytes; its incomplete output was removed. The builder now checks space before writing and removes its own output if writing fails. GameGuru MAX window capture also timed out, so native visual acceptance remains pending. The existing District 12 production map was not changed.
 
