@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compatibility front-end for District 12 semantic road dressing v9/v9.1.
+"""Compatibility front-end for District 12 semantic road dressing v9.2.
 
 The production CyberCity exemplar contains the street-lamp mesh but may not contain
 an actually placed ``CS_Street_Light_Marker`` record. Dynamic GameGuru MAX light
@@ -10,7 +10,7 @@ markers are not safe to synthesize from an unrelated entity record, so this wrap
 3. if none exists anywhere available, keeps the visible lamp-mesh pass but omits
    dynamic markers instead of aborting the whole city build or fabricating state.
 
-All semantic-road placement behavior is supplied by the v9.1 tuning layer.
+All semantic-road placement behavior is supplied by the v9.2 manual-reference layer.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import fpm_author_road_semantics_v9_1 as core
+import fpm_author_road_semantics_v9_2 as core
 import fpm_author_street_fabric as fabric
 from fpm_inspect import FpmArchive, FpmError, parse_map_ele, parse_map_ent
 
@@ -150,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
     if dynamic_template is not None:
         mode = MODE_DYNAMIC
         print(
-            "V9 dynamic-light template: exact same-version record from "
+            "V9.2 dynamic-light template: exact same-version record from "
             f"{dynamic_template.source_fpm} ({dynamic_template.source_kind})"
         )
 
@@ -177,7 +177,7 @@ def main(argv: list[str] | None = None) -> int:
             "the target, CyberCity, or sibling mapbank FPMs."
         )
         print(
-            "[WARN] V9 will author visible street-lamp meshes but will not synthesize "
+            "[WARN] V9.2 will author visible street-lamp meshes but will not synthesize "
             "unsafe dynamic-light state."
         )
         core.FABRIC_ROLES = tuple(role for role in original_roles if role != DYNAMIC_ROLE)
