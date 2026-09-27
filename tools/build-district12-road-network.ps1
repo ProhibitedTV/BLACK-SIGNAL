@@ -38,24 +38,27 @@ $surfaceMap = Join-Path $outDir ($districtName + ' - road-system-v7-surface.fpm'
 $surfaceReport = Join-Path $outDir ($districtName + ' - road-system-v7-surface.report.json')
 $cityMap = Join-Path $outDir ($districtName + ' - measured-city-v10-2-storefront-overlay.fpm')
 $cityReport = Join-Path $outDir ($districtName + ' - measured-city-v10-2-storefront-overlay.report.json')
-$outMap = Join-Path $outDir ($districtName + ' - road-system-v10-3-test-pass.fpm')
-$semanticReport = Join-Path $outDir ($districtName + ' - road-system-v10-3-test-pass.report.json')
-$validationReport = Join-Path $outDir ($districtName + ' - road-system-v10-3-validation.report.json')
-$measurementFile = Join-Path $outDir 'cybercity-kit-measurements-v10-3.json'
-$measurementScratch = Join-Path $outDir 'mesh-audit-v10-3'
+$outMap = Join-Path $outDir ($districtName + ' - road-system-v10-4-streetlife.fpm')
+$semanticReport = Join-Path $outDir ($districtName + ' - road-system-v10-4-streetlife.report.json')
+$validationReport = Join-Path $outDir ($districtName + ' - road-system-v10-4-validation.report.json')
+$measurementFile = Join-Path $outDir 'cybercity-kit-measurements-v10-4.json'
+$measurementScratch = Join-Path $outDir 'mesh-audit-v10-4'
+$streetlifeAssetFile = Join-Path $outDir 'streetlife-assets-v10-4.json'
+$streetlifeScratch = Join-Path $outDir 'streetlife-audit-v10-4'
 
 $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
 if (-not $python) { throw 'Python 3 is required.' }
 $measureTool = Join-Path $PSScriptRoot 'measure-cybercity-kit.py'
+$streetlifeDiscoverTool = Join-Path $PSScriptRoot 'discover-streetlife-assets.py'
 $foundationTool = Join-Path $PSScriptRoot 'fpm_author_road_network_v3.py'
 $detailTool = Join-Path $PSScriptRoot 'fpm_author_road_details_v7.py'
 $surfaceTool = Join-Path $PSScriptRoot 'fpm_author_road_surface_v7.py'
 $cityTool = Join-Path $PSScriptRoot 'fpm_author_measured_city_v10_1_compat.py'
-$semanticTool = Join-Path $PSScriptRoot 'fpm_author_road_semantics_v10_3.py'
-$validatorTool = Join-Path $PSScriptRoot 'fpm_validate_street_level_v10_3.py'
+$semanticTool = Join-Path $PSScriptRoot 'fpm_author_streetlife_v10_4.py'
+$validatorTool = Join-Path $PSScriptRoot 'fpm_validate_streetlife_v10_4.py'
 
-foreach ($requiredTool in @($measureTool, $foundationTool, $detailTool, $surfaceTool, $cityTool, $semanticTool, $validatorTool)) {
+foreach ($requiredTool in @($measureTool, $streetlifeDiscoverTool, $foundationTool, $detailTool, $surfaceTool, $cityTool, $semanticTool, $validatorTool)) {
     if (-not (Test-Path -LiteralPath $requiredTool)) {
         throw "Required District 12 compiler/validator is missing: $requiredTool"
     }
@@ -78,19 +81,21 @@ function Invoke-PythonStage {
     }
 }
 
-foreach ($generated in @($foundationMap, $detailMap, $surfaceMap, $cityMap, $outMap, $foundationReport, $detailReport, $surfaceReport, $cityReport, $semanticReport, $validationReport, $measurementFile)) {
+foreach ($generated in @($foundationMap, $detailMap, $surfaceMap, $cityMap, $outMap, $foundationReport, $detailReport, $surfaceReport, $cityReport, $semanticReport, $validationReport, $measurementFile, $streetlifeAssetFile)) {
     if (Test-Path -LiteralPath $generated) { Remove-Item -LiteralPath $generated -Force }
 }
-if (Test-Path -LiteralPath $measurementScratch) { Remove-Item -LiteralPath $measurementScratch -Recurse -Force }
+foreach ($scratch in @($measurementScratch, $streetlifeScratch)) {
+    if (Test-Path -LiteralPath $scratch) { Remove-Item -LiteralPath $scratch -Recurse -Force }
+}
 
-Write-Host 'BLACK SIGNAL - rebuild District 12 filmable test-pass system v10.3'
+Write-Host 'BLACK SIGNAL - rebuild District 12 filmable street-life system v10.4'
 Write-Host 'Road reference: captured manual GameGuru intersection transforms'
 Write-Host 'City reference: Astra measured CyberCity geometry + complete Hero Block shells'
-Write-Host 'Street-level pass: storefront overlays + sparse curb lights + controlled sidewalk set dressing'
+Write-Host 'Street-level pass: accepted storefront overlays + sparse infrastructure + measured urban greenery'
 Write-Host "CyberCity donor: $cyberCity"
 Write-Host "Grid: $GridSize x $GridSize"
 Write-Host ''
-Write-Host 'Preflight: measure installed CyberCity kit including storefront modules'
+Write-Host 'Preflight A: measure installed CyberCity kit including storefront modules'
 Write-Host '  no commercial geometry is committed; bounds are regenerated from the installed DLC'
 Write-Host "  output: $measurementFile"
 Write-Host ''
@@ -99,6 +104,18 @@ Invoke-PythonStage -Tool $measureTool -ToolArguments @(
     '--scratch', $measurementScratch,
     '--output', $measurementFile
 ) -FailureMessage 'CyberCity mesh measurement failed'
+
+Write-Host ''
+Write-Host 'Preflight B: discover + measure installed street-life vegetation'
+Write-Host '  prefer a Cyberpunk Streets planter and a compact measured city-tree candidate'
+Write-Host '  only asset paths/bounds are recorded; no third-party geometry enters the repo'
+Write-Host "  output: $streetlifeAssetFile"
+Write-Host ''
+Invoke-PythonStage -Tool $streetlifeDiscoverTool -ToolArguments @(
+    '--install', $gameGuruInstall,
+    '--scratch', $streetlifeScratch,
+    '--output', $streetlifeAssetFile
+) -FailureMessage 'Street-life asset discovery failed'
 
 Write-Host ''
 Write-Host 'Stage 1/6: uniform road surface grammar'
@@ -159,37 +176,38 @@ Invoke-PythonStage -Tool $cityTool -ToolArguments @(
 ) -FailureMessage 'Measured city v10.2 compiler failed'
 
 Write-Host ''
-Write-Host 'Stage 5/6: apply road semantics + controlled Hero Block street-level dressing'
-Write-Host '  two road-axis-aligned center-line decals per Straight 4X module'
-Write-Host '  four pivot-corrected crosswalks plus four proven sidewalk corners per 4-way'
-Write-Host '  straight arrows use the measured lane offset, setback and road-facing rotation'
-Write-Host '  lamps use Astra curb geometry: 270 from road center, one per six Straight 4X modules'
-Write-Host '  central filming block adds 8 bollards, 8 curb guards, 8 sidewalk lights and 4 utility poles'
-Write-Host '  street props use deterministic sidewalk coordinates; no random scatter'
+Write-Host 'Stage 5/6: apply road semantics + Hero Block street-life dressing'
+Write-Host '  retain the validated v10.3 bollards, curb guards, sidewalk lights and sparse utility poles'
+Write-Host '  add 8 paired measured planters/city trees in controlled sidewalk zones'
+Write-Host '  add 8 low planter accent lights shifted toward the curb for camera depth'
+Write-Host '  keep road geometry, storefronts, entries and crosswalk approaches clear'
+Write-Host '  all street-life placements are deterministic; no random scatter'
 Write-Host "  output: $outMap"
 Write-Host ''
 Invoke-PythonStage -Tool $semanticTool -ToolArguments @(
     $cityMap,
     $outMap,
     '--donor-fpm', $cyberCity,
+    '--streetlife-assets', $streetlifeAssetFile,
     '--max-additions', "$MaxSemanticAdditions",
     '--report-json', $semanticReport
-) -FailureMessage 'Road-semantics v10.3 filmability compiler failed'
+) -FailureMessage 'Road-semantics v10.4 street-life compiler failed'
 
 Write-Host ''
-Write-Host 'Stage 6/6: fail-closed road + street-level promotion validation'
+Write-Host 'Stage 6/6: fail-closed road + street-life promotion validation'
 Write-Host '  exact road graph and v9.2 marking grammar must survive'
-Write-Host '  controlled Hero Block street-prop counts must match the final FPM exactly'
+Write-Host '  v10.3 infrastructure and v10.4 planter/tree/light counts must match the final FPM exactly'
 Write-Host ''
 Invoke-PythonStage -Tool $validatorTool -ToolArguments @(
     $outMap,
     '--foundation-report', $foundationReport,
     '--semantic-report', $semanticReport,
+    '--streetlife-assets', $streetlifeAssetFile,
     '--report-json', $validationReport
-) -FailureMessage 'Road-system v10.3 promotion validation failed'
+) -FailureMessage 'Road-system v10.4 promotion validation failed'
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$backup = Join-Path $repo ("_fpm_backups\road-system-v10-3-test-pass-$stamp")
+$backup = Join-Path $repo ("_fpm_backups\road-system-v10-4-streetlife-$stamp")
 New-Item -ItemType Directory -Force -Path $backup | Out-Null
 foreach ($pair in @(
     @{ Path = $projectMap; Name = 'project-before.fpm' },
@@ -216,21 +234,21 @@ if (Test-Path -LiteralPath $cyberLst) {
 }
 
 Write-Host ''
-Write-Host '[PASS] District 12 v10.3 filmable test block promoted to project + global mapbanks.'
+Write-Host '[PASS] District 12 v10.4 filmable street-life block promoted to project + global mapbanks.'
 Write-Host '[PASS] Main streets remain the exact validated full-width road graph.'
 Write-Host '[PASS] Central city mass remains complete Astra-measured shells.'
 Write-Host '[PASS] Storefront geometry remains an overlay; structural ground-floor corners are preserved.'
-Write-Host '[PASS] Roof placement still accounts for the measured +80 local-Y roof pivot.'
-Write-Host '[PASS] Center-line, crosswalk, arrow and sidewalk-corner transforms remain manual-reference derived.'
-Write-Host '[PASS] Street lamps retain the measured curb strip and one-per-six-module cadence.'
-Write-Host '[PASS] Hero Block now has controlled bollards, curb guards, sidewalk lights and utility poles for film-set depth.'
+Write-Host '[PASS] Existing bollards, rails, low sidewalk lights, utility poles and sparse street lamps remain controlled.'
+Write-Host '[PASS] Eight measured planter/tree pairs now add urban greenery without blocking filming paths.'
+Write-Host '[PASS] Eight low planter accent lights add pedestrian-scale night depth without increasing street-lamp density.'
 Write-Host '[PASS] Dynamic markers are used only when an exact same-version record is available.'
 Write-Host "Backup: $backup"
 Write-Host "Live measurement report: $measurementFile"
+Write-Host "Street-life discovery report: $streetlifeAssetFile"
 Write-Host "Foundation report: $foundationReport"
 Write-Host "Measured-city report: $cityReport"
 Write-Host "Semantic report: $semanticReport"
 Write-Host "Validation report: $validationReport"
 Write-Host "SHA-256: $hash"
 Write-Host '[NEXT] Start GameGuru MAX normally, open BLACK SIGNAL, and Test Play the central Hero Block.'
-Write-Host '[CHECK] Inspect storefront overlays, pedestrian clearances, bollards/rails, sidewalk lights, utility poles, lamp placement and the corrected intersection.'
+Write-Host '[CHECK] Inspect planter/tree scale, pedestrian clearance, accent-light placement, storefront visibility and overall filming composition.'
