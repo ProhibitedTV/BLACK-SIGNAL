@@ -15,7 +15,7 @@ if ($Deploy -and (Get-Process GameGuruMAX -ErrorAction SilentlyContinue)) { thro
 if ($LASTEXITCODE -ne 0) { throw 'Installed asset dependency check failed.' }
 if (-not $Candidate) {
     $Candidate=Join-Path $repo "_fpm_generated\$name-polish-v12-$stamp.fpm"
-    & $PythonPath -B (Join-Path $PSScriptRoot 'fpm_polish_city_v12.py') --source $source --output $Candidate
+    & $PythonPath -B (Join-Path $PSScriptRoot 'fpm_polish_city_v12_nativefix.py') --source $source --output $Candidate
     if ($LASTEXITCODE -ne 0) { throw 'Incremental export failed.' }
 }
 $Candidate=(Resolve-Path -LiteralPath $Candidate).Path
