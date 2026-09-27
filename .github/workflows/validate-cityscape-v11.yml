@@ -19,7 +19,7 @@ jobs:
       - run: python -B -m unittest discover -s tools/tests
       - name: Build grouped V12 candidate
         run: >-
-          python -B tools/fpm_polish_city_v12.py
+          python -B tools/fpm_polish_city_v12_nativefix.py
           --source 'gameguru/references/District 12 - manual polish.fpm'
           --output '/tmp/BLACK SIGNAL - District 12-v12.fpm'
       - name: Verify grouped V12 candidate
