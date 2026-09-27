@@ -1,0 +1,96 @@
+name: Validate District 12 human cityscape v10.5
+
+on:
+  pull_request:
+    paths:
+      - 'tools/fpm_analyze_human_street_corner.py'
+      - 'tools/fpm_author_human_cityscape_v10_5.py'
+      - 'tools/fpm_validate_human_cityscape_v10_5.py'
+      - 'tools/build-district12-human-cityscape-v10-5.ps1'
+      - 'tools/build-district12-road-network.ps1'
+      - 'tools/tests/test_fpm_author_human_cityscape_v10_5.py'
+      - 'gameguru/maps/BLACK SIGNAL - District 12.fpm'
+      - 'gameguru/buildplans/district12-v10-5-human-street-deps.lst'
+      - '.github/workflows/validate-v10-5-human-cityscape.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-human-cityscape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with Git LFS
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Verify captured human reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(wc -c < 'gameguru/maps/BLACK SIGNAL - District 12.fpm')" -gt 1000000
+          python tools/fpm_analyze_human_street_corner.py \
+            'gameguru/maps/BLACK SIGNAL - District 12.fpm' \
+            --report-json /tmp/human-corner.json
+          python - <<'PY'
+          import json
+          report = json.load(open('/tmp/human-corner.json', encoding='utf-8'))
+          sig = report['tracked_signatures']
+          expected = {
+              'bench': [-405.0, 10.0, 555.0, 90.0],
+              'broad_tree': [-350.0, 20.0, 350.0, 0.0],
+              'stop_light': [-220.0, 10.0, 290.0, -90.0],
+              'trash_can': [-245.0, 10.0, 245.0, 0.0],
+          }
+          for role, wanted in expected.items():
+              rows = [r['signature'] for r in sig.get(role, [])]
+              assert wanted in rows, f'{role}: missing human signature {wanted}; got {rows}'
+          assert [-350.0, 0.0, 350.0, 90.0] in [r['signature'] for r in sig['planter']]
+          for z in (500.0, 600.0, 700.0, 795.0):
+              wanted = [-215.0, 10.0, z, 0.0]
+              assert wanted in [r['signature'] for r in sig['sidewalk_light']], wanted
+          print('[PASS] Captured human corner contains the authoritative v10.5 grammar')
+          PY
+
+      - name: Validate exact human-reference templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            tools/fpm_analyze_human_street_corner.py \
+            tools/fpm_author_human_cityscape_v10_5.py \
+            tools/fpm_validate_human_cityscape_v10_5.py \
+            tools/tests/test_fpm_author_human_cityscape_v10_5.py
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'tools')
+          import fpm_author_human_cityscape_v10_5 as v105
+          ref = Path('gameguru/maps/BLACK SIGNAL - District 12.fpm')
+          templates = v105._exact_reference_templates(ref)
+          assert set(templates) == set(v105.HUMAN_ROLES)
+          for role, template in templates.items():
+              assert template.source_kind == 'human-reference-exact', role
+          print('[PASS] All v10.5 street props have safe exact editor-authored ELE templates')
+          PY
+
+      - name: Run v10.5 planner unit tests
+        shell: bash
+        run: python -m unittest tools.tests.test_fpm_author_human_cityscape_v10_5 -v
+
+      - name: Parse production PowerShell
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($script in @(
+            './tools/build-district12-road-network.ps1',
+            './tools/build-district12-human-cityscape-v10-5.ps1'
+          )) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              throw "PowerShell syntax check failed: $script"
+            }
+            Write-Host "[PASS] PowerShell syntax: $script"
+          }
