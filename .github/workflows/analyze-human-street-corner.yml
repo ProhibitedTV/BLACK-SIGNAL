@@ -1,0 +1,39 @@
+name: Analyze human-authored District 12 street corner
+
+on:
+  pull_request:
+    paths:
+      - 'tools/fpm_analyze_human_street_corner.py'
+      - 'gameguru/maps/BLACK SIGNAL - District 12.fpm'
+      - '.github/workflows/analyze-human-street-corner.yml'
+  workflow_dispatch:
+
+jobs:
+  analyze-human-corner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with Git LFS
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Verify canonical FPM is materialized
+        shell: bash
+        run: |
+          set -euo pipefail
+          file 'gameguru/maps/BLACK SIGNAL - District 12.fpm'
+          test "$(wc -c < 'gameguru/maps/BLACK SIGNAL - District 12.fpm')" -gt 1000000
+
+      - name: Extract human-authored street corner
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/fpm_analyze_human_street_corner.py \
+            'gameguru/maps/BLACK SIGNAL - District 12.fpm' \
+            --report-json human-street-corner-report.json
+
+      - name: Upload human corner report
+        uses: actions/upload-artifact@v4
+        with:
+          name: district12-human-street-corner
+          path: human-street-corner-report.json
