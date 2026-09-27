@@ -11,6 +11,7 @@ if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
 import fpm_author_human_cityscape_v10_5 as v105
+import fpm_author_road_semantics_v9_compat as compat
 import fpm_author_street_fabric as fabric
 from fpm_author_street_fabric_compat import _patched_patch_record
 from fpm_inspect import FpmArchive, parse_map_ele, parse_map_ent
@@ -65,6 +66,16 @@ class HumanTemplateRoundtripTests(unittest.TestCase):
         reparsed = parse_map_ele(stream, self.bank)
         self.assertEqual(reparsed["entity_count"], len(records))
         self.assertEqual(reparsed["trailing_bytes"], 0)
+
+    def test_dynamic_marker_is_taken_from_captured_reference(self) -> None:
+        template = v105._exact_reference_dynamic_template(self.ref)
+        self.assertEqual(template.role, compat.DYNAMIC_ROLE)
+        self.assertEqual(template.source_kind, "human-reference-exact-dynamic")
+        self.assertEqual(Path(template.source_fpm), self.ref.resolve())
+        self.assertEqual(
+            fabric.basename(template.asset_path),
+            fabric.basename(fabric.ASSETS[compat.DYNAMIC_ROLE]["basename"]),
+        )
 
 
 if __name__ == "__main__":
