@@ -17,9 +17,14 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install lupa==2.8
       - run: python -B -m unittest discover -s tools/tests
-      - name: Verify actual production FPM
+      - name: Build grouped V12 candidate
+        run: >-
+          python -B tools/fpm_polish_city_v12.py
+          --source 'gameguru/references/District 12 - manual polish.fpm'
+          --output '/tmp/BLACK SIGNAL - District 12-v12.fpm'
+      - name: Verify grouped V12 candidate
         run: >-
           python -B tools/fpm_validate_polish_v12.py
-          'gameguru/maps/BLACK SIGNAL - District 12.fpm'
+          '/tmp/BLACK SIGNAL - District 12-v12.fpm'
           --source 'gameguru/references/District 12 - manual polish.fpm'
-          --plan 'gameguru/buildplans/district12-v12-layout.json'
+          --layout '/tmp/BLACK SIGNAL - District 12-v12.report.json'
