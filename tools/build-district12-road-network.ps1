@@ -51,7 +51,7 @@ $measureTool = Join-Path $PSScriptRoot 'measure-cybercity-kit.py'
 $foundationTool = Join-Path $PSScriptRoot 'fpm_author_road_network_v3.py'
 $detailTool = Join-Path $PSScriptRoot 'fpm_author_road_details_v7.py'
 $surfaceTool = Join-Path $PSScriptRoot 'fpm_author_road_surface_v7.py'
-$cityTool = Join-Path $PSScriptRoot 'fpm_author_measured_city_v10.py'
+$cityTool = Join-Path $PSScriptRoot 'fpm_author_measured_city_v10_1_compat.py'
 $semanticTool = Join-Path $PSScriptRoot 'fpm_author_road_semantics_v9_compat.py'
 $validatorTool = Join-Path $PSScriptRoot 'fpm_validate_road_semantics_v9_compat.py'
 
