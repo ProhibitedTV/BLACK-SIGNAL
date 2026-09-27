@@ -23,14 +23,23 @@ class ExtrasTests(unittest.TestCase):
 
     def test_sidewalk_routes_and_distribution(self):
         actors=[r for r in self.rows if r['group']=='extras']
-        self.assertEqual(sum(bool(r['route']) for r in actors),144)
+        walkers=[r for r in actors if r['route']]
+        self.assertEqual(len(walkers),144)
         self.assertEqual(sum(not r['route'] for r in actors),72)
         self.assertEqual(len({r['asset'] for r in actors}),6)
+        for r in walkers:
+            self.assertGreaterEqual(len(r['route']),3)
+            self.assertNotEqual(r['route'][0],r['route'][-1])
+            distance=sum(
+                ((b[0]-a[0])**2+(b[1]-a[1])**2)**0.5
+                for a,b in zip(r['route'],r['route'][1:])
+            )
+            self.assertGreater(distance,400)
         extras.validate(self.rows,self.parcels,self.measured,city.hero.world_bounds,city.measured_city.intersects)
 
     def test_road_shortcut_is_rejected(self):
         rows=copy.deepcopy(self.rows)
-        actor=next(r for r in rows if r['group']=='extras')
+        actor=next(r for r in rows if r['group']=='extras' and len(r['route'])>1)
         actor['route'][1][0]=actor['bounds'][0]-100
         with self.assertRaises(ValueError):extras.validate(rows,self.parcels,self.measured,city.hero.world_bounds,city.measured_city.intersects)
 
@@ -74,10 +83,12 @@ class ExtrasTests(unittest.TestCase):
               assert(math.abs(p[2]-r.y)<0.001,'height drift')
               if #r.points>0 then
                 local on_route=false
-                for k,a in ipairs(r.points) do
-                  local b=r.points[k%#r.points+1]
+                for k=1,#r.points-1 do
+                  local a,b=r.points[k],r.points[k+1]
                   local dx,dz=b[1]-a[1],b[2]-a[2]
-                  local t=math.max(0,math.min(1,((p[1]-a[1])*dx+(p[3]-a[2])*dz)/(dx*dx+dz*dz)))
+                  local denom=dx*dx+dz*dz
+                  local t=0
+                  if denom>0 then t=math.max(0,math.min(1,((p[1]-a[1])*dx+(p[3]-a[2])*dz)/denom)) end
                   if (p[1]-a[1]-t*dx)^2+(p[3]-a[2]-t*dz)^2<0.01 then on_route=true;break end
                 end
                 assert(on_route,'left validated sidewalk corridor')
@@ -89,9 +100,17 @@ class ExtrasTests(unittest.TestCase):
           end
           local count=0;for _ in pairs(moved) do count=count+1 end
           assert(count==144,'not every walker moved')
-          -- A stalled frame must not teleport an actor along the route.
+          -- Every walker should finish at its final validated point and stay there.
+          for i=1,216 do
+            local r=actors_test[i]
+            if #r.points>0 then
+              local p=positions[i]
+              local last=r.points[#r.points]
+              assert((p[1]-last[1])^2+(p[3]-last[2])^2<0.01,'walker did not finish at route endpoint')
+            end
+          end
           local p=positions[1];g_Time=g_Time+60000;bs_city_extra_main(1)
-          assert((positions[1][1]-p[1])^2+(positions[1][3]-p[3])^2<=16.01)
+          assert((positions[1][1]-p[1])^2+(positions[1][3]-p[3])^2<0.01,'finished walker reset or teleported')
           function GetEntityAnimationNameExist(e,n) return n=='Walk_Loop' and 0 or 1 end
           bs_city_extra_init_name(1,'BS_EXTRA_001')
           for frame=1,60 do g_Time=g_Time+33;bs_city_extra_main(1) end
