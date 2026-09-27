@@ -55,14 +55,14 @@ jobs:
               'crosswalk': 100,
               'road_arrow_straight': 100,
               'sidewalk_corner': 100,
-              'street_lamp': 63,
-              'street_dynamic_light': 63,
+              'street_lamp': 42,
+              'street_dynamic_light': 42,
           }
           for role, wanted in expected.items():
               got = int(counts.get(role, 0))
               assert got == wanted, f'{role}: got {got}, expected {wanted}'
           assert report['semantic_policy'] == 'target-road-graph-semantic-dressing-v9.2-manual-reference'
-          print('[PASS] v9.2 compiler reproduced expected semantic counts from captured reference')
+          print('[PASS] v9.2 road grammar + v10.1 curb-light cadence reproduced expected semantic counts')
           PY
 
       - name: Upload transform and compile reports
