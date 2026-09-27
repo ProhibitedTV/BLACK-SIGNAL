@@ -9,6 +9,7 @@ on:
       - 'tools/build-district12-human-cityscape-v10-5.ps1'
       - 'tools/build-district12-road-network.ps1'
       - 'tools/tests/test_fpm_author_human_cityscape_v10_5.py'
+      - 'tools/tests/test_fpm_author_human_cityscape_v10_5_roundtrip.py'
       - 'gameguru/maps/BLACK SIGNAL - District 12.fpm'
       - 'gameguru/buildplans/district12-v10-5-human-street-deps.lst'
       - '.github/workflows/validate-v10-5-human-cityscape.yml'
@@ -59,7 +60,8 @@ jobs:
             tools/fpm_analyze_human_street_corner.py \
             tools/fpm_author_human_cityscape_v10_5.py \
             tools/fpm_validate_human_cityscape_v10_5.py \
-            tools/tests/test_fpm_author_human_cityscape_v10_5.py
+            tools/tests/test_fpm_author_human_cityscape_v10_5.py \
+            tools/tests/test_fpm_author_human_cityscape_v10_5_roundtrip.py
           python - <<'PY'
           import sys
           from pathlib import Path
@@ -73,9 +75,26 @@ jobs:
           print('[PASS] All v10.5 street props have safe exact editor-authored ELE templates')
           PY
 
-      - name: Run v10.5 planner unit tests
+      - name: Run v10.5 planner and record roundtrip tests
         shell: bash
-        run: python -m unittest tools.tests.test_fpm_author_human_cityscape_v10_5 -v
+        run: |
+          set -euo pipefail
+          python -m unittest \
+            tools.tests.test_fpm_author_human_cityscape_v10_5 \
+            tools.tests.test_fpm_author_human_cityscape_v10_5_roundtrip -v
+
+      - name: Exercise full v10.5 compiler on materialized reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref='gameguru/maps/BLACK SIGNAL - District 12.fpm'
+          rm -f /tmp/district12-v10-5-roundtrip.fpm /tmp/district12-v10-5-roundtrip.json
+          python tools/fpm_author_human_cityscape_v10_5.py \
+            "$ref" /tmp/district12-v10-5-roundtrip.fpm \
+            --donor-fpm "$ref" \
+            --human-reference "$ref" \
+            --max-additions 2200 \
+            --report-json /tmp/district12-v10-5-roundtrip.json
 
       - name: Parse production PowerShell
         shell: pwsh
