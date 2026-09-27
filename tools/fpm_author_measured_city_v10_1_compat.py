@@ -126,7 +126,7 @@ def donor_templates_with_static_storefront_fallback(
         for canonical in sorted(storefront_missing):
             out[canonical] = fabric.Template(
                 role="measured-city-v10.2-overlay",
-                asset_path=f"{STOREFRONT_FOLDER}\{canonical}.fpe",
+                asset_path=STOREFRONT_FOLDER + chr(92) + canonical + ".fpe",
                 parsed=carrier.parsed,
                 raw_record=carrier.raw_record,
                 source_fpm=carrier.source_fpm,
