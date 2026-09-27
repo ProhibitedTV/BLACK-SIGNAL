@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Compatibility promotion gate for V9 semantic road dressing.
+"""Compatibility promotion gate for V9.2 manual-reference semantic dressing.
 
 The core validator requires 1:1 street-lamp/dynamic-marker pairing. That remains the
 preferred production mode. If the semantic compiler proves no exact same-version
 GameGuru MAX dynamic-light marker record exists, the safe fallback is lamp-mesh-only.
 This wrapper permits exactly that documented fallback while preserving every other
-V9 validation error and never allowing a synthesized/fake dynamic record.
+V9.2 validation error and never allowing a synthesized/fake dynamic record.
 """
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ def validate(
 
 
 def print_report(report: dict[str, Any]) -> None:
-    print("BLACK SIGNAL - District 12 semantic road-system v9 promotion gate")
+    print("BLACK SIGNAL - District 12 semantic road-system v9.2 promotion gate")
     print(f"Final FPM: {report['final_fpm']}")
     print(f"Roads: {report['recognized_road_entities']} / expected {report['expected_road_entities']}")
     print(f"Missing placements: {report['missing_placements']}")
@@ -70,8 +70,8 @@ def print_report(report: dict[str, Any]) -> None:
         print(f"  {role:24s} {count}")
 
     if report["status"] == "pass":
-        print("[PASS] V9 preserved the exact validated road graph.")
-        print("[PASS] Center lines, crosswalks, arrows and street-lamp meshes match semantic counts.")
+        print("[PASS] V9.2 preserved the exact validated road graph.")
+        print("[PASS] Manual-reference center lines, crosswalks, arrows, sidewalk corners and street-lamp meshes match semantic counts.")
         if report.get("lighting_mode") == compat.MODE_DYNAMIC:
             print("[PASS] Every street lamp has an exact same-version dynamic light marker.")
         elif report.get("lighting_mode") == compat.MODE_LAMP_ONLY:
@@ -97,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         print_report(report)
         return 0 if report["status"] == "pass" else 3
     except (FpmError, OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-        print(f"FPM ROAD SEMANTICS V9 VALIDATION ERROR: {exc}", file=sys.stderr)
+        print(f"FPM ROAD SEMANTICS V9.2 VALIDATION ERROR: {exc}", file=sys.stderr)
         return 2
 
 

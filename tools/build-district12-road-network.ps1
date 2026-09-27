@@ -5,7 +5,7 @@ param(
     [int]$MaxSemanticAdditions = 2200,
     [int]$StreetwallClones = 14,
     [int]$SkylineClones = 4,
-    [int]$MaxCityAdditions = 2400
+    [int]$MaxCityAdditions = 1200
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,11 +34,12 @@ $detailMap = Join-Path $outDir ($districtName + ' - road-system-v7-structural.fp
 $detailReport = Join-Path $outDir ($districtName + ' - road-system-v7-structural.report.json')
 $surfaceMap = Join-Path $outDir ($districtName + ' - road-system-v7-surface.fpm')
 $surfaceReport = Join-Path $outDir ($districtName + ' - road-system-v7-surface.report.json')
-$cityMap = Join-Path $outDir ($districtName + ' - road-system-v9-city-quality.fpm')
-$cityReport = Join-Path $outDir ($districtName + ' - road-system-v9-city-quality.report.json')
-$outMap = Join-Path $outDir ($districtName + ' - road-system-v9-semantic.fpm')
-$semanticReport = Join-Path $outDir ($districtName + ' - road-system-v9-semantic.report.json')
-$validationReport = Join-Path $outDir ($districtName + ' - road-system-v9-validation.report.json')
+$cityMap = Join-Path $outDir ($districtName + ' - measured-city-v10.fpm')
+$cityReport = Join-Path $outDir ($districtName + ' - measured-city-v10.report.json')
+$outMap = Join-Path $outDir ($districtName + ' - road-system-v9-2-semantic.fpm')
+$semanticReport = Join-Path $outDir ($districtName + ' - road-system-v9-2-semantic.report.json')
+$validationReport = Join-Path $outDir ($districtName + ' - road-system-v9-2-validation.report.json')
+$measurementFile = Join-Path $repo 'docs\cybercity-kit-measurements.json'
 
 $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
@@ -46,7 +47,7 @@ if (-not $python) { throw 'Python 3 is required.' }
 $foundationTool = Join-Path $PSScriptRoot 'fpm_author_road_network_v3.py'
 $detailTool = Join-Path $PSScriptRoot 'fpm_author_road_details_v7.py'
 $surfaceTool = Join-Path $PSScriptRoot 'fpm_author_road_surface_v7.py'
-$cityTool = Join-Path $PSScriptRoot 'fpm_author_city_mass_v3.py'
+$cityTool = Join-Path $PSScriptRoot 'fpm_author_measured_city_v10.py'
 $semanticTool = Join-Path $PSScriptRoot 'fpm_author_road_semantics_v9_compat.py'
 $validatorTool = Join-Path $PSScriptRoot 'fpm_validate_road_semantics_v9_compat.py'
 
@@ -54,6 +55,9 @@ foreach ($requiredTool in @($foundationTool, $detailTool, $surfaceTool, $cityToo
     if (-not (Test-Path -LiteralPath $requiredTool)) {
         throw "Required District 12 compiler/validator is missing: $requiredTool"
     }
+}
+if (-not (Test-Path -LiteralPath $measurementFile)) {
+    throw "Astra measured kit file is missing: $measurementFile"
 }
 
 function Invoke-PythonStage {
@@ -73,7 +77,9 @@ function Invoke-PythonStage {
     }
 }
 
-Write-Host 'BLACK SIGNAL - rebuild District 12 semantic road + city system v9'
+Write-Host 'BLACK SIGNAL - rebuild District 12 semantic road + measured city system v10'
+Write-Host 'Road reference: captured manual GameGuru intersection transforms'
+Write-Host 'City reference: Astra measured CyberCity mesh dimensions + complete Hero Block shells'
 Write-Host "CyberCity donor: $cyberCity"
 Write-Host "Grid: $GridSize x $GridSize"
 Write-Host ''
@@ -92,7 +98,7 @@ Invoke-PythonStage -Tool $foundationTool -ToolArguments @(
 Write-Host ''
 Write-Host 'Stage 2/6: harvest safe structural templates from CyberCity'
 Write-Host '  this temporary layer supplies exact same-version decal/lamp/light records'
-Write-Host '  v9 later strips donor-replayed placement and rebuilds semantics from the target graph'
+Write-Host '  v9.2 later strips donor-replayed placement and rebuilds semantics from the target graph'
 Write-Host "  output: $detailMap"
 Write-Host ''
 Invoke-PythonStage -Tool $detailTool -ToolArguments @(
@@ -106,7 +112,7 @@ Invoke-PythonStage -Tool $detailTool -ToolArguments @(
 Write-Host ''
 Write-Host 'Stage 3/6: harvest donor surface templates'
 Write-Host '  this remains an intermediate compatibility source only'
-Write-Host '  v9 removes turn arrows/text/wear replay before final promotion'
+Write-Host '  v9.2 removes turn arrows/text/wear replay before final promotion'
 Write-Host "  output: $surfaceMap"
 Write-Host ''
 Invoke-PythonStage -Tool $surfaceTool -ToolArguments @(
@@ -118,27 +124,29 @@ Invoke-PythonStage -Tool $surfaceTool -ToolArguments @(
 ) -FailureMessage 'Road-surface v7 compiler failed'
 
 Write-Host ''
-Write-Host 'Stage 4/6: compose quality-gated CyberCity building mass'
-Write-Host '  reject facade slivers, wall stacks, and implausibly tall/narrow foreground clusters'
-Write-Host '  preserve authored donor transforms for accepted complete assemblies'
+Write-Host 'Stage 4/6: author Astra measured Hero Block onto the validated road graph'
+Write-Host '  complete wall courses, corner modules, entries and seated roof tiles'
+Write-Host '  measured sidewalk edge/tile infill; roads are preserved and collision-checked'
+Write-Host '  no harvested facade slivers or pseudo-building pivot clusters'
+Write-Host '  junction corners and street lamps remain owned by the semantic road stage'
 Write-Host "  output: $cityMap"
 Write-Host ''
 Invoke-PythonStage -Tool $cityTool -ToolArguments @(
     $surfaceMap,
     $cityMap,
     '--donor-fpm', $cyberCity,
-    '--streetwall-clones', "$StreetwallClones",
-    '--skyline-clones', "$SkylineClones",
+    '--measurements', $measurementFile,
     '--max-additions', "$MaxCityAdditions",
     '--report-json', $cityReport
-) -FailureMessage 'Integrated city v3 compiler failed'
+) -FailureMessage 'Measured city v10 compiler failed'
 
 Write-Host ''
-Write-Host 'Stage 5/6: replace donor-replay decoration with target-road semantics'
-Write-Host '  one centered double-yellow treatment per Straight 4X module'
-Write-Host '  exactly four crosswalks per 4-way; T markings omitted rather than guessed'
-Write-Host '  only straight-ahead 4-way approach arrows; no turn arrows/SLOW/ONLY/wear clutter'
-Write-Host '  deterministic curb lamps; exact dynamic markers are harvested from same-version mapbank FPMs when available'
+Write-Host 'Stage 5/6: apply captured manual-reference road semantics'
+Write-Host '  two road-axis-aligned center-line decals per Straight 4X module'
+Write-Host '  four pivot-corrected crosswalks plus four proven sidewalk corners per 4-way'
+Write-Host '  straight arrows use the measured lane offset, setback and road-facing rotation'
+Write-Host '  T markings/corners remain omitted where the manual reference proves no grammar'
+Write-Host '  v9.1 sparse curb lamps remain; exact dynamic markers are harvested when available'
 Write-Host "  output: $outMap"
 Write-Host ''
 Invoke-PythonStage -Tool $semanticTool -ToolArguments @(
@@ -147,11 +155,11 @@ Invoke-PythonStage -Tool $semanticTool -ToolArguments @(
     '--donor-fpm', $cyberCity,
     '--max-additions', "$MaxSemanticAdditions",
     '--report-json', $semanticReport
-) -FailureMessage 'Road-semantics v9 compiler failed'
+) -FailureMessage 'Road-semantics v9.2 compiler failed'
 
 Write-Host ''
-Write-Host 'Stage 6/6: fail-closed v9 promotion validation'
-Write-Host '  exact road graph must survive city composition + semantic dressing'
+Write-Host 'Stage 6/6: fail-closed v9.2 promotion validation'
+Write-Host '  exact road graph must survive measured city composition + reference-derived dressing'
 Write-Host '  semantic counts must match final FPM and stale donor markings must be absent'
 Write-Host ''
 Invoke-PythonStage -Tool $validatorTool -ToolArguments @(
@@ -159,10 +167,10 @@ Invoke-PythonStage -Tool $validatorTool -ToolArguments @(
     '--foundation-report', $foundationReport,
     '--semantic-report', $semanticReport,
     '--report-json', $validationReport
-) -FailureMessage 'Road-system v9 promotion validation failed'
+) -FailureMessage 'Road-system v9.2 promotion validation failed'
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$backup = Join-Path $repo ("_fpm_backups\road-system-v9-semantic-$stamp")
+$backup = Join-Path $repo ("_fpm_backups\road-system-v10-measured-$stamp")
 New-Item -ItemType Directory -Force -Path $backup | Out-Null
 foreach ($pair in @(
     @{ Path = $projectMap; Name = 'project-before.fpm' },
@@ -189,17 +197,18 @@ if (Test-Path -LiteralPath $cyberLst) {
 }
 
 Write-Host ''
-Write-Host '[PASS] District 12 semantic road + city system v9 promoted to project + global mapbanks.'
+Write-Host '[PASS] District 12 semantic road + measured Hero Block system promoted to project + global mapbanks.'
 Write-Host '[PASS] Main streets remain the exact validated full-width road graph.'
-Write-Host '[PASS] Donor-replayed markings were stripped before semantic final dressing.'
-Write-Host '[PASS] Final arrows are straight-ahead only and tied to 4-way approaches.'
-Write-Host '[PASS] Street-lamp meshes are authored; dynamic markers are used only when an exact same-version record is available.'
-Write-Host '[PASS] Foreground city cloning rejects sliver/wall-stack assemblies.'
+Write-Host '[PASS] Central city mass is built from complete measured shells instead of donor pivot clusters.'
+Write-Host '[PASS] Roof placement accounts for the measured +80 local-Y roof pivot.'
+Write-Host '[PASS] Center-line, crosswalk, arrow and sidewalk-corner transforms come from the captured manual reference.'
+Write-Host '[PASS] Street-lamp density/edge spacing remains on the visually approved v9.1 cadence.'
+Write-Host '[PASS] Dynamic markers are used only when an exact same-version record is available.'
 Write-Host "Backup: $backup"
 Write-Host "Foundation report: $foundationReport"
-Write-Host "City-quality report: $cityReport"
+Write-Host "Measured-city report: $cityReport"
 Write-Host "Semantic report: $semanticReport"
 Write-Host "Validation report: $validationReport"
 Write-Host "SHA-256: $hash"
-Write-Host '[NEXT] Start GameGuru MAX normally, open BLACK SIGNAL, and Test Play the same reference intersection.'
-Write-Host '[CHECK] Center lines should be centered, crosswalks limited to four per 4-way, arrows should point with traffic, and street lamps should be visible.'
+Write-Host '[NEXT] Start GameGuru MAX normally, open BLACK SIGNAL, and Test Play the central manually corrected intersection.'
+Write-Host '[CHECK] Inspect complete building corners/roofs, sidewalk-to-road seams, crosswalk pivots, arrows, center lines and collision.'

@@ -1,0 +1,74 @@
+name: Analyze District 12 manual reference
+
+on:
+  pull_request:
+    paths:
+      - 'tools/fpm_analyze_manual_reference.py'
+      - 'tools/fpm_author_road_semantics_v9_2.py'
+      - 'tools/fpm_author_road_semantics_v9_compat.py'
+      - 'tools/fpm_validate_road_semantics_v9.py'
+      - 'tools/fpm_validate_road_semantics_v9_compat.py'
+      - 'tools/tests/test_fpm_author_road_semantics_v9_2.py'
+      - 'gameguru/maps/BLACK SIGNAL - District 12.fpm'
+      - '.github/workflows/analyze-manual-reference.yml'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with Git LFS
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Verify canonical FPM is materialized
+        shell: bash
+        run: |
+          set -euo pipefail
+          file 'gameguru/maps/BLACK SIGNAL - District 12.fpm'
+          test "$(wc -c < 'gameguru/maps/BLACK SIGNAL - District 12.fpm')" -gt 1000000
+
+      - name: Analyze manual transform reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/fpm_analyze_manual_reference.py \
+            'gameguru/maps/BLACK SIGNAL - District 12.fpm' \
+            --report-json manual-reference-report.json
+
+      - name: Exercise v9.2 semantic compiler on captured map
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/fpm_author_road_semantics_v9_compat.py \
+            'gameguru/maps/BLACK SIGNAL - District 12.fpm' \
+            /tmp/district12-v9-2-reference-test.fpm \
+            --donor-fpm 'gameguru/maps/BLACK SIGNAL - District 12.fpm' \
+            --report-json v9-2-reference-compile.json
+          python - <<'PY'
+          import json
+          report = json.load(open('v9-2-reference-compile.json', encoding='utf-8'))
+          counts = report['role_counts']
+          expected = {
+              'road_center_yellow': 504,
+              'crosswalk': 100,
+              'road_arrow_straight': 100,
+              'sidewalk_corner': 100,
+              'street_lamp': 63,
+              'street_dynamic_light': 63,
+          }
+          for role, wanted in expected.items():
+              got = int(counts.get(role, 0))
+              assert got == wanted, f'{role}: got {got}, expected {wanted}'
+          assert report['semantic_policy'] == 'target-road-graph-semantic-dressing-v9.2-manual-reference'
+          print('[PASS] v9.2 compiler reproduced expected semantic counts from captured reference')
+          PY
+
+      - name: Upload transform and compile reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: district12-manual-reference
+          path: |
+            manual-reference-report.json
+            v9-2-reference-compile.json

@@ -66,12 +66,18 @@ if errorlevel 1 (
 
 echo Captured current stage map.
 
-if exist "%SRCLST%" (
+rem The canonical .lst is a curated dependency superset used by repository and
+rem packaging validation. A GameGuru save can emit a much smaller runtime list,
+rem so replacing the canonical list during every manual transform capture can
+rem silently delete required kit dependencies. Seed it only when missing.
+if exist "%DESTLST%" (
+    echo Preserved curated canonical companion list.
+) else if exist "%SRCLST%" (
     copy /Y "%SRCLST%" "%DESTLST%" >nul
     if errorlevel 1 (
-        echo WARNING: Could not copy companion .lst file.
+        echo WARNING: Could not seed companion .lst file.
     ) else (
-        echo Captured companion list file.
+        echo Seeded canonical companion list from runtime source.
     )
 ) else (
     echo NOTE: Matching .lst was not found; continuing with the FPM only.
@@ -81,7 +87,7 @@ pushd "%REPO%"
 
 where git >nul 2>&1
 if errorlevel 1 (
-    echo WARNING: Git is not on PATH. The files were copied but not staged.
+    echo WARNING: Git is not on PATH. The map was copied but not staged.
     popd
     exit /b 0
 )
@@ -114,6 +120,7 @@ echo     git push
 echo.
 echo NOTE: Files\mapbank\BLACK SIGNAL - District 12.fpm is intentionally ignored.
 echo       gameguru\maps\BLACK SIGNAL - District 12.fpm is the canonical tracked copy.
+echo       The canonical .lst is curated and is not replaced by a reduced runtime save list.
 
 popd
 endlocal
