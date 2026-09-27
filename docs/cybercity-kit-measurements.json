@@ -1,0 +1,344 @@
+{
+  "CS_Wall_01": {
+    "min": [
+      -100.0,
+      0.0,
+      -20.0
+    ],
+    "max": [
+      100.0,
+      200.0,
+      10.0
+    ],
+    "size": [
+      200.0,
+      200.0,
+      30.0
+    ],
+    "mesh_sha256": "eb0df0d1f58813437a2a8d00d470e045c3f3bdc64ad15594c1f7fd6542887ffe",
+    "asset": "Cyberpunk Streets Booster Pack\\Buildings\\CS_Wall_01.fpe"
+  },
+  "CS_Wall_Corner_01": {
+    "min": [
+      -20.000002,
+      4e-05,
+      -20.0
+    ],
+    "max": [
+      100.0,
+      200.000031,
+      100.0
+    ],
+    "size": [
+      120.000002,
+      199.999991,
+      120.0
+    ],
+    "mesh_sha256": "2b07f08ef149082ff7be63a30c8dcc1c50acc6831f99ff93b21f6551c19af84f",
+    "asset": "Cyberpunk Streets Booster Pack\\Buildings\\CS_Wall_Corner_01.fpe"
+  },
+  "CS_Walls_01_Window_With_Bars": {
+    "min": [
+      -100.0,
+      6.7e-05,
+      -20.0
+    ],
+    "max": [
+      100.0,
+      200.000061,
+      10.0
+    ],
+    "size": [
+      200.0,
+      199.999994,
+      30.0
+    ],
+    "mesh_sha256": "4f5790011270818371235145aa13a154bcf32b7a3e320472e0df327902f0e09c",
+    "asset": "Cyberpunk Streets Booster Pack\\Buildings\\CS_Walls_01_Window_With_Bars.fpe"
+  },
+  "CS_Wall_01_Entry_01": {
+    "min": [
+      -100.0,
+      -4.1e-05,
+      -20.0
+    ],
+    "max": [
+      100.0,
+      200.0,
+      10.0
+    ],
+    "size": [
+      200.0,
+      200.000041,
+      30.0
+    ],
+    "mesh_sha256": "2c42b0aff9c1dd6a9d6924c08b827447d4393bf3d010154bfeefc840d9e57aaa",
+    "asset": "Cyberpunk Streets Booster Pack\\Buildings\\CS_Wall_01_Entry_01.fpe"
+  },
+  "CS_Wall_01_Entry_04": {
+    "min": [
+      -100.0,
+      -0.0,
+      -20.0
+    ],
+    "max": [
+      100.0,
+      200.000031,
+      10.0
+    ],
+    "size": [
+      200.0,
+      200.000031,
+      30.0
+    ],
+    "mesh_sha256": "32da894253904ae522995abe45b663f4910f040fc77c84e8efc8aa013f5f8d90",
+    "asset": "Cyberpunk Streets Booster Pack\\Buildings\\CS_Wall_01_Entry_04.fpe"
+  },
+  "CS_Roof_Tile_2x2": {
+    "min": [
+      -100.0,
+      80.000008,
+      -100.0
+    ],
+    "max": [
+      100.0,
+      100.000015,
+      99.999992
+    ],
+    "size": [
+      200.0,
+      20.00000700000001,
+      199.99999200000002
+    ],
+    "mesh_sha256": "0391f4b75498ca8897603e5a1e2c3aaac5ea6019f0adcc10cfbef1d51ed80ee1",
+    "asset": "Cyberpunk Streets Booster Pack\\Buildings\\CS_Roof_Tile_2x2.fpe"
+  },
+  "CS_Roof_Tile_4x4": {
+    "min": [
+      -200.0,
+      80.0,
+      -200.0
+    ],
+    "max": [
+      200.0,
+      100.000031,
+      199.999985
+    ],
+    "size": [
+      400.0,
+      20.000031000000007,
+      399.99998500000004
+    ],
+    "mesh_sha256": "a164641092967e5914c66148faf15eda4f5f61a996d933c8dba7ced16866a64c",
+    "asset": "Cyberpunk Streets Booster Pack\\Buildings\\CS_Roof_Tile_4x4.fpe"
+  },
+  "CS_Wall_01_Overhang": {
+    "min": [
+      -100.0,
+      0.0,
+      -212.363358
+    ],
+    "max": [
+      100.0,
+      200.0,
+      -20.0
+    ],
+    "size": [
+      200.0,
+      200.0,
+      192.363358
+    ],
+    "mesh_sha256": "e7219ab3dd9ff75e7e16fa2e3a4ead1f64cf067e1a2002e50eb92d1c9db13719",
+    "asset": "Cyberpunk Streets Booster Pack\\Buildings\\CS_Wall_01_Overhang.fpe"
+  },
+  "CS_Wall_01_Overhang_Corner": {
+    "min": [
+      -212.24884,
+      -1.9e-05,
+      -212.24884
+    ],
+    "max": [
+      100.0,
+      200.0,
+      100.0
+    ],
+    "size": [
+      312.24884,
+      200.000019,
+      312.24884
+    ],
+    "mesh_sha256": "3497e5b937060c48204dbbc0de73b1d2189fe25e871d5c4cfa06cd63a6be08cd",
+    "asset": "Cyberpunk Streets Booster Pack\\Buildings\\CS_Wall_01_Overhang_Corner.fpe"
+  },
+  "CS_Street_Straight_4X": {
+    "min": [
+      -200.0,
+      1.999894,
+      -199.999969
+    ],
+    "max": [
+      200.0,
+      1.999908,
+      200.0
+    ],
+    "size": [
+      400.0,
+      1.399999999995849e-05,
+      399.99996899999996
+    ],
+    "mesh_sha256": "154d8d58ec1bd84ceec2df12431c42dc0dce67ab1e5660974143fd682dfe5cbc",
+    "asset": "Cyberpunk Streets Booster Pack\\Streets and Sidewalks\\Streets\\CS_Street_Straight_4X.fpe"
+  },
+  "CS_Street_4_Way_2": {
+    "min": [
+      -299.999969,
+      2.0,
+      -299.999969
+    ],
+    "max": [
+      299.999969,
+      2.0,
+      299.999969
+    ],
+    "size": [
+      599.999938,
+      0.0,
+      599.999938
+    ],
+    "mesh_sha256": "084c9c4c88e0711f77e616f8cbfd63e729fa490dcd5ea6bd0fdd58d8ffe804e2",
+    "asset": "Cyberpunk Streets Booster Pack\\Streets and Sidewalks\\Streets\\CS_Street_4_Way_2.fpe"
+  },
+  "CS_Street_T-Intersect_3": {
+    "min": [
+      -299.999969,
+      2.0,
+      -299.999969
+    ],
+    "max": [
+      299.999969,
+      2.0,
+      200.0
+    ],
+    "size": [
+      599.999938,
+      0.0,
+      499.999969
+    ],
+    "mesh_sha256": "355107d62b1e0b1f8ee5dbc8e889e0b0a6d9dda6d9af4ba904e0d1e7a42568dd",
+    "asset": "Cyberpunk Streets Booster Pack\\Streets and Sidewalks\\Streets\\CS_Street_T-Intersect_3.fpe"
+  },
+  "CS_Street_Curve_1": {
+    "min": [
+      0.0,
+      2.0,
+      -3.8e-05
+    ],
+    "max": [
+      800.0,
+      2.0,
+      800.000061
+    ],
+    "size": [
+      800.0,
+      0.0,
+      800.000099
+    ],
+    "mesh_sha256": "a85f2686d6b1623878ebde272a4b908e1f30d528f7d1cfbe6c00c3fb1b1d4d5b",
+    "asset": "Cyberpunk Streets Booster Pack\\Streets and Sidewalks\\Streets\\CS_Street_Curve_1.fpe"
+  },
+  "CS_Sidewalk_Straight_Edge": {
+    "min": [
+      -100.000061,
+      2.0,
+      -50.0
+    ],
+    "max": [
+      100.000061,
+      10.0,
+      50.0
+    ],
+    "size": [
+      200.000122,
+      8.0,
+      100.0
+    ],
+    "mesh_sha256": "35f059ea141a0b108938b261ec8469b5936c0307199e652e186596b71da5fbac",
+    "asset": "Cyberpunk Streets Booster Pack\\Streets and Sidewalks\\Sidewalks\\CS_Sidewalk_Straight_Edge.fpe"
+  },
+  "CS_Sidewalk_Corner1_DropCurb": {
+    "min": [
+      -100.000038,
+      1.999905,
+      -100.000015
+    ],
+    "max": [
+      200.000015,
+      9.999931,
+      200.0
+    ],
+    "size": [
+      300.000053,
+      8.000026,
+      300.000015
+    ],
+    "mesh_sha256": "0177c7ce4d12ec092d4330e67a8c26e6b79fac407faf8ce4ae60e39094e9969d",
+    "asset": "Cyberpunk Streets Booster Pack\\Streets and Sidewalks\\Sidewalks\\CS_Sidewalk_Corner1_DropCurb.fpe"
+  },
+  "CS_Sidewalk_Tile_4x4": {
+    "min": [
+      -200.0,
+      2.0,
+      -199.999969
+    ],
+    "max": [
+      200.0,
+      10.000021,
+      200.000015
+    ],
+    "size": [
+      400.0,
+      8.000021,
+      399.999984
+    ],
+    "mesh_sha256": "4ad63fba84b981a0d66f84ab5112303a6f4ef821eb592d7c16b029401c6d15d8",
+    "asset": "Cyberpunk Streets Booster Pack\\Streets and Sidewalks\\Sidewalks\\CS_Sidewalk_Tile_4x4.fpe"
+  },
+  "CS_Sidewalk_Tile": {
+    "min": [
+      -50.0,
+      2.0,
+      -49.999969
+    ],
+    "max": [
+      50.0,
+      10.0,
+      50.000031
+    ],
+    "size": [
+      100.0,
+      8.0,
+      100.0
+    ],
+    "mesh_sha256": "ac26da0e4c00e00c45db405b46ad1f669f2e2d7478ddd3fcc33608cf7ec2a2da",
+    "asset": "Cyberpunk Streets Booster Pack\\Streets and Sidewalks\\Sidewalks\\CS_Sidewalk_Tile.fpe"
+  },
+  "CS_Street_Lamp": {
+    "min": [
+      -18.357895,
+      -0.0,
+      -70.0
+    ],
+    "max": [
+      13.000001,
+      219.92572,
+      16.301826
+    ],
+    "size": [
+      31.357895999999997,
+      219.92572,
+      86.301826
+    ],
+    "mesh_sha256": "fe1918f9aa07b72ce8803de7a7b79c3e6420a29d12e00bdfa8623f7fb2ba1140",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Sidewalk Misc\\CS_Street_Lamp.fpe"
+  }
+}
