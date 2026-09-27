@@ -39,8 +39,6 @@ class SemanticRoadDressingV92Tests(unittest.TestCase):
         self.assertEqual(len(roles[v92.ARROW_ROLE]), 2)
         self.assertEqual(len(roles[v92.SIDEWALK_CORNER_ROLE]), 4)
 
-        # Center-line asset now follows the road axis. For a yaw=0 straight the
-        # generated center decals must be yaw 0, not the old v9.1 yaw 90.
         self.assertTrue(all(abs((p.ry or 0.0) % 360.0) < 0.01 for p in roles["road_center_yellow"]))
 
         crosswalks = {(round(p.x), round(p.z), round((p.ry or 0.0) % 360.0)) for p in roles["crosswalk"]}
@@ -66,9 +64,6 @@ class SemanticRoadDressingV92Tests(unittest.TestCase):
         )
 
         arrows = {(round(p.x), round(p.z), round((p.ry or 0.0) % 360.0)) for p in roles[v92.ARROW_ROLE]}
-        # South approach sits at z=-500 and points north: +100 lane offset and
-        # +180 local-Z setback lands at z=-320, yaw 0. North is the symmetric
-        # (-100,-180,180) manual-reference transform at z=+320.
         self.assertIn((100, -320, 0), arrows)
         self.assertIn((-100, 320, 180), arrows)
 
@@ -88,15 +83,22 @@ class SemanticRoadDressingV92Tests(unittest.TestCase):
             },
         )
 
-    def test_lamp_cadence_remains_v9_1(self) -> None:
+    def test_lamps_use_measured_curb_strip_and_six_module_cadence(self) -> None:
         straights = [
             entity(roads.ROAD_SPECS["straight4"]["path"], float(i * 400), 0.0, 90.0, i + 1)
-            for i in range(8)
+            for i in range(12)
         ]
         plan = v92.plan_semantic_dressing({"entities": straights})
-        self.assertEqual(len([p for p in plan if p.role == "street_lamp"]), 2)
-        self.assertEqual(len([p for p in plan if p.role == "street_dynamic_light"]), 2)
-        self.assertEqual(len([p for p in plan if p.role == "road_center_yellow"]), 16)
+        lamps = [p for p in plan if p.role == "street_lamp"]
+        lights = [p for p in plan if p.role == "street_dynamic_light"]
+        self.assertEqual(v92.LAMP_STRIDE, 6)
+        self.assertEqual(v92.LAMP_EDGE_X, 270.0)
+        self.assertEqual(len(lamps), 2)
+        self.assertEqual(len(lights), 2)
+        self.assertEqual(len([p for p in plan if p.role == "road_center_yellow"]), 24)
+        # yaw=90 rotates local +/-X into world +/-Z, so each lamp sits 270 units
+        # off the road centerline on the measured curb strip.
+        self.assertTrue(all(abs(abs(p.z) - 270.0) < 0.01 for p in lamps))
 
     def test_tee_gets_no_unproven_sidewalk_or_marking_grammar(self) -> None:
         tee = entity(roads.ROAD_SPECS["tee"]["path"], 0.0, 0.0, 0.0, 20)
