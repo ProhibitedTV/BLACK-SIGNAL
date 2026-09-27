@@ -5,7 +5,7 @@ param(
     [int]$MaxSemanticAdditions = 2200,
     [int]$StreetwallClones = 14,
     [int]$SkylineClones = 4,
-    [int]$MaxCityAdditions = 2400
+    [int]$MaxCityAdditions = 1200
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,11 +34,12 @@ $detailMap = Join-Path $outDir ($districtName + ' - road-system-v7-structural.fp
 $detailReport = Join-Path $outDir ($districtName + ' - road-system-v7-structural.report.json')
 $surfaceMap = Join-Path $outDir ($districtName + ' - road-system-v7-surface.fpm')
 $surfaceReport = Join-Path $outDir ($districtName + ' - road-system-v7-surface.report.json')
-$cityMap = Join-Path $outDir ($districtName + ' - road-system-v9-city-quality.fpm')
-$cityReport = Join-Path $outDir ($districtName + ' - road-system-v9-city-quality.report.json')
+$cityMap = Join-Path $outDir ($districtName + ' - measured-city-v10.fpm')
+$cityReport = Join-Path $outDir ($districtName + ' - measured-city-v10.report.json')
 $outMap = Join-Path $outDir ($districtName + ' - road-system-v9-2-semantic.fpm')
 $semanticReport = Join-Path $outDir ($districtName + ' - road-system-v9-2-semantic.report.json')
 $validationReport = Join-Path $outDir ($districtName + ' - road-system-v9-2-validation.report.json')
+$measurementFile = Join-Path $repo 'docs\cybercity-kit-measurements.json'
 
 $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
@@ -46,7 +47,7 @@ if (-not $python) { throw 'Python 3 is required.' }
 $foundationTool = Join-Path $PSScriptRoot 'fpm_author_road_network_v3.py'
 $detailTool = Join-Path $PSScriptRoot 'fpm_author_road_details_v7.py'
 $surfaceTool = Join-Path $PSScriptRoot 'fpm_author_road_surface_v7.py'
-$cityTool = Join-Path $PSScriptRoot 'fpm_author_city_mass_v3.py'
+$cityTool = Join-Path $PSScriptRoot 'fpm_author_measured_city_v10.py'
 $semanticTool = Join-Path $PSScriptRoot 'fpm_author_road_semantics_v9_compat.py'
 $validatorTool = Join-Path $PSScriptRoot 'fpm_validate_road_semantics_v9_compat.py'
 
@@ -54,6 +55,9 @@ foreach ($requiredTool in @($foundationTool, $detailTool, $surfaceTool, $cityToo
     if (-not (Test-Path -LiteralPath $requiredTool)) {
         throw "Required District 12 compiler/validator is missing: $requiredTool"
     }
+}
+if (-not (Test-Path -LiteralPath $measurementFile)) {
+    throw "Astra measured kit file is missing: $measurementFile"
 }
 
 function Invoke-PythonStage {
@@ -73,8 +77,9 @@ function Invoke-PythonStage {
     }
 }
 
-Write-Host 'BLACK SIGNAL - rebuild District 12 semantic road + city system v9.2'
-Write-Host 'Reference: captured manual GameGuru intersection transforms'
+Write-Host 'BLACK SIGNAL - rebuild District 12 semantic road + measured city system v10'
+Write-Host 'Road reference: captured manual GameGuru intersection transforms'
+Write-Host 'City reference: Astra measured CyberCity mesh dimensions + complete Hero Block shells'
 Write-Host "CyberCity donor: $cyberCity"
 Write-Host "Grid: $GridSize x $GridSize"
 Write-Host ''
@@ -119,20 +124,21 @@ Invoke-PythonStage -Tool $surfaceTool -ToolArguments @(
 ) -FailureMessage 'Road-surface v7 compiler failed'
 
 Write-Host ''
-Write-Host 'Stage 4/6: compose quality-gated CyberCity building mass'
-Write-Host '  reject facade slivers, wall stacks, and implausibly tall/narrow foreground clusters'
-Write-Host '  preserve authored donor transforms for accepted complete assemblies'
+Write-Host 'Stage 4/6: author Astra measured Hero Block onto the validated road graph'
+Write-Host '  complete wall courses, corner modules, entries and seated roof tiles'
+Write-Host '  measured sidewalk edge/tile infill; roads are preserved and collision-checked'
+Write-Host '  no harvested facade slivers or pseudo-building pivot clusters'
+Write-Host '  junction corners and street lamps remain owned by the semantic road stage'
 Write-Host "  output: $cityMap"
 Write-Host ''
 Invoke-PythonStage -Tool $cityTool -ToolArguments @(
     $surfaceMap,
     $cityMap,
     '--donor-fpm', $cyberCity,
-    '--streetwall-clones', "$StreetwallClones",
-    '--skyline-clones', "$SkylineClones",
+    '--measurements', $measurementFile,
     '--max-additions', "$MaxCityAdditions",
     '--report-json', $cityReport
-) -FailureMessage 'Integrated city v3 compiler failed'
+) -FailureMessage 'Measured city v10 compiler failed'
 
 Write-Host ''
 Write-Host 'Stage 5/6: apply captured manual-reference road semantics'
@@ -153,7 +159,7 @@ Invoke-PythonStage -Tool $semanticTool -ToolArguments @(
 
 Write-Host ''
 Write-Host 'Stage 6/6: fail-closed v9.2 promotion validation'
-Write-Host '  exact road graph must survive city composition + reference-derived dressing'
+Write-Host '  exact road graph must survive measured city composition + reference-derived dressing'
 Write-Host '  semantic counts must match final FPM and stale donor markings must be absent'
 Write-Host ''
 Invoke-PythonStage -Tool $validatorTool -ToolArguments @(
@@ -164,7 +170,7 @@ Invoke-PythonStage -Tool $validatorTool -ToolArguments @(
 ) -FailureMessage 'Road-system v9.2 promotion validation failed'
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$backup = Join-Path $repo ("_fpm_backups\road-system-v9-2-semantic-$stamp")
+$backup = Join-Path $repo ("_fpm_backups\road-system-v10-measured-$stamp")
 New-Item -ItemType Directory -Force -Path $backup | Out-Null
 foreach ($pair in @(
     @{ Path = $projectMap; Name = 'project-before.fpm' },
@@ -191,17 +197,18 @@ if (Test-Path -LiteralPath $cyberLst) {
 }
 
 Write-Host ''
-Write-Host '[PASS] District 12 semantic road + city system v9.2 promoted to project + global mapbanks.'
+Write-Host '[PASS] District 12 semantic road + measured Hero Block system promoted to project + global mapbanks.'
 Write-Host '[PASS] Main streets remain the exact validated full-width road graph.'
+Write-Host '[PASS] Central city mass is built from complete measured shells instead of donor pivot clusters.'
+Write-Host '[PASS] Roof placement accounts for the measured +80 local-Y roof pivot.'
 Write-Host '[PASS] Center-line, crosswalk, arrow and sidewalk-corner transforms come from the captured manual reference.'
 Write-Host '[PASS] Street-lamp density/edge spacing remains on the visually approved v9.1 cadence.'
 Write-Host '[PASS] Dynamic markers are used only when an exact same-version record is available.'
-Write-Host '[PASS] Foreground city cloning rejects sliver/wall-stack assemblies.'
 Write-Host "Backup: $backup"
 Write-Host "Foundation report: $foundationReport"
-Write-Host "City-quality report: $cityReport"
+Write-Host "Measured-city report: $cityReport"
 Write-Host "Semantic report: $semanticReport"
 Write-Host "Validation report: $validationReport"
 Write-Host "SHA-256: $hash"
-Write-Host '[NEXT] Start GameGuru MAX normally, open BLACK SIGNAL, and Test Play the same manually corrected intersection.'
-Write-Host '[CHECK] The generator should now reproduce the captured corner, crosswalk pivot, arrow orientation/setback, and road-aligned center line.'
+Write-Host '[NEXT] Start GameGuru MAX normally, open BLACK SIGNAL, and Test Play the central manually corrected intersection.'
+Write-Host '[CHECK] Inspect complete building corners/roofs, sidewalk-to-road seams, crosswalk pivots, arrows, center lines and collision.'
