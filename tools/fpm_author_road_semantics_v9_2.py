@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
 """V9.2 District 12 dressing learned from the manually corrected intersection.
 
-The canonical GameGuru MAX FPM now contains one hand-corrected intersection. A
-read-only transform analysis found four useful single-instance corrections amid the
-repeated v9.1 pattern. V9.2 promotes those corrections into symmetric road-local
-rules instead of continuing to guess from screenshots:
+The canonical GameGuru MAX FPM contains one hand-corrected intersection. A read-only
+transform analysis promoted those corrections into symmetric road-local rules. The v10.1
+filmability pass additionally uses Astra's measured curb relationship to clean up street
+lights without touching the proven road/marking grammar:
 
-* double-center-line decals keep the proven +/-100 local cadence but align to the
-  road axis (0-degree local yaw) instead of the old quarter-turn;
-* straight arrows use +/-100 lane offset, +/-180 approach setback, and point along
-  traffic (0/180 local yaw);
-* the crosswalk decal's 95-unit lateral pivot bias is compensated on all four sides
-  of each 4-way junction;
-* the manually placed CS_Sidewalk_Corner1 establishes a four-corner 300 x 300
-  intersection sidewalk grammar;
-* v9.1 lamp spacing/edge offset and dynamic-light safety remain unchanged.
+* double-center-line decals keep the proven +/-100 local cadence and follow the road axis;
+* straight arrows use +/-100 lane offset, +/-180 approach setback and traffic-facing yaw;
+* crosswalks compensate the measured 95-unit lateral pivot bias;
+* four CS_Sidewalk_Corner1 pieces reproduce the proven 300 x 300 junction grammar;
+* lamps sit 270 units from road center (70 beyond the measured 200-unit asphalt half-width)
+  and use a six-Straight-4X cadence to reduce pole clutter while staying on the curb strip.
 
-The raw FPM compiler remains the proven v9 writer. This module supplies only the
-reference-derived placement plan and the safe static sidewalk-corner template.
+The raw FPM compiler remains the proven v9 writer. This module supplies the placement plan
+and safe static sidewalk-corner template.
 """
 from __future__ import annotations
 
@@ -36,9 +33,12 @@ CENTER_LOCAL_Z_OFFSETS = v91.CENTER_LOCAL_Z_OFFSETS
 CENTER_TREATMENTS_PER_STRAIGHT = len(CENTER_LOCAL_Z_OFFSETS)
 CENTER_YAW_OFFSET = 0.0
 
-LAMP_EDGE_X = v91.LAMP_EDGE_X
+# Astra measured Straight 4X as 400 wide (200 half-width), while the authored Hero Block
+# curb-strip lamps sit about 270 from road center.  Use that relationship globally and
+# thin the cadence from one-per-four to one-per-six straight modules for cleaner frames.
+LAMP_EDGE_X = 270.0
 LAMP_LIGHT_Y = v91.LAMP_LIGHT_Y
-LAMP_STRIDE = v91.LAMP_STRIDE
+LAMP_STRIDE = 6
 
 CROSSWALK_EDGE = v91.CROSSWALK_EDGE
 CROSSWALK_PIVOT_X = 95.0
@@ -161,8 +161,6 @@ def plan_semantic_dressing(parsed: dict[str, Any]) -> list[fabric.Placement]:
                 )
             )
 
-        # Keep the visually improved v9.1 lamp cadence exactly as-is; the manual
-        # reference contained no lamp transform outlier.
         if ordinal % LAMP_STRIDE == 0:
             lamp_ordinal = ordinal // LAMP_STRIDE
             side = -1.0 if lamp_ordinal % 2 else 1.0
@@ -173,7 +171,7 @@ def plan_semantic_dressing(parsed: dict[str, Any]) -> list[fabric.Placement]:
                 0.0,
                 0.0,
                 180.0 if side < 0.0 else 0.0,
-                f"v9.2 sparse curb lamp beside Straight 4X #{road['record_index']}",
+                f"v10.1 measured curb-strip lamp beside Straight 4X #{road['record_index']}",
             )
             out.append(lamp)
             out.append(
@@ -183,7 +181,7 @@ def plan_semantic_dressing(parsed: dict[str, Any]) -> list[fabric.Placement]:
                     y=lamp.y + LAMP_LIGHT_Y,
                     z=lamp.z,
                     ry=None,
-                    note=f"v9.2 light marker paired with lamp beside Straight 4X #{road['record_index']}",
+                    note=f"v10.1 light marker paired with curb-strip lamp beside Straight 4X #{road['record_index']}",
                 )
             )
 
