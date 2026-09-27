@@ -21,6 +21,7 @@ from fpm_author_street_fabric_compat import _patched_patch_record
 from fpm_clone_entity import verify_raw_ele_roundtrip, write_zipcrypto_archive
 from fpm_inspect import FpmArchive, FpmError, parse_map_ele, parse_map_ent
 from fpm_dress_cityscape_v11 import dress
+import fpm_city_extras as extras
 
 
 def key(path):
@@ -106,6 +107,7 @@ def plan(parsed):
     for item in human.plan_human_cityscape(parsed):
         add(roles[item.role],item.x,item.y,item.z,item.ry,group='human-street')
     rows.extend(dress(parcels))
+    rows.extend(extras.plan(parcels,rows))
     return rows,parcels
 
 
@@ -144,6 +146,7 @@ def validate(rows,parcels,measurements):
             raise FpmError('Dressing blocks door corridor')
         if r.get('support')=='ground' and abs(r['y']+measurements[r['asset']]['min'][1]-p['ground'])>1:
             raise FpmError('Dressing ground support mismatch')
+    extras.validate(rows,parcels,measurements,hero.world_bounds,measured_city.intersects)
 
 
 def build(reference,output,measurements_path):
@@ -164,6 +167,8 @@ def build(reference,output,measurements_path):
         bank_paths=[e['path'] for e in bank['entries']]
         library_path=Path(__file__).resolve().parents[1]/'gameguru/buildplans/cybercity-dressing-templates-v11.json'
         library=json.loads(library_path.read_text())
+        civilian_path=library_path.with_name('city-extra-templates.json')
+        library['templates'].update(json.loads(civilian_path.read_text())['templates'])
         for name in sorted({r['asset'] for r in rows}-templates.keys()):
             if name not in library['templates']:continue
             item=library['templates'][name]
@@ -183,7 +188,11 @@ def build(reference,output,measurements_path):
         records=[data[first['record_start_offset']:first['record_end_offset']]]
         for r in rows:
             t=templates[r['asset']]
-            records.append(_patched_patch_record(t,t.parsed['bankindex'],fabric.Placement(r['asset'],r['x'],r['y'],r['z'],ry=r['yaw'],rx=t.parsed['rotation_euler']['x'] if r.get('dynamic') else 0,rz=t.parsed['rotation_euler']['z'] if r.get('dynamic') else 0)))
+            record=_patched_patch_record(t,t.parsed['bankindex'],fabric.Placement(r['asset'],r['x'],r['y'],r['z'],ry=r['yaw'],rx=t.parsed['rotation_euler']['x'] if r.get('dynamic') else 0,rz=t.parsed['rotation_euler']['z'] if r.get('dynamic') else 0))
+            if r['group']=='extras':
+                from fpm_prepare_extras import rewrite
+                record=rewrite(record,r['name'])
+            records.append(record)
         new_ele=struct.pack('<ii',parsed['version'],len(records))+b''.join(records)
         check=parse_map_ele(new_ele,bank['entries']);verify_raw_ele_roundtrip(new_ele,check)
         for r,e in zip(rows,check['entities'][1:]):
@@ -205,6 +214,7 @@ def build(reference,output,measurements_path):
                 counts=dict(Counter(r['group'] for r in rows)),assets=dict(Counter(r['asset'] for r in rows)),
                 validation='pass',native_review='pending',parcels=parcels,placements=rows)
     output.with_suffix('.report.json').write_text(json.dumps(report,indent=2)+'\n')
+    extras.write_lua(rows,output.with_suffix('.routes.lua'))
     print(json.dumps({k:v for k,v in report.items() if k not in ('placements','parcels','counts','assets')},indent=2))
     return report
 

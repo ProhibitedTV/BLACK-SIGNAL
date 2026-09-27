@@ -1,10 +1,12 @@
-# District 12 populated cityscape
+# District 12 populated cityscape (historical v11)
+
+The active deployment is now the [manual-baseline v12 polish](DISTRICT12-POLISH-V12.md). The v11 generator remains a calibration tool; it must not overwrite newer hand edits.
 
 The production FPM now contains all 36 blocks of the existing road grid. Each block has a closed modular building with complete roof coverage, continuous parcel paving, commercial frontage, and a rear service area. Building heights vary from four to twelve floors. This is saved editor geometry, not a runtime-only extension.
 
-The dressed build contains 9,001 entities, including the player start. There are 1,274 newly planned dressing pieces: storefront panels and signs, neon strips, ATMs with luminous screens, stacks of packaged goods and cans, benches, bins, fireplugs, six bus shelters, dumpsters, bags, cardboard, scattered newspapers and bottles, delivery boxes, and paired rooftop HVAC units/stands. Existing calibrated junction trees, planters, crossings, signals and pavement lights are distributed across the interior intersections. Seventy-two street lamps have corresponding light markers.
+The dressed build contains 9,217 entities, including the player start. There are 1,274 newly planned dressing pieces: storefront panels and signs, neon strips, ATMs with luminous screens, stacks of packaged goods and cans, benches, bins, fireplugs, six bus shelters, dumpsters, bags, cardboard, scattered newspapers and bottles, delivery boxes, and paired rooftop HVAC units/stands. Existing calibrated junction trees, planters, crossings, signals and pavement lights are distributed across the interior intersections. Seventy-two street lamps have corresponding light markers.
 
-Shop windows and signs face the negative-Z frontage. Rear service doors have a 100-unit clear approach; dumpsters and waste pockets sit to either side. Commercial frontage colors, building dimensions and heights vary across blocks. The four mismatched outer curved pieces were replaced by square intersection aprons to meet the existing road endpoints; these retain short boundary-facing road stubs. Interiors, actors, vehicles and CineGuru camera choreography are not authored in this pass.
+Shop windows and signs face the negative-Z frontage. Rear service doors have a 100-unit clear approach; dumpsters and waste pockets sit to either side. Commercial frontage colors, building dimensions and heights vary across blocks. The four mismatched outer curved pieces were replaced by square intersection aprons to meet the existing road endpoints; these retain short boundary-facing road stubs. Interiors, vehicles and CineGuru camera choreography are not authored in this pass. The [background extras pass](DISTRICT12-BACKGROUND-EXTRAS.md) adds 216 civilian characters on sidewalk-only routes.
 
 ## Build and apply
 
@@ -26,4 +28,4 @@ Crosswalk ramp correction: the lowered straight curb lips lie at local 7.31–91
 
 Local checks cover full encrypted archive traversal, exact saved asset/XYZ/yaw multisets, 36 complete building envelopes, roof pivot alignment, pavement coverage, road clearance, door approaches and ground support for freestanding dressing. Archive members other than `map.ele` and `map.ent` remain unchanged. The saved validation receipt and complete placement plan are in `gameguru/buildplans/district12-v11-*.json`.
 
-These checks establish file and placement integrity. Native appearance, lighting, culling, material appearance, frame rate and filming suitability require manual review in GameGuru MAX. Native capture was unavailable during the build; visual acceptance remains pending. Inspect storefront depth, corner paving, alley approaches and roof silhouettes first, then run the level to check lighting and performance. The 9,001-entity scene has not been performance-qualified.
+These checks establish file and placement integrity. Native appearance, lighting, culling, material appearance, frame rate and filming suitability require manual review in GameGuru MAX. Native capture was unavailable during the build; visual acceptance remains pending. Inspect storefront depth, corner paving, alley approaches and roof silhouettes first, then run the level to check lighting and performance. The 9,217-entity scene has not been performance-qualified.

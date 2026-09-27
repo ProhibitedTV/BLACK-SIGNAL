@@ -986,5 +986,62 @@
     ],
     "mesh_sha256": "00b25470c863214371dcb71bc47b03f7e65903179aefba5fc27d144fa26041ab",
     "asset": "Cyberpunk Streets Booster Pack\\Misc\\Sidewalk Misc\\CS_Fireplug.fpe"
+  },
+  "CS_Planter_01": {
+    "min": [
+      -40.0,
+      0.0,
+      -40.0
+    ],
+    "max": [
+      40.0,
+      33.336369,
+      40.0
+    ],
+    "size": [
+      80.0,
+      33.336369,
+      80.0
+    ],
+    "mesh_sha256": "20b0ea15a61336b1d4f6c67dc04638814a439db5f78817904a5bbf0c89eabea8",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Sidewalk Misc\\CS_Planter_01.fpe"
+  },
+  "CS_Sidewalk_Light": {
+    "min": [
+      -7.767236,
+      0.0,
+      -7.767236
+    ],
+    "max": [
+      7.767236,
+      50.0,
+      7.767236
+    ],
+    "size": [
+      15.534472,
+      50.0,
+      15.534472
+    ],
+    "mesh_sha256": "3b4ccb9ddc3ed73182561506fe1bee8fd45ac790bb074f5a9cc184b930152115",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Sidewalk Misc\\CS_Sidewalk_Light.fpe"
+  },
+  "CS_Stop_Light": {
+    "min": [
+      -9.596174,
+      -5e-06,
+      -106.0
+    ],
+    "max": [
+      9.596174,
+      215.0,
+      8.0
+    ],
+    "size": [
+      19.192348,
+      215.000005,
+      114.0
+    ],
+    "mesh_sha256": "827845b7aa67970e84987e5f792f162be7db6f8e2d05440870220d762e448bb8",
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Street Misc\\CS_Stop_Light.fpe"
   }
 }

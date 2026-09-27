@@ -7,6 +7,9 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+if ($Deploy -and (Test-Path -LiteralPath (Join-Path $repo 'gameguru\references\District 12 - manual polish.fpm'))) {
+    throw 'V11 deployment is superseded by build-district12-polish-v12.ps1, which preserves the user-edited level.'
+}
 if ($Deploy -and (Get-Process GameGuruMAX -ErrorAction SilentlyContinue)) {
     throw 'Save and close GameGuru MAX before deployment so its open state cannot overwrite the new city.'
 }
@@ -56,8 +59,25 @@ foreach ($target in $targets) {
 $dependencies = @(Get-Content -LiteralPath (Join-Path $repo "gameguru\maps\$name.lst"))
 $dependencies += @(Get-Content -LiteralPath (Join-Path $repo 'gameguru\buildplans\district12-v10-5-human-street-deps.lst'))
 $dependencies += @(Get-Content -LiteralPath (Join-Path $repo 'gameguru\buildplans\cybercity-dressing-deps-v11.lst'))
+$dependencies += @(Get-Content -LiteralPath (Join-Path $repo 'gameguru\buildplans\city-extra-deps.lst'))
 $dependencies = @($dependencies | Where-Object { $_.Trim() } | Sort-Object -Unique)
 $hash = (Get-FileHash -LiteralPath $Candidate -Algorithm SHA256).Hash
+$routeSource = [IO.Path]::ChangeExtension($Candidate,'.routes.lua')
+if (-not (Test-Path -LiteralPath $routeSource)) { throw 'Validated route sidecar required for deployment.' }
+$scriptSource = Join-Path $repo 'gameguru\Files\scriptbank\user\black_signal\bs_city_extra.lua'
+foreach ($root in @((Join-Path $repo 'Files'),$GameGuruFiles,(Join-Path $repo 'gameguru\Files'))) {
+    $dest = Join-Path $root 'scriptbank\user\black_signal'
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    foreach ($script in @('bs_city_extra.lua','bs_city_extra_routes.lua')) {
+        $existing = Join-Path $dest $script
+        if (Test-Path -LiteralPath $existing) {
+            $label = if ($root -eq $GameGuruFiles) { 'global' } elseif ($root -eq (Join-Path $repo 'Files')) { 'project' } else { 'curated' }
+            Copy-Item -LiteralPath $existing -Destination (Join-Path $backup ($label + '-' + $script))
+        }
+    }
+    if ($root -ne (Join-Path $repo 'gameguru\Files')) { Copy-Item -LiteralPath $scriptSource -Destination (Join-Path $dest 'bs_city_extra.lua') -Force }
+    Copy-Item -LiteralPath $routeSource -Destination (Join-Path $dest 'bs_city_extra_routes.lua') -Force
+}
 foreach ($target in $targets) {
     New-Item -ItemType Directory -Force -Path $target.Root | Out-Null
     $map = Join-Path $target.Root "$name.fpm"

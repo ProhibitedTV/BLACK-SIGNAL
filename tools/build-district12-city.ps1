@@ -10,7 +10,7 @@ if (-not (Test-Path -LiteralPath $integratedBuild)) {
     throw "Integrated District 12 builder not found: $integratedBuild"
 }
 
-Write-Host 'BLACK SIGNAL - District 12 city build uses the v11 measured 36-parcel pipeline.'
+Write-Host 'BLACK SIGNAL - District 12 city build uses the v12 manual-baseline polish pipeline.'
 Write-Host 'Calibrated editor records and the pack-authored dressing library supply the city assets.'
 Write-Host ''
 

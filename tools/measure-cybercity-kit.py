@@ -28,6 +28,7 @@ NAMES = (
     "CS_AirCon_01", "CS_AirCon_01_Stand", "CS_ATM", "CS_ATM_Screen",
     "CS_Bus_Stop", "CS_Bus_Stop_Neon_Sign", "CS_Bench", "CS_Trash_Can",
     "CS_Graffiti_01", "CS_Graffiti_02", "CS_Fireplug",
+    "CS_Planter_01", "CS_Sidewalk_Light", "CS_Stop_Light",
 )
 
 

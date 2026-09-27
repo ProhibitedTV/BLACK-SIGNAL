@@ -1,9 +1,9 @@
-name: Validate saved District 12 cityscape
+name: Validate saved District 12 city polish
 on:
   push:
-    paths: ['tools/**', 'gameguru/maps/**', 'gameguru/references/**', 'gameguru/buildplans/*v11*', 'docs/cybercity-kit-measurements.json', '.github/workflows/validate-cityscape-v11.yml']
+    paths: ['tools/**', 'gameguru/Files/scriptbank/user/black_signal/bs_city_extra*', 'gameguru/maps/**', 'gameguru/references/**', 'gameguru/buildplans/*v11*', 'gameguru/buildplans/*v12*', 'gameguru/buildplans/city-polish*', 'gameguru/buildplans/city-extra*', 'docs/cybercity-kit-measurements.json', 'docs/city-polish-measurements.json', '.github/workflows/validate-cityscape-v11.yml']
   pull_request:
-    paths: ['tools/**', 'gameguru/maps/**', 'gameguru/references/**', 'gameguru/buildplans/*v11*', 'docs/cybercity-kit-measurements.json', '.github/workflows/validate-cityscape-v11.yml']
+    paths: ['tools/**', 'gameguru/Files/scriptbank/user/black_signal/bs_city_extra*', 'gameguru/maps/**', 'gameguru/references/**', 'gameguru/buildplans/*v11*', 'gameguru/buildplans/*v12*', 'gameguru/buildplans/city-polish*', 'gameguru/buildplans/city-extra*', 'docs/cybercity-kit-measurements.json', 'docs/city-polish-measurements.json', '.github/workflows/validate-cityscape-v11.yml']
   workflow_dispatch:
 jobs:
   validate:
@@ -15,10 +15,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - run: python -m pip install lupa==2.8
       - run: python -B -m unittest discover -s tools/tests
       - name: Verify actual production FPM
         run: >-
-          python -B tools/fpm_validate_cityscape_v11.py
+          python -B tools/fpm_validate_polish_v12.py
           'gameguru/maps/BLACK SIGNAL - District 12.fpm'
-          --reference 'gameguru/references/District 12 - human corner.fpm'
-          --measurements docs/cybercity-kit-measurements.json
+          --source 'gameguru/references/District 12 - manual polish.fpm'
+          --plan 'gameguru/buildplans/district12-v12-layout.json'

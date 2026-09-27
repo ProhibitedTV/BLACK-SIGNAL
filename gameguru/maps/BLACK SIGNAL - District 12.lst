@@ -423,7 +423,7 @@ entitybank\cyberpunk streets booster pack\misc\general misc\cs_dumpster_m_normal
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_dumpster_m_surface.dds
 entitybank\Cyberpunk Streets Booster Pack\Misc\General Misc\CS_Trash_Can_M_Color.dds
 entitybank\Cyberpunk Streets Booster Pack\Misc\General Misc\CS_Trash_Can_M_normal.dds
-entitybank\Cyberpunk Streets Booster Pack\Misc\General Misc\CS_Trash_Can_M_surface.dds
+entitybank\cyberpunk streets booster pack\misc\general misc\cs_trash_can_m_surface.dds
 entitybank\Cyberpunk Streets Booster Pack\Misc\General Misc\CS_Trash_Can.dbo
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_trash_can.fpe
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_trashbag_01_m_color.dds
@@ -435,9 +435,9 @@ entitybank\cyberpunk streets booster pack\misc\general misc\cs_trashbag_02.dbo
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_trashbag_02.fpe
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_trashbag_03.dbo
 entitybank\cyberpunk streets booster pack\misc\general misc\cs_trashbag_03.fpe
-entitybank\Cyberpunk Streets Booster Pack\Misc\Sidewalk Misc\CS_Bench_M_Color.dds
-entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_bench_m_normal.dds
-entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_bench_m_surface.dds
+entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_bench_m_color.dds
+entitybank\Cyberpunk Streets Booster Pack\Misc\Sidewalk Misc\CS_Bench_M_normal.dds
+entitybank\Cyberpunk Streets Booster Pack\Misc\Sidewalk Misc\CS_Bench_M_surface.dds
 entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_bench.dbo
 entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_bench.fpe
 entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_fireplug_m_color.dds
@@ -499,7 +499,7 @@ entitybank\cyberpunk streets booster pack\misc\sidewalk misc\cs_street_lamp.fpe
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_lights.dbo
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_lights.fpe
 entitybank\Cyberpunk Streets Booster Pack\Misc\Street Misc\CS_Stop_Light_M_Color.dds
-entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_m_emissive.png
+entitybank\Cyberpunk Streets Booster Pack\Misc\Street Misc\CS_Stop_Light_M_emissive.png
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_m_normal.dds
 entitybank\Cyberpunk Streets Booster Pack\Misc\Street Misc\CS_Stop_Light_M_surface.dds
 entitybank\cyberpunk streets booster pack\misc\street misc\cs_stop_light_pole_m_color.dds
@@ -775,7 +775,7 @@ entitybank\jungle collection\trees\broad tree fronds_surface.dds
 entitybank\Jungle Collection\Trees\Broad Tree Trunk_color.dds
 entitybank\Jungle Collection\Trees\Broad Tree Trunk_normal.dds
 entitybank\jungle collection\trees\broad tree trunk_surface.dds
-entitybank\Jungle Collection\Trees\Broad Tree.dbo
+entitybank\jungle collection\trees\broad tree.dbo
 entitybank\jungle collection\trees\broad tree.fpe
 entitybank\jungle collection\trees\split tree fronds_color.dds
 entitybank\jungle collection\trees\split tree fronds_normal.dds

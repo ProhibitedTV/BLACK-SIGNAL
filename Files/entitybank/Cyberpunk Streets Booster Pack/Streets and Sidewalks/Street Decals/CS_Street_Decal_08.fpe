@@ -1,0 +1,57 @@
+;Saved by Model Importer
+;header
+desc             = CS_Street_Decal_08
+
+;orientation
+model            = CS_Street_Decal_08.dbo
+scale            = 100.00
+collisionmode    = 11
+defaultstatic    = 1
+materialindex    = -1
+cullmode         = 1
+
+;visualinfo
+textured         = asphalt_02_color.png
+baseColorMap     = asphalt_02_color.png
+alpharef         = 1.00
+normalMap        = CS_Street_Decal_08_M_normal.png
+normalStrength   = 1.00
+surfaceMap       = asphalt_surface.png
+roughnessStrength= 1.00
+metalnessStrength= 1.00
+transparency     = 1
+castshadow       = -1
+renderorderbias  = 0.00
+reflectance      = 0.02
+basecolor        = 4294967295
+emissivecolor    = 0
+textureref1       = asphalt_02_color.png
+textureref2       = CS_Street_Decal_08_M_normal.png
+textureref3       = asphalt_surface.png
+effect           = effectbank\reloaded\apbr_basic.fx
+
+;identity details
+ischaracter      = 0
+hasweapon        = 
+cantakeweapon    = 0
+
+;statistics
+strength         = 0
+explodable       = 0
+
+;ai
+aimain           = 
+
+;anim
+animspeed        = 100.00
+animmax          = 0
+anim0            = 
+playanimineditor = 0
+
+;thumbnail
+thumbnailbackdrop = Green spotlight.dds
+thumbnailzoom = 1.000000
+thumbnailcamleft = 17.564186
+thumbnailcamup = -18.115692
+thumbnailrotatex = 319.425720
+thumbnailrotatey = 341.585327

@@ -52,11 +52,11 @@ The canonical exterior production map is:
 gameguru/maps/BLACK SIGNAL - District 12.fpm
 ```
 
-It is tracked with Git LFS. The companion `.lst` records referenced map dependencies. The v11 production build contains 36 populated blocks and 9,001 saved entities, including shops, signs, street furniture and rear service clutter. See [the build, deployment and review notes](docs/DISTRICT12-CITYSCAPE-V11.md). Native visual inspection and performance qualification remain pending; CineGuru cameras and actors still need authoring.
+It is tracked with Git LFS. The companion `.lst` records referenced map dependencies. The current incremental pass preserves the user's manually corrected city, adds 216 sidewalk-bound background extras and six upper galleries, and corrects road studs and shop placement. See [the current build and review notes](docs/DISTRICT12-POLISH-V12.md). Native visual inspection and performance qualification remain pending.
 
 ### Saved city geometry
 
-The active film runtime deliberately does not spawn, move or dress city geometry. The v11 FPM contains the buildings, roads and street dressing directly, so the editor and filming runtime share the same layout. Historical runtime skyline experiments remain in the repository but are not the production city builder.
+The active film runtime deliberately does not spawn, move or dress city geometry. Background extras have a separate movement script and validated routes. The v11 FPM contains the buildings, roads and street dressing directly, so the editor and filming runtime share the same layout. Historical runtime skyline experiments remain in the repository but are not the production city builder.
 
 ## GameGuru MAX / CineGuru MAX
 

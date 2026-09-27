@@ -24,13 +24,22 @@ def validate(path,reference,measurements):
         p=e['position'];name=city.key(e['asset'])
         yaw=None if name=='CS_Street_Light_Marker' else round(e['rotation_euler']['y']%360,1)
         found[(name,round(p['x'],1),round(p['y'],1),round(p['z'],1),yaw)]+=1
+        if name in city.extras.ASSETS:
+            if e['aimain']!=city.extras.SCRIPT or not e['name'].startswith('BS_EXTRA_') or e['staticflag']!=0:
+                raise FpmError('Civilian behavior binding is invalid')
     if expected!=found:raise FpmError(f'Saved placements differ: missing={sum((expected-found).values())}, extra={sum((found-expected).values())}')
     if actual['version']!=original['version'] or actual['trailing_bytes'] or not actual['fully_traversed']:
         raise FpmError('Saved ELE schema is invalid')
     if city.key(actual['entities'][0]['asset'])!='Player Start':raise FpmError('Player Start missing')
+    expected_names={r['name'] for r in rows if r['group']=='extras'}
+    actual_names=[e['name'] for e in actual['entities'] if city.key(e['asset']) in city.extras.ASSETS]
+    if len(actual_names)!=216 or set(actual_names)!=expected_names:raise FpmError('Civilian route identities mismatch')
+    routes=path.with_suffix('.routes.lua')
+    if not routes.exists():routes=Path(__file__).resolve().parents[1]/'gameguru/Files/scriptbank/user/black_signal/bs_city_extra_routes.lua'
+    if not routes.exists() or routes.read_text()!=city.extras.render_lua(rows):raise FpmError('Route sidecar differs from saved level')
     return dict(status='pass',populated_parcels=len(parcels),entity_count=actual['entity_count'],
                 ele_version=actual['version'],sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
-                checked='Exact saved asset, XYZ and yaw multiset; complete envelopes; paving; road clearance; ELE traversal')
+                checked='Exact saved transforms; envelopes; paving; road clearance; ELE traversal; 216 civilian identities, behavior scripts and sidewalk-only routes')
 
 
 if __name__=='__main__':

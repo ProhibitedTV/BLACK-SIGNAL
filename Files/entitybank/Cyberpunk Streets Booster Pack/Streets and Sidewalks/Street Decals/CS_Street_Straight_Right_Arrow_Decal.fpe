@@ -1,0 +1,58 @@
+;Saved by Model Importer
+;header
+desc             = CS_Street_Straight_Right_Arrow_Decal
+
+;orientation
+model            = CS_Street_Straight_Right_Arrow_Decal.dbo
+scale            = 100.00
+collisionmode    = 11
+defaultstatic    = 1
+materialindex    = -1
+cullmode         = 0
+
+;visualinfo
+textured         = Straight_Right_Arrow.dds
+baseColorMap     = Straight_Right_Arrow.dds
+alpharef         = 1.00
+normalMap        = asphalt_normal.dds
+normalStrength   = 1.00
+surfaceMap       = asphalt_surface.dds
+roughnessStrength= 1.00
+metalnessStrength= 1.00
+transparency     = 1
+castshadow       = -1
+doublesided      = 1
+renderorderbias  = 0.00
+reflectance      = 0.04
+basecolor        = 4294967295
+emissivecolor    = 0
+textureref1       = Straight_Right_Arrow.dds
+textureref2       = asphalt_normal.dds
+textureref3       = asphalt_surface.dds
+effect           = effectbank\reloaded\apbr_basic.fx
+
+;identity details
+ischaracter      = 0
+hasweapon        = 
+cantakeweapon    = 0
+
+;statistics
+strength         = 0
+explodable       = 0
+
+;ai
+aimain           = 
+
+;anim
+animspeed        = 100.00
+animmax          = 0
+anim0            = 
+playanimineditor = 0
+
+;thumbnail
+thumbnailbackdrop = Green spotlight.dds
+thumbnailzoom = 332.320312
+thumbnailcamleft = 15.646132
+thumbnailcamup = 20.534117
+thumbnailrotatex = 339.855042
+thumbnailrotatey = 330.242676

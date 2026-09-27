@@ -1,0 +1,154 @@
+{
+  "Industrial Stairs": {
+    "min": [
+      -26.3216075,
+      -0.2631715,
+      -56.5138205
+    ],
+    "max": [
+      26.3216325,
+      163.323166,
+      52.432358
+    ],
+    "size": [
+      52.64324,
+      163.58633749999998,
+      108.9461785
+    ],
+    "asset": "Industrial Collection\\Industrial\\Industrial Stairs.fpe",
+    "profile_scale": 50.0
+  },
+  "Tent1": {
+    "min": [
+      -40.108715,
+      -40.067436,
+      -60.072838
+    ],
+    "max": [
+      40.143097,
+      40.139793,
+      -0.051535
+    ],
+    "size": [
+      80.251812,
+      80.207229,
+      60.021302999999996
+    ],
+    "asset": "Booster Pack\\Camping Pack\\Tent1.fpe",
+    "profile_scale": 100.0
+  },
+  "Tent3": {
+    "min": [
+      -40.108715,
+      -40.067436,
+      -60.072838
+    ],
+    "max": [
+      40.143097,
+      40.139793,
+      -0.051535
+    ],
+    "size": [
+      80.251812,
+      80.207229,
+      60.021302999999996
+    ],
+    "asset": "Booster Pack\\Camping Pack\\Tent3.fpe",
+    "profile_scale": 100.0
+  },
+  "CS_Sidewalk_Guard": {
+    "min": [
+      -48.037647,
+      0.014445,
+      -2.037651
+    ],
+    "max": [
+      48.037647,
+      37.519508,
+      2.037651
+    ],
+    "size": [
+      96.075294,
+      37.505063,
+      4.075302
+    ],
+    "asset": "Cyberpunk Streets Booster Pack\\Misc\\Sidewalk Misc\\CS_Sidewalk_Guard.fpe",
+    "profile_scale": 100.0
+  },
+  "CS_Street_Light_Marker": {
+    "min": [
+      -40.0,
+      0.0,
+      -10.0
+    ],
+    "max": [
+      40.0,
+      2.0,
+      10.0
+    ],
+    "size": [
+      80.0,
+      2.0,
+      20.0
+    ],
+    "asset": "Cyberpunk Streets Booster Pack\\Streets and Sidewalks\\Streets\\CS_Street_Light_Marker.fpe",
+    "profile_scale": 100.0
+  },
+  "Puddle": {
+    "min": [
+      -44.291084,
+      0.393701,
+      -44.291279
+    ],
+    "max": [
+      44.291084,
+      0.393701,
+      44.291279
+    ],
+    "size": [
+      88.582168,
+      0.0,
+      88.582558
+    ],
+    "asset": "Basement Collection\\Decals\\Puddle.fpe",
+    "profile_scale": 100.0
+  },
+  "truck": {
+    "min": [
+      -100.94529,
+      -42.582962,
+      -33.269596
+    ],
+    "max": [
+      63.104023,
+      31.146549,
+      33.510681
+    ],
+    "size": [
+      164.04931299999998,
+      73.729511,
+      66.780277
+    ],
+    "asset": "Max Collection\\Misc\\themysteryofzisland\\truck.fpe",
+    "profile_scale": 100.0
+  },
+  "van": {
+    "min": [
+      -81.234329,
+      -30.826231,
+      -65.681526
+    ],
+    "max": [
+      80.612816,
+      37.104271,
+      1.931453
+    ],
+    "size": [
+      161.847145,
+      67.93050199999999,
+      67.61297900000001
+    ],
+    "asset": "Max Collection\\Misc\\themysteryofzisland\\van.fpe",
+    "profile_scale": 100.0
+  }
+}

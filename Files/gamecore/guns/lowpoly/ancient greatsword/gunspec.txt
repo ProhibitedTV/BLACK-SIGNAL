@@ -1,0 +1,135 @@
+;// Ancient Greatsword
+
+;// VR Support
+vrweaponmode=1
+vrweaponlimbofweapon=24
+vrweaponstaticframe=301
+vrweaponoffsetx=-11
+vrweaponoffsety=22
+vrweaponoffsetz=-4
+
+;// Ammunition
+
+reloadqty		= 0	;unlimited ammo
+
+;// Range and damage
+
+damage			= 50	;base damage per hitscan projectile
+range			= 75	;maximum range in inches
+force           	= 200	;amount of force applied to dynamic objects upon bullet impact
+noscorch		= 1	;disables use of bullet hole decals (currently n/a)
+
+melee damage		= 50	;melee damage value
+melee range		= 75	;melee attack range in inches
+melee force		= 200	;amount of force applied to dynamic objects upon melee impact
+melee noscorch 		= 1	;disables use of bullet hole decals for melee attack (currently n/a)
+
+;// Accuracy
+
+simplezoom		= 0	;bullet spread
+accuracy		= 0	;bullet spread while sprinting
+
+;// HUD handling characteristics - Activate plrspeedmods in setup.ini
+
+disablemovespeedmod	= 0	;disables use of player move and turn speed multipliers 
+
+plrmovespeedmod		= 1.1	;move speed multiplier
+plrturnspeedmod		= 1.0	;turn speed multiplier 
+plrjumpspeedmod		= 1.5	;jump inertia multiplier
+
+recoily			= 50	;recoil vertical disturbance
+recoilyreturn		= 99	;recoil vertical return percentage
+recoilx			= 20	;recoil horizontal disturbance
+recoilxreturn		= 99	;recoil horizontal return percentage
+
+gunlagspeed		= 60	;hud model drift inertia
+gunlagxmax		= 10	;hud model max vertical drift
+gunlagymax		= 16	;hud model max horizontal drift
+
+simplezoomspeed		= 10	;speed of runy offset or non-ainmated zoomto/from transition
+
+disablerunandshoot	= 0	;disables ability to fire weapon while sprinting
+meleewithrightclick     = 1	;enables ability to trigger melee with right click
+
+;// Visuals
+
+textured		= 
+effect			= effectbank\reloaded\weapon_bone.fx
+weapontype		= 51
+animsetoverride         = -axe
+statuspanelcode		= 100
+vweaptex		= weapon
+invertnormal		= 1	;flag for -Y axis normal maps
+preservetangents	= 1	;disable normal tangent shifting
+
+;//Model positions
+
+horiz			= 0	;player weapon model horizontal position offset
+vert			= 0	;player weapon model vertical position offset
+forward			= 3	;player weapon model depth position offset
+runy			= -4	;player weapon model vertical offset while sprinting
+
+;//Model adjustments for MAX Characters
+handscale           = 85
+handposx			= 0.0	;character weapon model position offset X
+handposy			= -1.5	;character weapon model position offset Y
+handposz			= 0.0	;character weapon model position offset Z
+handrotx			= 0.0	;character weapon model rotation offset X
+handroty			= 0.0   ;character weapon model rotation offset Y
+handrotz			= 0.0	;character weapon model rotation offset Z
+
+;// Muzzleflash
+
+muzzlecolorR		= 1	;muzzleflash light red value
+muzzlecolorG		= 1	;muzzleflash light green value
+muzzlecolorB		= 1	;muzzleflash light blue value
+
+muzzleflash		= 4	;ID of muzzleflash decal when firing
+muzzlesize		= 1	;scale of muzzleflash decal
+alignx			= 0	;muzzleflash decal horizontal screenspace offset from center
+aligny			= -50	;muzzleflash decal vertical screenspace offset from center
+alignz			= 0	;muzzleflash decal distance from camera in inches
+
+;// Brass System
+brass			= 0
+
+;// HUD ANIMATION
+
+keyframe ratio		= 1	;animation multiplier for weapons exported at other than 30 fps
+keyframe speed          = 100
+disablemovespeedmod	= 0
+alt disablemovespeedmod	= 0
+run delay		= 1000
+
+select			= equip
+idle			= idle
+move			= move
+run			= move
+
+start fire		= attack2
+end fire		= 10
+melee start		= attack1
+melee end		= 10
+
+putaway			= unequip
+reload			= idle
+
+;//HUD Sounds
+
+sound1			= fire.ogg
+sound2			= take_out.ogg
+sound3			= put_away.ogg
+fireloop		= 0
+soundstrength		= 50
+
+;//HUD Sound frames list
+
+soundframes	= 4
+sframeanim0	= attack1
+sframe0		= 10,1
+sframeanim1	= attack2
+sframe1		= 10,1
+sframeanim2	= equip
+sframe2		= 0,2
+sframeanim3	= unequip
+sframe3		= 0,3
