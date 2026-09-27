@@ -66,8 +66,11 @@ class SemanticRoadDressingV92Tests(unittest.TestCase):
         )
 
         arrows = {(round(p.x), round(p.z), round((p.ry or 0.0) % 360.0)) for p in roles[v92.ARROW_ROLE]}
-        self.assertIn((-100, -680, 180), arrows)
-        self.assertIn((100, 680, 0), arrows)
+        # South approach sits at z=-500 and points north: +100 lane offset and
+        # +180 local-Z setback lands at z=-320, yaw 0. North is the symmetric
+        # (-100,-180,180) manual-reference transform at z=+320.
+        self.assertIn((100, -320, 0), arrows)
+        self.assertIn((-100, 320, 180), arrows)
 
     def test_reference_rules_rotate_with_road_and_junction_yaw(self) -> None:
         fourway = entity(roads.ROAD_SPECS["fourway"]["path"], 1000.0, 1000.0, 90.0, 10)
