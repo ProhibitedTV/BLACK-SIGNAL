@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed validation for District 12 V9.1 semantic road dressing."""
+"""Fail-closed validation for District 12 V9.2 manual-reference road dressing."""
 from __future__ import annotations
 
 import argparse
@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import fpm_author_road_details_v4 as v4
-import fpm_author_road_semantics_v9_1 as semantics
+import fpm_author_road_semantics_v9_2 as semantics
 import fpm_author_road_surface_v5 as v5
 import fpm_author_street_fabric as fabric
 import fpm_validate_road_system_v7 as base
@@ -29,40 +29,48 @@ def validate(final_fpm: Path, foundation_report_path: Path, semantic_report_path
     errors.extend(road_errors)
 
     if semantic_report.get("semantic_policy") != semantics.SEMANTIC_POLICY:
-        errors.append("semantic report is not using the v9.1 target-road policy")
+        errors.append("semantic report is not using the v9.2 manual-reference target-road policy")
 
     road_counts = semantic_report.get("road_counts") or {}
     role_counts = semantic_report.get("role_counts") or {}
     straight_count = int(road_counts.get("straight4", 0))
+    fourway_count = int(road_counts.get("fourway", 0))
     expected_centers = straight_count * semantics.CENTER_TREATMENTS_PER_STRAIGHT
-    expected_crosswalks = int(road_counts.get("fourway", 0)) * 4
+    expected_crosswalks = fourway_count * 4
+    expected_corners = fourway_count * semantics.SIDEWALK_CORNERS_PER_FOURWAY
     expected_lamps = (straight_count + semantics.LAMP_STRIDE - 1) // semantics.LAMP_STRIDE
 
     if int(role_counts.get("road_center_yellow", 0)) != expected_centers:
         errors.append(
-            "v9.1 did not author exactly two continuity center treatments per Straight 4X module"
+            "v9.2 did not author exactly two manual-reference center treatments per Straight 4X module"
         )
     if int(role_counts.get("crosswalk", 0)) != expected_crosswalks:
-        errors.append("v9.1 did not author exactly four crosswalks per 4-way junction")
+        errors.append("v9.2 did not author exactly four pivot-corrected crosswalks per 4-way junction")
+    if int(role_counts.get(semantics.SIDEWALK_CORNER_ROLE, 0)) != expected_corners:
+        errors.append(
+            "v9.2 did not author exactly four manual-reference sidewalk corners per 4-way junction"
+        )
 
     lamps = int(role_counts.get("street_lamp", 0))
     lights = int(role_counts.get("street_dynamic_light", 0))
     if lamps != expected_lamps:
         errors.append(
-            f"v9.1 sparse lamp cadence is invalid ({lamps} lamps, expected {expected_lamps})"
+            f"v9.2 sparse lamp cadence is invalid ({lamps} lamps, expected {expected_lamps})"
         )
     if lamps <= 0 or lamps != lights:
         errors.append(f"street lamp/light-marker pairing is invalid ({lamps} lamps, {lights} markers)")
 
     arrows = int(role_counts.get(semantics.ARROW_ROLE, 0))
     if arrows <= 0:
-        errors.append("v9.1 produced no validated straight-ahead 4-way approach arrows")
+        errors.append("v9.2 produced no validated straight-ahead 4-way approach arrows")
 
     for row in semantic_report.get("placements") or []:
         role = row.get("role")
         note = str(row.get("note") or "")
         if role == semantics.ARROW_ROLE and "4-way" not in note:
             errors.append("an arrow placement is not explicitly tied to a 4-way approach")
+        if role == semantics.SIDEWALK_CORNER_ROLE and "4-way" not in note:
+            errors.append("a sidewalk-corner placement is not explicitly tied to a 4-way junction")
 
     actual_counts: dict[str, int] = {}
     for entity in parsed["entities"]:
@@ -74,6 +82,7 @@ def validate(final_fpm: Path, foundation_report_path: Path, semantic_report_path
         "crosswalk": fabric.basename(fabric.ASSETS["crosswalk"]["basename"]),
         "street_lamp": fabric.basename(fabric.ASSETS["street_lamp"]["basename"]),
         "street_dynamic_light": fabric.basename(fabric.ASSETS["street_dynamic_light"]["basename"]),
+        semantics.SIDEWALK_CORNER_ROLE: semantics.SIDEWALK_CORNER_STRIP_BASENAME,
         semantics.ARROW_ROLE: fabric.basename(v5.SURFACE_ASSETS[semantics.ARROW_ROLE]["basename"]),
     }
     for role, asset in expected_assets.items():
@@ -116,7 +125,7 @@ def validate(final_fpm: Path, foundation_report_path: Path, semantic_report_path
 
 
 def print_report(report: dict[str, Any]) -> None:
-    print("BLACK SIGNAL - District 12 semantic road-system v9.1 promotion gate")
+    print("BLACK SIGNAL - District 12 semantic road-system v9.2 promotion gate")
     print(f"Final FPM: {report['final_fpm']}")
     print(f"Roads: {report['recognized_road_entities']} / expected {report['expected_road_entities']}")
     print(f"Missing placements: {report['missing_placements']}")
@@ -125,8 +134,9 @@ def print_report(report: dict[str, Any]) -> None:
     for role, count in sorted((report.get("semantic_role_counts") or {}).items()):
         print(f"  {role:24s} {count}")
     if report["status"] == "pass":
-        print("[PASS] V9.1 preserved the exact validated road graph.")
-        print("[PASS] Center-line continuity, crosswalks, arrows, lamps and light markers match tuned semantic counts.")
+        print("[PASS] V9.2 preserved the exact validated road graph.")
+        print("[PASS] Manual-reference center lines, crosswalk pivots, arrows and sidewalk corners match semantic counts.")
+        print("[PASS] Sparse lamps/light markers remain on the validated v9.1 cadence.")
         print("[PASS] No stale turn arrows/text/wear decals or donor bollard detail survived cleanup.")
     else:
         for error in report["errors"]:
@@ -148,7 +158,7 @@ def main(argv: list[str] | None = None) -> int:
         print_report(report)
         return 0 if report["status"] == "pass" else 3
     except (FpmError, OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-        print(f"FPM ROAD SEMANTICS V9 VALIDATION ERROR: {exc}", file=sys.stderr)
+        print(f"FPM ROAD SEMANTICS V9.2 VALIDATION ERROR: {exc}", file=sys.stderr)
         return 2
 
 
