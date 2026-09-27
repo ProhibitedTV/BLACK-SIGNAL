@@ -8,6 +8,7 @@ if str(TOOLS) not in sys.path:
 
 import fpm_author_road_network_v2 as roads
 import fpm_author_road_semantics_v10_3 as v103
+import fpm_author_street_fabric as fabric
 
 
 def entity(asset: str, x: float, z: float, yaw: float, record_index: int) -> dict:
@@ -52,6 +53,28 @@ class StreetLevelV103Tests(unittest.TestCase):
             entity(roads.ROAD_SPECS["straight4"]["path"], 0.0, 500.0, 0.0, 5),
         ]
         self.assertEqual(v103._central_fourway({"entities": rows})["record_index"], 2)
+
+    def test_main_extends_underlying_core_strip_set_and_restores_it(self) -> None:
+        original_compat_main = v103.compat.main
+        original_strip = v103.base.core.STRIP_BASENAMES
+        observed = {}
+
+        def fake_compat_main(_argv):
+            observed["strip"] = v103.base.core.STRIP_BASENAMES
+            return 0
+
+        try:
+            v103.compat.main = fake_compat_main
+            self.assertEqual(v103.main([]), 0)
+        finally:
+            v103.compat.main = original_compat_main
+
+        expected = {
+            fabric.basename(fabric.ASSETS[role]["basename"])
+            for role in v103.STREET_LEVEL_ROLES
+        }
+        self.assertTrue(expected.issubset(observed["strip"]))
+        self.assertEqual(v103.base.core.STRIP_BASENAMES, original_strip)
 
 
 if __name__ == "__main__":

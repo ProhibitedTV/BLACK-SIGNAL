@@ -172,7 +172,12 @@ def main(argv: list[str] | None = None) -> int:
     original_roles = base.FABRIC_ROLES
     original_template = base._fabric_template
     original_plan = base.plan_semantic_dressing
-    original_strip = base.STRIP_BASENAMES
+
+    # STRIP_BASENAMES is owned by the underlying v9 semantic compiler (base.core),
+    # not by the v9.2 placement-policy wrapper itself.  V10.3 must extend that owner
+    # directly so inherited copies of our controlled props are removed before the
+    # deterministic Hero Block set is authored.
+    original_strip = base.core.STRIP_BASENAMES
 
     controlled_basenames = {
         fabric.basename(fabric.ASSETS[role]["basename"]) for role in STREET_LEVEL_ROLES
@@ -214,13 +219,13 @@ def main(argv: list[str] | None = None) -> int:
         base.FABRIC_ROLES = tuple(original_roles) + STREET_LEVEL_ROLES
         base._fabric_template = street_level_template
         base.plan_semantic_dressing = street_level_plan
-        base.STRIP_BASENAMES = frozenset(set(original_strip) | controlled_basenames)
+        base.core.STRIP_BASENAMES = frozenset(set(original_strip) | controlled_basenames)
         return compat.main(argv)
     finally:
         base.FABRIC_ROLES = original_roles
         base._fabric_template = original_template
         base.plan_semantic_dressing = original_plan
-        base.STRIP_BASENAMES = original_strip
+        base.core.STRIP_BASENAMES = original_strip
 
 
 if __name__ == "__main__":
