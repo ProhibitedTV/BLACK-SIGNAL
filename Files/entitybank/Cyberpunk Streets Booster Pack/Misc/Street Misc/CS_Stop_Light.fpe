@@ -1,0 +1,74 @@
+;Saved by Model Importer
+;header
+desc             = CS_Stop_Light
+
+;orientation
+model            = CS_Stop_Light.dbo
+scale            = 100.00
+collisionmode    = 1
+defaultstatic    = 1
+materialindex    = -1
+cullmode         = 1
+
+;visualinfo
+textured         = 
+baseColorMap0    = CS_Stop_Light_Pole_M_Color.dds
+alphaRef0        = 1.00
+normalMap0       = CS_Stop_Light_Pole_M_normal.dds
+normalStrength0  = 1.00
+surfaceMap0      = CS_Stop_Light_Pole_M_surface.dds
+roughnessStrength0= 1.00
+metalnessStrength0= 1.00
+transparency0    = 0
+renderorderbias0 = 0.00
+reflectance0     = 0.0400
+basecolor0       = 4294967295
+emissivecolor0   = 0
+baseColorMap1    = CS_Stop_Light_M_Color.dds
+alphaRef1        = 1.00
+normalMap1       = CS_Stop_Light_M_normal.dds
+normalStrength1  = 1.00
+emissiveMap1     = CS_Stop_Light_M_emissive.png
+emissiveStrength1= 3.00
+surfaceMap1      = CS_Stop_Light_M_surface.dds
+roughnessStrength1= 1.00
+metalnessStrength1= 1.00
+transparency1    = 0
+renderorderbias1 = 0.00
+reflectance1     = 0.0400
+basecolor1       = 4294967295
+emissivecolor1   = 4294967040
+textureref1       = CS_Stop_Light_Pole_M_Color.dds
+textureref2       = CS_Stop_Light_Pole_M_normal.dds
+textureref3       = CS_Stop_Light_Pole_M_surface.dds
+textureref4       = CS_Stop_Light_M_Color.dds
+textureref5       = CS_Stop_Light_M_normal.dds
+textureref6       = CS_Stop_Light_M_surface.dds
+textureref7       = CS_Stop_Light_M_emissive.png
+effect           = effectbank\reloaded\apbr_basic.fx
+
+;identity details
+ischaracter      = 0
+hasweapon        = 
+cantakeweapon    = 0
+
+;statistics
+strength         = 0
+explodable       = 0
+
+;ai
+aimain           = 
+
+;anim
+animspeed        = 100.00
+animmax          = 0
+anim0            = 
+playanimineditor = 0
+
+;thumbnail
+thumbnailbackdrop = Green spotlight.dds
+thumbnailzoom = 1.000000
+thumbnailcamleft = 0.632018
+thumbnailcamup = 12.833530
+thumbnailrotatex = 0.606338
+thumbnailrotatey = 41.730240
