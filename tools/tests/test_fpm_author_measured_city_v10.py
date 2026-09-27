@@ -1,3 +1,4 @@
+import copy
 import json
 from pathlib import Path
 import sys
@@ -23,9 +24,16 @@ def road(kind: str, x: float, z: float, record_index: int):
 class MeasuredCityV10Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.measured = json.loads(
+        cls.base_measured = json.loads(
             (Path(__file__).resolve().parents[2] / "docs/cybercity-kit-measurements.json").read_text()
         )
+        # CI cannot inspect the user's commercial DLC.  Use the proven wall-corner
+        # envelope as a synthetic test carrier; production measurements are generated
+        # live by measure-cybercity-kit.py before the city stage.
+        cls.measured = copy.deepcopy(cls.base_measured)
+        for name in v10.STOREFRONT_ASSETS:
+            cls.measured[name] = copy.deepcopy(cls.base_measured["CS_Wall_Corner_01"])
+            cls.measured[name]["asset"] = f"Cyberpunk Streets Booster Pack\\Store Fronts\\{name}.fpe"
 
     def test_reuses_calibrated_shells_but_not_competing_road_or_lamp_ownership(self):
         rows = v10.measured_additions(self.measured)
@@ -34,10 +42,28 @@ class MeasuredCityV10Tests(unittest.TestCase):
         self.assertNotIn("street", groups)
         self.assertNotIn("furniture", groups)
         self.assertNotIn("CS_Sidewalk_Corner1_DropCurb", assets)
-        self.assertIn("CS_Wall_Corner_01", assets)
         self.assertIn("CS_Roof_Tile_2x2", assets)
         self.assertIn("CS_Sidewalk_Straight_Edge", assets)
         self.assertIn("CS_Sidewalk_Tile_4x4", assets)
+        self.assertTrue(set(v10.STOREFRONT_ASSETS).issubset(assets))
+
+    def test_storefront_wrap_replaces_all_blank_ground_floor_corners(self):
+        rows = v10.measured_additions(self.measured)
+        shops = [row for row in rows if row["asset"] in v10.STOREFRONT_ASSETS]
+        self.assertEqual(len(shops), len(v10.HERO_GROUPS) * v10.STOREFRONTS_PER_BUILDING)
+        self.assertTrue(all(abs(float(row["y"]) - v10.GROUND_FLOOR_Y) < 0.01 for row in shops))
+        self.assertFalse(
+            any(
+                row["group"] in v10.HERO_GROUPS
+                and row["asset"] == "CS_Wall_Corner_01"
+                and abs(float(row["y"]) - v10.GROUND_FLOOR_Y) < 0.01
+                for row in rows
+            )
+        )
+
+    def test_missing_live_storefront_measurement_fails_closed(self):
+        with self.assertRaisesRegex(Exception, "Measured storefront geometry is missing"):
+            v10.measured_additions(self.base_measured)
 
     def test_measured_additions_keep_all_four_complete_building_sets(self):
         rows = v10.measured_additions(self.measured)

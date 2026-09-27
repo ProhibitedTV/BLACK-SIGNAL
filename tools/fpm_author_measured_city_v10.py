@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Author Astra's measured Hero Block 01 shells onto the validated District 12 road graph.
+"""Author Astra's measured Hero Block shells and v10.1 storefront bases onto District 12.
 
-This pass deliberately reuses the measured calibration plan instead of harvesting nearby
-CyberCity pivots as alleged buildings. The target road FPM remains authoritative: roads
-are never replaced, and only measured sidewalk infill plus complete building shells are
-appended around the most central 4-way junction.
+This pass reuses Astra's measured calibration plan instead of harvesting nearby CyberCity
+pivots as alleged buildings. The validated target road FPM remains authoritative: roads
+are never replaced. Measured sidewalks plus complete building shells are authored around
+the most central 4-way junction, and the four ground-floor corner modules on every hero
+building are replaced with measured CyberCity storefront corner modules.
 
-Drop-curb corner pieces are omitted here because the v9.2 semantic pass owns junction
-corners. Street lamps are also omitted here because semantic dressing owns lamp cadence.
+Drop-curb junction corners and street lamps remain owned by the semantic road pass, so
+this writer never competes for road dressing ownership.
 """
 from __future__ import annotations
 
@@ -30,16 +31,74 @@ from fpm_inspect import FpmArchive, FpmError, parse_map_ele, parse_map_ent
 
 SEMANTIC_OWNER_ASSETS = {"CS_Sidewalk_Corner1_DropCurb"}
 OMIT_GROUPS = {"street", "furniture"}
+STOREFRONT_ASSETS = (
+    "CS_Store_Front_02_Corner_With_Window",
+    "CS_Store_Front_02_Corner_Neon_Opposite",
+)
+GROUND_FLOOR_Y = 10.0
+HERO_GROUPS = tuple(parcel["name"] for parcel in hero.PARCELS)
+STOREFRONTS_PER_BUILDING = 4
 
 
 def asset_key(asset_path: str | None) -> str:
     return Path((asset_path or "").replace("\\", "/")).stem
 
 
-def measured_additions(measured: dict[str, Any]) -> list[dict[str, Any]]:
-    """Return the calibrated non-road content that District 12 should inherit."""
+def storefront_wrapped_calibration(measured: dict[str, Any]) -> list[dict[str, Any]]:
+    """Replace only ground-floor shell corners with measured CyberCity shop corners.
+
+    The original Astra shell is validated first. Storefronts inherit the exact corner
+    pivots/yaws of the proven 200-unit shell courses, so upper floors, entries, roofs and
+    parcel dimensions remain untouched. The two shop variants alternate deterministically
+    by building/corner to avoid cloning one identical frontage around the whole block.
+    """
+    missing = [name for name in STOREFRONT_ASSETS if name not in measured]
+    if missing:
+        raise FpmError(
+            "Measured storefront geometry is missing: "
+            + ", ".join(missing)
+            + ". Rerun measure-cybercity-kit.py against the installed Cyberpunk Streets pack."
+        )
+
     calibration = hero.plan()
     hero.validate(calibration, measured)
+    parcel_index = {name: i for i, name in enumerate(HERO_GROUPS)}
+    seen: Counter[str] = Counter()
+    wrapped: list[dict[str, Any]] = []
+
+    for row in calibration:
+        replacement = dict(row)
+        if (
+            row["group"] in parcel_index
+            and row["asset"] == "CS_Wall_Corner_01"
+            and abs(float(row["y"]) - GROUND_FLOOR_Y) <= 0.01
+        ):
+            corner_ordinal = seen[row["group"]]
+            seen[row["group"]] += 1
+            replacement["asset"] = STOREFRONT_ASSETS[
+                (parcel_index[row["group"]] + corner_ordinal) % len(STOREFRONT_ASSETS)
+            ]
+        wrapped.append(replacement)
+
+    for group in HERO_GROUPS:
+        if seen[group] != STOREFRONTS_PER_BUILDING:
+            raise FpmError(
+                f"Storefront wrap expected {STOREFRONTS_PER_BUILDING} ground-floor corners for {group}, got {seen[group]}."
+            )
+
+    if any(
+        row["group"] in HERO_GROUPS
+        and row["asset"] == "CS_Wall_Corner_01"
+        and abs(float(row["y"]) - GROUND_FLOOR_Y) <= 0.01
+        for row in wrapped
+    ):
+        raise FpmError("Blank ground-floor hero corners remain after storefront wrapping.")
+    return wrapped
+
+
+def measured_additions(measured: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return calibrated non-road content with a measured shopfront ground-floor wrap."""
+    calibration = storefront_wrapped_calibration(measured)
     return [
         dict(row)
         for row in calibration
@@ -107,6 +166,8 @@ def validate_world_plan(
     for row in rows:
         if row["group"] == "sidewalk":
             continue
+        if row["asset"] not in measured:
+            raise FpmError(f"No measured bounds available for authored asset: {row['asset']}")
         box = hero.world_bounds(row, measured)
         if any(intersects(box, road_box) for road_box in road_boxes):
             raise FpmError(
@@ -118,9 +179,11 @@ def donor_templates(
     donor_parsed: dict[str, Any], donor_ele: bytes, required: set[str], donor_path: Path
 ) -> dict[str, fabric.Template]:
     out: dict[str, fabric.Template] = {}
+    required_fold = {name.casefold(): name for name in required}
     for entity in donor_parsed["entities"]:
-        key = asset_key(entity.get("asset"))
-        if key not in required or key in out:
+        raw_key = asset_key(entity.get("asset"))
+        canonical = required_fold.get(raw_key.casefold())
+        if canonical is None or canonical in out:
             continue
         safe, _reason = fabric.safe_template_entity(entity, False)
         if not safe or int(entity.get("profile_scale", 100)) != 100:
@@ -129,8 +192,8 @@ def donor_templates(
             continue
         start = int(entity["record_start_offset"])
         end = int(entity["record_end_offset"])
-        out[key] = fabric.Template(
-            role="measured-city-v10",
+        out[canonical] = fabric.Template(
+            role="measured-city-v10.1",
             asset_path=str(entity.get("asset") or ""),
             parsed=entity,
             raw_record=donor_ele[start:end],
@@ -263,6 +326,11 @@ def compile_measured_city(
         output_path.unlink(missing_ok=True)
         raise FpmError("Measured city compiler changed unrelated FPM members: " + ", ".join(changed))
 
+    storefront_count = sum(1 for row in world_rows if row["asset"] in STOREFRONT_ASSETS)
+    if storefront_count != len(HERO_GROUPS) * STOREFRONTS_PER_BUILDING:
+        output_path.unlink(missing_ok=True)
+        raise FpmError(f"Unexpected storefront count in final measured plan: {storefront_count}")
+
     return {
         "source_fpm": str(source_path),
         "donor_fpm": str(donor_path),
@@ -273,6 +341,7 @@ def compile_measured_city(
         "old_entity_count": int(parsed["entity_count"]),
         "new_entity_count": int(result_parsed["entity_count"]),
         "added_entities": len(new_records),
+        "storefront_count": storefront_count,
         "groups": dict(Counter(row["group"] for row in world_rows)),
         "assets": dict(Counter(row["asset"] for row in world_rows)),
         "changed_decrypted_members": changed,
@@ -284,15 +353,17 @@ def compile_measured_city(
 
 
 def print_report(report: dict[str, Any]) -> None:
-    print("BLACK SIGNAL - District 12 measured city v10")
+    print("BLACK SIGNAL - District 12 measured city v10.1")
     print(f"Target road source: {report['source_fpm']}")
     print(f"CyberCity donor:    {report['donor_fpm']}")
     print(f"Output:             {report['output_fpm']}")
     print(f"Hero origin:        {report['hero_origin']}")
     print(f"Added entities:     {report['added_entities']}")
+    print(f"Storefront corners: {report['storefront_count']}")
     for group, count in sorted(report["groups"].items()):
         print(f"  {group:20s} {count}")
     print("[PASS] Complete measured shell courses and roofs were authored explicitly.")
+    print("[PASS] Ground-floor blank corners were replaced by measured CyberCity storefront modules.")
     print("[PASS] Validated target roads were preserved and used for collision checks.")
     print("[PASS] Junction corners and street lamps remain owned by the semantic road pass.")
     print("[NEXT] Native GameGuru MAX visual review is still required before production acceptance.")
@@ -321,7 +392,7 @@ def main(argv: list[str] | None = None) -> int:
         print_report(report)
         return 0
     except (FpmError, OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-        print(f"MEASURED CITY V10 ERROR: {exc}", file=sys.stderr)
+        print(f"MEASURED CITY V10.1 ERROR: {exc}", file=sys.stderr)
         return 2
 
 
