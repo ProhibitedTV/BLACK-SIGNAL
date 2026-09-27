@@ -77,6 +77,16 @@ def block_route(p,rows,measurements):
         if (b[0]-a[0])*(c[1]-b[1])!=(b[1]-a[1])*(c[0]-b[0]):compact.append(b)
     return [[bx+320+x*20,bz+320+z*20] for x,z in compact]
 
+def open_walk(route,phase):
+    """Rotate a validated block perimeter into a long, non-closing walk.
+
+    Native review showed that a closed short route reads as a visible reset when
+    repeated. Keep the same safe perimeter, but omit the final closing segment so
+    each background actor walks most of a block perimeter once and then idles.
+    """
+    if len(route)<3:raise ValueError('Background route must have at least three points')
+    return [route[(phase+k)%len(route)] for k in range(len(route))]
+
 def plan(parcels,scene,measurements=None):
     rows=[]
     measured=measurements or json.loads((Path(__file__).resolve().parents[1]/'docs/cybercity-kit-measurements.json').read_text())
@@ -89,7 +99,7 @@ def plan(parcels,scene,measurements=None):
         for j in range(6):
             walking=j<4
             phase=len(route)*j//4
-            points=route[phase:]+route[:phase] if walking else []
+            points=open_walk(route,phase) if walking else []
             x,z=points[0] if walking else ((p['x']+320,p['z']-100) if j==4 else (p['x']-100,p['z']+p['depth']/2))
             yaw=math.degrees(math.atan2(points[1][0]-x,points[1][1]-z))%360 if walking else (0 if j==4 else 90)
             rows.append(dict(asset=ASSETS[(i*5+j)%6],x=x,y=p['ground'],z=z,yaw=yaw,
@@ -102,7 +112,7 @@ def samples(row):
     points=row['route']
     if not points:return [(row['x'],row['z'])]
     out=[]
-    for a,b in zip(points,points[1:]+points[:1]):
+    for a,b in zip(points,points[1:]):
         count=max(1,math.ceil(math.dist(a,b)/5))
         out.extend((a[0]+(b[0]-a[0])*k/count,a[1]+(b[1]-a[1])*k/count) for k in range(count+1))
     return out
