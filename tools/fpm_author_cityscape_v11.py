@@ -6,6 +6,7 @@ import base64
 from collections import Counter
 import hashlib
 import json
+import math
 from pathlib import Path
 import shutil
 import struct
@@ -94,7 +95,14 @@ def plan(parsed):
     roles['road_arrow_straight']='CS_Street_Straight_Arrow_Decal'
     for item in semantics.plan_semantic_dressing(parsed):
         if item.role in ('sidewalk_corner','street_lamp','street_dynamic_light'): continue
-        add(roles[item.role],item.x,item.y,item.z,item.ry,group='markings')
+        x,z=item.x,item.z
+        if item.role=='crosswalk':
+            # Drop-curb landing center: junction +300 +~49.5. The painted
+            # texture occupies local Z=25.78..95.31 (center 60.55), so the
+            # decal pivot belongs at +289, not the legacy +200 approach.
+            angle=math.radians(item.ry)
+            x+=89*math.sin(angle);z+=89*math.cos(angle)
+        add(roles[item.role],x,item.y,z,item.ry,group='markings')
     for item in human.plan_human_cityscape(parsed):
         add(roles[item.role],item.x,item.y,item.z,item.ry,group='human-street')
     rows.extend(dress(parcels))

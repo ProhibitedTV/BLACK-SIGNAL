@@ -20,6 +20,10 @@ The immutable `gameguru/references/District 12 - human corner.fpm` preserves the
 
 ## Verification and review
 
+Loose-can correction: the upper cartons are open; their maximum height is a raised flap rather than a lid. All 108 loose cans now rest on the pavement beside the stacks, with measured bottom-height and box-clearance checks.
+
+Crosswalk ramp correction: the lowered straight curb lips lie at local 7.31–91.49/91.83 on the corner mesh, whose pivot is 300 units from the junction. Crosswalk texture alpha occupies V=24–380 of 1024, mapping to local Z=25.78–95.31 on the 200-unit decal. Moving each crossing outward by 89 units (approach pivot 200 to 289) aligns the visible paint center at approximately 349.55 with the ramp center at approximately 349.5. Lateral pivot compensation and rotation are preserved. This corrects the user-observed paint-to-ramp misalignment without moving sidewalk geometry.
+
 Local checks cover full encrypted archive traversal, exact saved asset/XYZ/yaw multisets, 36 complete building envelopes, roof pivot alignment, pavement coverage, road clearance, door approaches and ground support for freestanding dressing. Archive members other than `map.ele` and `map.ent` remain unchanged. The saved validation receipt and complete placement plan are in `gameguru/buildplans/district12-v11-*.json`.
 
 These checks establish file and placement integrity. Native appearance, lighting, culling, material appearance, frame rate and filming suitability require manual review in GameGuru MAX. Native capture was unavailable during the build; visual acceptance remains pending. Inspect storefront depth, corner paving, alley approaches and roof silhouettes first, then run the level to check lighting and performance. The 9,001-entity scene has not been performance-qualified.

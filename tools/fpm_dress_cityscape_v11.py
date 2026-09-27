@@ -20,7 +20,9 @@ def dress(parcels):
         for j in range(3):
             add('CS_Box_01',175+j*38,0,-74,zone='products',support='ground')
             add('CS_Box_02',175+j*38,10.44,-74,zone='products')
-            add('CS_Can_01' if j%2 else 'CS_Can_03',175+j*38,21.2,-74,zone='products')
+            # Box_02 is open: its maximum Y is a flap, not a supporting lid.
+            # Seat loose cans on the pavement in front of the delivery stack.
+            add('CS_Can_01' if j%2 else 'CS_Can_03',175+j*38,0,-100,j*35,zone='products',support='ground')
         add('CS_Bench',w-100,0,-120,180,zone='furniture',support='ground')
         add('CS_Trash_Can',w-30,0,-120,zone='furniture',support='ground')
         # Rear doors are at x+400. Service pockets stay on either side.

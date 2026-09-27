@@ -72,5 +72,34 @@ class CityscapeTests(unittest.TestCase):
             assets={r['asset'] for r in rows if r.get('parcel')==p['name']}
             self.assertTrue({'CS_Dumpster_Closed','CS_ATM','CS_ATM_Screen','CS_Store_Front_01_Entrance','CS_Box_01','CS_Bench','CS_Trash_Can'}<=assets)
 
+    def test_crosswalk_paint_center_meets_lowered_curb(self):
+        import math
+        rows,_=city.plan(self.parsed)
+        crossings=[r for r in rows if r['asset']=='CS_Street_Crosswalk_Decal']
+        self.assertTrue(crossings)
+        for r in crossings:
+            a=math.radians(r['yaw'])
+            # UV alpha bounds in the installed texture: V=24..380 / 1024.
+            paint_center=100-200*((24+380)/2)/1024
+            px=r['x']+paint_center*math.sin(a)
+            pz=r['z']+paint_center*math.cos(a)
+            nearest=min(self.parsed['entities'],key=lambda e:(e['position']['x']-r['x'])**2+(e['position']['z']-r['z'])**2)
+            j=nearest['position']
+            approach=(px-j['x'])*math.sin(a)+(pz-j['z'])*math.cos(a)
+            # The two straight ramp lips span local 7.31..91.49/91.83,
+            # at corner pivots 300 units from the junction center.
+            self.assertAlmostEqual(approach,349.5,delta=.2)
+
+    def test_loose_cans_have_pavement_support(self):
+        rows,parcels=city.plan(self.parsed)
+        byname={p['name']:p for p in parcels}
+        cans=[r for r in rows if r['asset'] in ('CS_Can_01','CS_Can_03')]
+        self.assertEqual(len(cans),108)
+        for r in cans:
+            self.assertEqual(r['support'],'ground')
+            self.assertAlmostEqual(r['y']+self.measured[r['asset']]['min'][1],byname[r['parcel']]['ground'],delta=.02)
+            boxes=[b for b in rows if b.get('parcel')==r['parcel'] and b['asset'] in ('CS_Box_01','CS_Box_02')]
+            self.assertFalse(any(city.measured_city.intersects(city.hero.world_bounds(r,self.measured),city.hero.world_bounds(b,self.measured)) for b in boxes))
+
 
 if __name__=='__main__':unittest.main()

@@ -3,6 +3,6 @@
   "populated_parcels": 36,
   "entity_count": 9001,
   "ele_version": 342,
-  "sha256": "f505154c00a1d429062bbd9340b7fdb92083f7b63c6c08d9424e7544749f8344",
+  "sha256": "f1608a3d5f9067c1e1fd205e134833a1d13e8996994aeeb9cbbd8ed1fe1d6c3a",
   "checked": "Exact saved asset, XYZ and yaw multiset; complete envelopes; paving; road clearance; ELE traversal"
 }
