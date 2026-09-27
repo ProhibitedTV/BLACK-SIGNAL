@@ -116,8 +116,10 @@ def _fabric_template(
 
     # Sidewalk corners are ordinary static DLC geometry. Unlike dynamic light
     # markers, they can safely use the established generic-static carrier while
-    # receiving their own map.ent bank path.
-    carrier = fabric.find_generic_static_template(parsed, ele_data, source_path)
+    # receiving their own map.ent bank path. CyberCity is the reliable static
+    # carrier source in production even when the generated target contains only
+    # roads/buildings and no pre-existing lamp/planter/trash record.
+    carrier = fabric.find_generic_static_template(donor_parsed, donor_ele, donor_path)
     return fabric.Template(
         role=SIDEWALK_CORNER_ROLE,
         asset_path=SIDEWALK_CORNER_PATH,
