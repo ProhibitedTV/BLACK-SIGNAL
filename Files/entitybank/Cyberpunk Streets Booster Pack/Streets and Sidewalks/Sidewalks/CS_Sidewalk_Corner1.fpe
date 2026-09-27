@@ -1,0 +1,56 @@
+;Saved by Model Importer
+;header
+desc             = CS_Sidewalk_Corner1
+
+;orientation
+model            = CS_Sidewalk_Corner1.dbo
+scale            = 100.00
+collisionmode    = 1
+defaultstatic    = 1
+materialindex    = -1
+cullmode         = 1
+
+;visualinfo
+textured         = CS_Sidewalk_Corner1_M_Color.dds
+baseColorMap     = CS_Sidewalk_Corner1_M_Color.dds
+alpharef         = 1.00
+normalMap        = CS_Sidewalk_Corner1_M_normal.dds
+normalStrength   = 1.00
+surfaceMap       = CS_Sidewalk_Corner1_M_surface.dds
+roughnessStrength= 1.00
+metalnessStrength= 1.00
+transparency     = 0
+renderorderbias  = 0.00
+reflectance      = 0.04
+basecolor        = 4294967295
+emissivecolor    = 0
+textureref1       = CS_Sidewalk_Corner1_M_Color.dds
+textureref2       = CS_Sidewalk_Corner1_M_normal.dds
+textureref3       = CS_Sidewalk_Corner1_M_surface.dds
+effect           = effectbank\reloaded\apbr_basic.fx
+
+;identity details
+ischaracter      = 0
+hasweapon        = 
+cantakeweapon    = 0
+
+;statistics
+strength         = 0
+explodable       = 0
+
+;ai
+aimain           = 
+
+;anim
+animspeed        = 100.00
+animmax          = 0
+anim0            = 
+playanimineditor = 0
+
+;thumbnail
+thumbnailbackdrop = Green spotlight.dds
+thumbnailzoom = 1.000000
+thumbnailcamleft = 0.000000
+thumbnailcamup = 0.000000
+thumbnailrotatex = 322.864807
+thumbnailrotatey = 340.853119

@@ -1,0 +1,101 @@
+;Texture Array Dimensions
+Width = 4
+Height = 4
+
+;Texture Array Files
+T00 = floor carpet_color.dds
+T01 = floor cobbles_color.dds
+T02 = floor old wood_color.dds
+T03 = floor tile_color.dds
+T04 = wall modern brick_color.dds
+T05 = wall mossy stone_color.dds
+T06 = wall old brick_color.dds
+T07 = wall panels_color.dds
+T08 = tile asphalt_color.dds
+T09 = tile concrete_color.dds
+T10 = tile scifi floor_color.dds
+T11 = tile white_color.dds
+T12 = misc cabin siding_color.dds
+T13 = misc diamond plate_color.dds
+T14 = misc plaster_color.dds
+T15 = misc scifi panel_color.dds
+
+;Texture Array Materials
+M00 = 0
+M01 = 1
+M02 = 3
+M03 = 1
+M04 = 1
+M05 = 1
+M06 = 1
+M07 = 3
+M08 = 1
+M09 = 1
+M10 = 2
+M11 = 3
+M12 = 3
+M13 = 1
+M14 = 1
+M15 = 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
