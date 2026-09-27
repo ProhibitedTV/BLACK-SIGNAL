@@ -1,1 +1,2 @@
 gameguru/maps/*.fpm filter=lfs diff=lfs merge=lfs -text
+*.fpm filter=lfs diff=lfs merge=lfs -text
