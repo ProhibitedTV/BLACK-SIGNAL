@@ -15,6 +15,10 @@ NAMES = (
     "CS_Street_Straight_4X", "CS_Street_4_Way_2", "CS_Street_T-Intersect_3",
     "CS_Street_Curve_1", "CS_Sidewalk_Straight_Edge", "CS_Sidewalk_Corner1_DropCurb",
     "CS_Sidewalk_Tile_4x4", "CS_Sidewalk_Tile", "CS_Street_Lamp",
+    # Ground-floor shop modules used by the v10.1 frontage pass.  These are
+    # measured from the installed DLC on the user's machine, never vendored.
+    "CS_Store_Front_02_Corner_With_Window",
+    "CS_Store_Front_02_Corner_Neon_Opposite",
 )
 
 
