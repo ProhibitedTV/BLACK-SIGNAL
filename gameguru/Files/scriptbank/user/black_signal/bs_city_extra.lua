@@ -17,6 +17,21 @@ local function animation(e,s,name)
     s.animation = name
 end
 
+local function place_object(e,s)
+    -- MAX does not reliably keep legacy SetPosition/AISetEntityPosition character
+    -- moves authoritative. The character controller can snap the entity back to
+    -- its editor spawn. Drive the rendered object transform directly instead.
+    local entity = g_Entity[e]
+    local obj = entity and entity.obj or 0
+    if not obj or obj <= 0 then
+        s.disabled = true
+        return false
+    end
+    PositionObject(obj,s.x,s.route.y,s.z)
+    RotateObject(obj,0,s.yaw,0)
+    return true
+end
+
 -- GameGuru MAX supplies the placed entity name through the _init_name callback,
 -- which is what binds each actor to its generated BS_EXTRA_* route. Keep the
 -- conventional _init entry point as a compatibility shim for repository/runtime
@@ -29,6 +44,8 @@ function bs_city_extra_init_name(e,name)
     local r=routes[name]
     if not r then return end
     actors[e]={route=r,x=r.x,z=r.z,yaw=r.yaw,next=2,last=g_Time or 0,wait=0,finished=false}
+    -- Put the stock character controller into limbo once, then leave the object
+    -- under this script's direct transform control for the rest of the shot.
     CharacterControlLimbo(e)
     CollisionOff(e) -- Cinematic extras cannot be pushed off their pavement route.
     HideEntityAttachment(e)
@@ -44,7 +61,6 @@ function bs_city_extra_main(e)
     local dt=math.max(0,math.min((now-s.last)/1000,0.1))
     s.last=now
     local r=s.route
-    CharacterControlLimbo(e)
     local moving=#r.points>1 and not s.disabled and not s.finished
     if s.wait>0 then
         s.wait=math.max(0,s.wait-dt)
@@ -58,9 +74,8 @@ function bs_city_extra_main(e)
             local previous=r.points[s.next-1]
             local segment=math.sqrt((p[1]-previous[1])^2+(p[2]-previous[2])^2)
             if s.next>=#r.points then
-                -- Native review showed that wrapping a short per-block route reads
-                -- as an obvious reset/teleport. Walk the validated route once and
-                -- become a background idler at the destination instead.
+                -- Walk the validated route once and become a background idler at
+                -- the destination. There is intentionally no wrap/reset to start.
                 s.finished=true
                 s.wait=0
                 moving=false
@@ -78,9 +93,7 @@ function bs_city_extra_main(e)
         end
     end
     animation(e,s,moving and "Walk_Loop" or "Idle")
-    SetPosition(e,s.x,r.y,s.z)
-    SetRotation(e,0,s.yaw,0)
-    AISetEntityPosition(g_Entity[e].obj,s.x,r.y,s.z)
+    place_object(e,s)
 end
 
 function bs_city_extra_exit(e)

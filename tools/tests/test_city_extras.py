@@ -50,7 +50,7 @@ class ExtrasTests(unittest.TestCase):
         lua.globals().test_routes=routes
         lua.execute('''
           package.preload['scriptbank\\\\user\\\\black_signal\\\\bs_city_extra_routes']=function() return test_routes end
-          g_Time=0; g_Entity={}; positions={}; rotations={}; animations={}
+          g_Time=0; g_Entity={}; positions={}; rotations={}; animations={}; object_to_entity={}
           function CharacterControlLimbo(e) end
           function CollisionOff(e) end
           function HideEntityAttachment(e) end
@@ -61,16 +61,29 @@ class ExtrasTests(unittest.TestCase):
           function SetAnimationSpeed(e,v) end
           function LoopAnimation(e) end
           function GetEntityAnimationNameExist(e,n) return 1 end
-          function SetPosition(e,x,y,z) positions[e]={x,y,z} end
-          function SetRotation(e,x,y,z) rotations[e]=y end
-          function AISetEntityPosition(e,x,y,z) end
+          -- Legacy entity transform APIs must never be used for MAX characters;
+          -- native review showed the controller snapping those moves back to spawn.
+          function SetPosition(e,x,y,z) error('legacy SetPosition used') end
+          function SetRotation(e,x,y,z) error('legacy SetRotation used') end
+          function AISetEntityPosition(e,x,y,z) error('legacy AISetEntityPosition used') end
+          function PositionObject(obj,x,y,z)
+            local e=object_to_entity[obj]
+            assert(e~=nil,'PositionObject called with entity id instead of object id')
+            positions[e]={x,y,z}
+          end
+          function RotateObject(obj,x,y,z)
+            local e=object_to_entity[obj]
+            assert(e~=nil,'RotateObject called with entity id instead of object id')
+            rotations[e]=y
+          end
         ''')
         lua.execute((ROOT/'gameguru/Files/scriptbank/user/black_signal/bs_city_extra.lua').read_text())
         lua.execute('''
           actors_test={}
           for i=1,216 do
             local n=string.format('BS_EXTRA_%03d',i)
-            g_Entity[i]={obj=i}; actors_test[i]=test_routes[n]
+            local obj=10000+i
+            g_Entity[i]={obj=obj}; object_to_entity[obj]=i; actors_test[i]=test_routes[n]
             bs_city_extra_init_name(i,n)
           end
           moved={}
@@ -80,6 +93,7 @@ class ExtrasTests(unittest.TestCase):
               local r=actors_test[i]
               bs_city_extra_main(i)
               local p=positions[i]
+              assert(p~=nil,'object transform was not written')
               assert(math.abs(p[2]-r.y)<0.001,'height drift')
               if #r.points>0 then
                 local on_route=false
