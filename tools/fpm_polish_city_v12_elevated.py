@@ -88,29 +88,33 @@ def _append(rows, existing, row):
 
 
 def _tier2_gallery(parcel, measured):
-    """Build a second exterior gallery directly above the proven V12 gallery.
+    """Build an opposite-facade second gallery at ground+400.
 
-    The first V12 gallery tops out at ground+200.  Here an overhang starts at
-    +200 and reaches +400; the roof-tile deck spans +380..+400, deliberately
-    overlapping the support by 20 units so there is no visible vertical gap.
+    V12's original reachable gallery occupies the west face at ground+200 and an
+    upper resident is staged there.  The new level is intentionally moved to the
+    east face rather than stacked through that resident.  The overhang starts at
+    +200 and reaches +400; the roof-tile deck spans +380..+400, overlapping the
+    support by 20 units so there is no visible vertical gap.
     """
     _assert_profiles(measured)
     if parcel["floors"] < 4:
         raise base.FpmError(f"{parcel['name']} is too short for a tier-two gallery")
 
     x, z, g = parcel["x"], parcel["z"], parcel["ground"]
+    facade_x = x + parcel["width"]
     top = g + TIER2_HEIGHT
     rows = []
 
-    # Same proven west-side gallery grammar as V12, one storey higher.
+    # Mirror the proven V12 gallery grammar onto the east facade.  Yaw 270 makes
+    # the measured overhang project outward (+X) from the saved facade plane.
     for dz in (300, 500):
         rows.append(
             dict(
                 asset=SUPPORT_ASSET,
-                x=x,
+                x=facade_x,
                 y=g + 200,
                 z=z + dz,
-                yaw=90,
+                yaw=270,
                 group="elevated-tier2-support",
                 parcel=parcel["name"],
             )
@@ -118,23 +122,23 @@ def _tier2_gallery(parcel, measured):
         rows.append(
             dict(
                 asset=DECK_ASSET,
-                x=x - 120,
+                x=facade_x + 120,
                 y=top - measured[DECK_ASSET]["max"][1],
                 z=z + dz,
                 yaw=0,
                 group="elevated-tier2-deck",
                 parcel=parcel["name"],
                 deck_top=top,
+                mount_side="east",
             )
         )
 
-    # Outer railing plus both end caps.  The building facade itself is the inner
-    # barrier, so we do not duplicate a rail against the wall.
+    # Outer railing plus both end caps.  The facade is the inner barrier.
     for dz in (250, 350, 450, 550):
         rows.append(
             dict(
                 asset=RAIL_ASSET,
-                x=x - 220,
+                x=facade_x + 220,
                 y=top + 0.1,
                 z=z + dz,
                 yaw=90,
@@ -143,11 +147,11 @@ def _tier2_gallery(parcel, measured):
             )
         )
     for cap_z in (z + 200, z + 600):
-        for dx in (-170, -70):
+        for dx in (70, 170):
             rows.append(
                 dict(
                     asset=RAIL_ASSET,
-                    x=x + dx,
+                    x=facade_x + dx,
                     y=top + 0.1,
                     z=cap_z,
                     yaw=0,
@@ -156,12 +160,10 @@ def _tier2_gallery(parcel, measured):
                 )
             )
 
-    # One practical source gives each upper balcony enough shape for dialogue or
-    # surveillance coverage without washing out the cold morning ambience.
     rows.append(
         dict(
             asset=LIGHT_ASSET,
-            x=x - 120,
+            x=facade_x + 120,
             y=top + 45,
             z=z + 400,
             yaw=0,
@@ -241,8 +243,6 @@ def _skybridge(left, right, measured):
             )
         )
 
-    # Store the exact contact planes so tests/native reports can prove the bridge
-    # was authored flush to both buildings instead of visually eyeballed.
     rows[0]["contact_left"] = x0
     rows[-3]["contact_right"] = x1
     return rows
@@ -262,7 +262,7 @@ def _rooftop_terrace(parcel, measured):
 
     # Four approximately 200-unit rail modules per 800-unit side.  We use a
     # 2x X scale on the measured 96-unit guard.  On the south edge the two
-    # central modules are intentionally omitted, leaving a ~400-unit camera gap.
+    # central modules are omitted, leaving a ~400-unit camera gap.
     x_centers = [x0 + 100 + i * 200 for i in range(4)]
     z_centers = [z0 + 100 + i * 200 for i in range(4)]
     for side_z, edge_name in ((z0 + inset, "north"), (z0 + d - inset, "south")):
