@@ -1,5 +1,4 @@
 import json
-import math
 import sys
 import unittest
 from collections import Counter
@@ -60,12 +59,16 @@ class ElevatedPassTests(unittest.TestCase):
             self.assertEqual(groups["elevated-tier2-light"], 1)
 
             target = p["ground"] + elevated.TIER2_HEIGHT
+            east_face = p["x"] + p["width"]
             for row in rows:
                 if row["group"] == "elevated-tier2-deck":
                     self.assertAlmostEqual(row["y"] + deck["max"][1], target, delta=0.05)
                     self.assertLessEqual(row["y"] + deck["min"][1], target)
-                    self.assertEqual(row["x"], p["x"] - 120)
+                    self.assertEqual(row["x"], east_face + 120)
+                    self.assertEqual(row["mount_side"], "east")
                 elif row["group"] == "elevated-tier2-support":
+                    self.assertEqual(row["x"], east_face)
+                    self.assertEqual(row["yaw"], 270)
                     self.assertAlmostEqual(row["y"] + support["max"][1], target, delta=0.05)
                 elif row["group"] == "elevated-tier2-rail":
                     self.assertAlmostEqual(row["y"], target + 0.1, delta=0.01)
