@@ -1,5 +1,6 @@
 import copy
 import json
+import math
 from pathlib import Path
 import sys
 import unittest
@@ -30,11 +31,12 @@ class ExtrasTests(unittest.TestCase):
         for r in walkers:
             self.assertGreaterEqual(len(r['route']),3)
             self.assertNotEqual(r['route'][0],r['route'][-1])
-            distance=sum(
-                ((b[0]-a[0])**2+(b[1]-a[1])**2)**0.5
-                for a,b in zip(r['route'],r['route'][1:])
-            )
+            distance=sum(math.dist(a,b) for a,b in zip(r['route'],r['route'][1:]))
             self.assertGreater(distance,400)
+            self.assertLessEqual(
+                max(math.dist(a,b) for a,b in zip(r['route'],r['route'][1:])),
+                extras.MAX_ROUTE_STEP+0.01,
+            )
         extras.validate(self.rows,self.parcels,self.measured,city.hero.world_bounds,city.measured_city.intersects)
 
     def test_road_shortcut_is_rejected(self):
@@ -44,37 +46,59 @@ class ExtrasTests(unittest.TestCase):
         with self.assertRaises(ValueError):extras.validate(rows,self.parcels,self.measured,city.hero.world_bounds,city.measured_city.intersects)
 
     @unittest.skipIf(LuaRuntime is None,'Install lupa for the Lua movement simulation')
-    def test_actual_lua_movement_ten_minutes(self):
+    def test_actual_lua_movement_uses_native_max_character_pathing(self):
         lua=LuaRuntime(unpack_returned_tuples=True)
         routes=lua.execute(extras.render_lua(self.rows))
         lua.globals().test_routes=routes
         lua.execute('''
           package.preload['scriptbank\\\\user\\\\black_signal\\\\bs_city_extra_routes']=function() return test_routes end
-          g_Time=0; g_Entity={}; positions={}; rotations={}; animations={}; object_to_entity={}
-          function CharacterControlLimbo(e) end
-          function CollisionOff(e) end
+          g_Time=0; g_Entity={}; animations={}; native_targets={}; native_started={}; pending_path=nil; pending_count=0
+          function CollisionOn(e) end
           function HideEntityAttachment(e) end
           function SetEntityAlwaysActive(e,v) end
           function SetEntityHealthSilent(e,v) end
+          function SetEntityMoveSpeed(e,v) g_Entity[e].move_speed=v end
+          function SetEntityTurnSpeed(e,v) g_Entity[e].turn_speed=v end
           function StopAnimation(e) end
           function SetAnimationName(e,n) animations[e]=n end
           function SetAnimationSpeed(e,v) end
           function LoopAnimation(e) end
           function GetEntityAnimationNameExist(e,n) return 1 end
-          -- Legacy entity transform APIs must never be used for MAX characters;
-          -- native review showed the controller snapping those moves back to spawn.
-          function SetPosition(e,x,y,z) error('legacy SetPosition used') end
-          function SetRotation(e,x,y,z) error('legacy SetRotation used') end
-          function AISetEntityPosition(e,x,y,z) error('legacy AISetEntityPosition used') end
-          function PositionObject(obj,x,y,z)
-            local e=object_to_entity[obj]
-            assert(e~=nil,'PositionObject called with entity id instead of object id')
-            positions[e]={x,y,z}
+          function CharacterControlLimbo(e) error('CharacterControlLimbo must not be used') end
+          function CollisionOff(e) error('CollisionOff must not be used') end
+          function PositionObject(...) error('PositionObject must not be used') end
+          function RotateObject(...) error('RotateObject must not be used') end
+          function SetPosition(...) error('SetPosition must not be used') end
+          function SetRotation(...) error('SetRotation must not be used') end
+          function AISetEntityPosition(...) error('AISetEntityPosition must not be used') end
+          function GetEntityPosAng(e)
+            local a=g_Entity[e]
+            return a.x,a.y,a.z,0,a.yaw or 0,0
           end
-          function RotateObject(obj,x,y,z)
-            local e=object_to_entity[obj]
-            assert(e~=nil,'RotateObject called with entity id instead of object id')
-            rotations[e]=y
+          function RDFindPath(sx,sy,sz,tx,ty,tz)
+            pending_path={tx,ty,tz}; pending_count=2
+          end
+          function RDGetPathPointCount() return pending_count end
+          function SetEntityPathRotationMode(e,v) g_Entity[e].path_rotation=v end
+          function StartMoveAndRotateToXYZ(e,speed,turn,tilt,stop)
+            assert(pending_path~=nil,'StartMove called without RDFindPath')
+            native_targets[e]={pending_path[1],pending_path[2],pending_path[3]}
+            native_started[e]=(native_started[e] or 0)+1
+          end
+          function MoveAndRotateToXYZ(e,speed,turn,stop)
+            if speed<=0 then return 0 end
+            local target=native_targets[e]
+            assert(target~=nil,'MoveAndRotateToXYZ called before StartMoveAndRotateToXYZ')
+            local a=g_Entity[e]
+            local dx,dz=target[1]-a.x,target[3]-a.z
+            local d=math.sqrt(dx*dx+dz*dz)
+            if d>0 then
+              local step=math.min(d,math.max(1,speed*12))
+              a.x=a.x+dx/d*step
+              a.z=a.z+dz/d*step
+              a.y=target[2]
+            end
+            return 1
           end
         ''')
         lua.execute((ROOT/'gameguru/Files/scriptbank/user/black_signal/bs_city_extra.lua').read_text())
@@ -82,53 +106,43 @@ class ExtrasTests(unittest.TestCase):
           actors_test={}
           for i=1,216 do
             local n=string.format('BS_EXTRA_%03d',i)
-            local obj=10000+i
-            g_Entity[i]={obj=obj}; object_to_entity[obj]=i; actors_test[i]=test_routes[n]
+            local r=test_routes[n]
+            g_Entity[i]={x=r.x,y=r.y,z=r.z,yaw=r.yaw}
+            actors_test[i]=r
             bs_city_extra_init_name(i,n)
           end
-          moved={}
-          for frame=1,18000 do
+          for frame=1,5000 do
             g_Time=frame*1000/30
-            for i=1,216 do
-              local r=actors_test[i]
-              bs_city_extra_main(i)
-              local p=positions[i]
-              assert(p~=nil,'object transform was not written')
-              assert(math.abs(p[2]-r.y)<0.001,'height drift')
-              if #r.points>0 then
-                local on_route=false
-                for k=1,#r.points-1 do
-                  local a,b=r.points[k],r.points[k+1]
-                  local dx,dz=b[1]-a[1],b[2]-a[2]
-                  local denom=dx*dx+dz*dz
-                  local t=0
-                  if denom>0 then t=math.max(0,math.min(1,((p[1]-a[1])*dx+(p[3]-a[2])*dz)/denom)) end
-                  if (p[1]-a[1]-t*dx)^2+(p[3]-a[2]-t*dz)^2<0.01 then on_route=true;break end
-                end
-                assert(on_route,'left validated sidewalk corridor')
-                if (p[1]-r.x)^2+(p[3]-r.z)^2>10000 then moved[i]=true end
-              else
-                assert(p[1]==r.x and p[3]==r.z,'stationary extra drift')
-              end
-            end
+            for i=1,216 do bs_city_extra_main(i) end
           end
-          local count=0;for _ in pairs(moved) do count=count+1 end
-          assert(count==144,'not every walker moved')
-          -- Every walker should finish at its final validated point and stay there.
+          local moved=0
           for i=1,216 do
             local r=actors_test[i]
+            local p=g_Entity[i]
             if #r.points>0 then
-              local p=positions[i]
               local last=r.points[#r.points]
-              assert((p[1]-last[1])^2+(p[3]-last[2])^2<0.01,'walker did not finish at route endpoint')
+              assert((p.x-last[1])^2+(p.z-last[2])^2<200,'walker did not finish near route endpoint')
+              assert((native_started[i] or 0)>0,'walker never started native MAX pathing')
+              moved=moved+1
+            else
+              assert(p.x==r.x and p.z==r.z,'stationary extra drift')
             end
           end
-          local p=positions[1];g_Time=g_Time+60000;bs_city_extra_main(1)
-          assert((positions[1][1]-p[1])^2+(positions[1][3]-p[3])^2<0.01,'finished walker reset or teleported')
+          assert(moved==144,'not every walker used native pathing')
+
+          -- A finished actor must stay at its endpoint instead of wrapping to spawn.
+          local x,z=g_Entity[1].x,g_Entity[1].z
+          for frame=1,120 do g_Time=g_Time+33;bs_city_extra_main(1) end
+          assert((g_Entity[1].x-x)^2+(g_Entity[1].z-z)^2<0.01,'finished walker reset or teleported')
+
+          -- Missing walk clips fail closed to idle instead of sliding or transform-driving.
           function GetEntityAnimationNameExist(e,n) return n=='Walk_Loop' and 0 or 1 end
+          local r=actors_test[1]
+          g_Entity[1].x=r.x;g_Entity[1].y=r.y;g_Entity[1].z=r.z
           bs_city_extra_init_name(1,'BS_EXTRA_001')
+          local sx,sz=g_Entity[1].x,g_Entity[1].z
           for frame=1,60 do g_Time=g_Time+33;bs_city_extra_main(1) end
-          assert(positions[1][1]==actors_test[1].x and positions[1][3]==actors_test[1].z,'missing walk clip caused sliding')
+          assert(g_Entity[1].x==sx and g_Entity[1].z==sz,'missing walk clip caused sliding')
           assert(animations[1]=='Idle')
         ''')
 

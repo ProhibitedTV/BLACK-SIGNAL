@@ -7,6 +7,7 @@ from pathlib import Path
 SCRIPT=r'user\black_signal\bs_city_extra.lua'
 ASSETS=[f'{sex} {n}' for sex in ('female','male') for n in (1,2,3)]
 RADIUS=18
+MAX_ROUTE_STEP=100
 
 def obstacles(rows,measurements,world_bounds,ground):
     out=[]
@@ -87,6 +88,24 @@ def open_walk(route,phase):
     if len(route)<3:raise ValueError('Background route must have at least three points')
     return [route[(phase+k)%len(route)] for k in range(len(route))]
 
+def densify_walk(points,max_step=MAX_ROUTE_STEP):
+    """Split validated straight route segments into short native-MAX path hops.
+
+    GameGuru MAX's character controller is now authoritative for movement.  We
+    keep each RDFindPath request local to the already validated sidewalk corridor
+    so the engine has no reason to take a large shortcut through a street or
+    across the opposite side of a block.
+    """
+    if len(points)<2:return points[:]
+    out=[points[0][:]]
+    for a,b in zip(points,points[1:]):
+        distance=math.dist(a,b)
+        count=max(1,math.ceil(distance/max_step))
+        for i in range(1,count+1):
+            t=i/count
+            out.append([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t])
+    return out
+
 def plan(parcels,scene,measurements=None):
     rows=[]
     measured=measurements or json.loads((Path(__file__).resolve().parents[1]/'docs/cybercity-kit-measurements.json').read_text())
@@ -99,7 +118,7 @@ def plan(parcels,scene,measurements=None):
         for j in range(6):
             walking=j<4
             phase=len(route)*j//4
-            points=open_walk(route,phase) if walking else []
+            points=densify_walk(open_walk(route,phase)) if walking else []
             x,z=points[0] if walking else ((p['x']+320,p['z']-100) if j==4 else (p['x']-100,p['z']+p['depth']/2))
             yaw=math.degrees(math.atan2(points[1][0]-x,points[1][1]-z))%360 if walking else (0 if j==4 else 90)
             rows.append(dict(asset=ASSETS[(i*5+j)%6],x=x,y=p['ground'],z=z,yaw=yaw,
@@ -130,6 +149,9 @@ def validate(rows,parcels,measurements,world_bounds,intersects):
         p=byname[r['parcel']];lo,hi,bottom,top=r['bounds']
         envelope=(p['x']-20,p['x']+p['width']+20,p['z']-20,p['z']+p['depth']+20)
         local=[(o,b) for o,b in obstacles if b[1]>=lo and b[0]<=hi and b[3]>=bottom and b[2]<=top]
+        if r['route']:
+            longest=max(math.dist(a,b) for a,b in zip(r['route'],r['route'][1:]))
+            if longest>MAX_ROUTE_STEP+0.01:raise ValueError('Native path hop exceeds validated local-step budget')
         for x,z in samples(r):
             box=(x-RADIUS,x+RADIUS,z-RADIUS,z+RADIUS)
             if box[0]<lo or box[1]>hi or box[2]<bottom or box[3]>top:raise ValueError('Extra leaves paved sidewalk')
