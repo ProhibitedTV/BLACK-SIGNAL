@@ -1,8 +1,13 @@
 -- DESCRIPTION: Background civilian following a prevalidated sidewalk-only film route.
--- No combat AI or navmesh shortcuts. Routes are generated with the saved FPM.
+-- Movement deliberately uses GameGuru MAX's native character pathing API.  Native
+-- review showed that manually writing entity/object transforms fights the MAX
+-- character controller and produces a short walk/snap-back loop.
 local routes = require "scriptbank\\user\\black_signal\\bs_city_extra_routes"
 local actors = {}
-local atan2 = math.atan2 or function(y,x) return math.atan(y,x) end
+
+local ARRIVE_DISTANCE = 12
+local STOP_DISTANCE = 5
+local TURN_SPEED = 100
 
 local function animation(e,s,name)
     if s.animation == name then return end
@@ -12,30 +17,55 @@ local function animation(e,s,name)
     end
     StopAnimation(e)
     SetAnimationName(e,name)
-    SetAnimationSpeed(e,1)
+    SetAnimationSpeed(e,0.85)
     LoopAnimation(e)
     s.animation = name
 end
 
-local function place_object(e,s)
-    -- MAX does not reliably keep legacy SetPosition/AISetEntityPosition character
-    -- moves authoritative. The character controller can snap the entity back to
-    -- its editor spawn. Drive the rendered object transform directly instead.
-    local entity = g_Entity[e]
-    local obj = entity and entity.obj or 0
-    if not obj or obj <= 0 then
-        s.disabled = true
+local function stop_native(e,s)
+    if s.path_started then
+        MoveAndRotateToXYZ(e,0,0,0)
+    end
+    s.path_started = false
+end
+
+local function begin_segment(e,s)
+    local r=s.route
+    local p=r.points[s.next]
+    if not p then
+        s.finished=true
+        stop_native(e,s)
         return false
     end
-    PositionObject(obj,s.x,s.route.y,s.z)
-    RotateObject(obj,0,s.yaw,0)
+
+    local ex,ey,ez=GetEntityPosAng(e)
+    RDFindPath(ex,ey,ez,p[1],r.y,p[2])
+    local count=RDGetPathPointCount()
+    if not count or count<=0 then
+        -- Fail closed.  A background extra that cannot obtain a native MAX path
+        -- should idle where it is, not fall back to transform writes that can
+        -- fight the character controller or cut across the road.
+        s.disabled=true
+        stop_native(e,s)
+        return false
+    end
+
+    SetEntityPathRotationMode(e,1)
+    StartMoveAndRotateToXYZ(e,s.native_speed,TURN_SPEED,0,STOP_DISTANCE)
+    s.path_started=true
     return true
 end
 
+local function distance_to_target(e,s)
+    local p=s.route.points[s.next]
+    if not p then return 0 end
+    local x,y,z=GetEntityPosAng(e)
+    local dx,dz=p[1]-x,p[2]-z
+    return math.sqrt(dx*dx+dz*dz)
+end
+
 -- GameGuru MAX supplies the placed entity name through the _init_name callback,
--- which is what binds each actor to its generated BS_EXTRA_* route. Keep the
--- conventional _init entry point as a compatibility shim for repository/runtime
--- contracts; it intentionally does not invent a route when no name is available.
+-- which binds each actor to its generated BS_EXTRA_* route.
 function bs_city_extra_init(e)
     actors[e] = nil
 end
@@ -43,59 +73,71 @@ end
 function bs_city_extra_init_name(e,name)
     local r=routes[name]
     if not r then return end
-    actors[e]={route=r,x=r.x,z=r.z,yaw=r.yaw,next=2,last=g_Time or 0,wait=0,finished=false}
-    -- Put the stock character controller into limbo once, then leave the object
-    -- under this script's direct transform control for the rest of the shot.
-    CharacterControlLimbo(e)
-    CollisionOff(e) -- Cinematic extras cannot be pushed off their pavement route.
+
+    local move_speed=math.max(65,math.min(90,math.floor((r.speed or 36)*2.2)))
+    actors[e]={
+        route=r,
+        next=2,
+        finished=#r.points<=1,
+        disabled=false,
+        path_started=false,
+        native_speed=move_speed/100,
+        animation=nil,
+    }
+
+    -- Keep the native character controller alive.  The stock MAX npc_control
+    -- script uses this same RDFindPath -> StartMoveAndRotateToXYZ ->
+    -- MoveAndRotateToXYZ movement stack; do not put these actors in Limbo and do
+    -- not directly PositionObject/SetPosition them.
+    CollisionOn(e)
     HideEntityAttachment(e)
     SetEntityHealthSilent(e,999999)
     SetEntityAlwaysActive(e,1)
-    animation(e,actors[e],#r.points>1 and "Walk_Loop" or "Idle")
+    SetEntityMoveSpeed(e,move_speed)
+    SetEntityTurnSpeed(e,TURN_SPEED)
+
+    if #r.points>1 then
+        animation(e,actors[e],"Walk_Loop")
+        if not actors[e].disabled then begin_segment(e,actors[e]) end
+    else
+        animation(e,actors[e],"Idle")
+    end
 end
 
 function bs_city_extra_main(e)
     local s=actors[e]
     if not s then return end
-    local now=g_Time or 0
-    local dt=math.max(0,math.min((now-s.last)/1000,0.1))
-    s.last=now
-    local r=s.route
-    local moving=#r.points>1 and not s.disabled and not s.finished
-    if s.wait>0 then
-        s.wait=math.max(0,s.wait-dt)
-        moving=false
-    elseif moving then
-        local p=r.points[s.next]
-        local dx,dz=p[1]-s.x,p[2]-s.z
-        local distance=math.sqrt(dx*dx+dz*dz)
-        if distance<=r.speed*dt then
-            s.x,s.z=p[1],p[2]
-            local previous=r.points[s.next-1]
-            local segment=math.sqrt((p[1]-previous[1])^2+(p[2]-previous[2])^2)
-            if s.next>=#r.points then
-                -- Walk the validated route once and become a background idler at
-                -- the destination. There is intentionally no wrap/reset to start.
-                s.finished=true
-                s.wait=0
-                moving=false
-            else
-                s.next=s.next+1
-                s.wait=segment>200 and r.pause or 0
-                moving=s.wait==0
-            end
-        elseif distance>0 then
-            s.x=s.x+dx/distance*r.speed*dt
-            s.z=s.z+dz/distance*r.speed*dt
-            local target=math.deg(atan2(dx,dz))%360
-            local turn=(target-s.yaw+180)%360-180
-            s.yaw=(s.yaw+math.max(-180*dt,math.min(180*dt,turn)))%360
+
+    local moving=not s.disabled and not s.finished and #s.route.points>1
+    if moving then
+        if not s.path_started then
+            moving=begin_segment(e,s)
         end
+        if moving and s.path_started then
+            -- Let MAX own both the entity transform and character controller.
+            -- This is intentionally the same movement API family used by the
+            -- stock MAX NPC patrol implementation.
+            MoveAndRotateToXYZ(e,s.native_speed,TURN_SPEED,STOP_DISTANCE)
+            if distance_to_target(e,s)<=ARRIVE_DISTANCE then
+                stop_native(e,s)
+                if s.next>=#s.route.points then
+                    s.finished=true
+                    moving=false
+                else
+                    s.next=s.next+1
+                    moving=begin_segment(e,s)
+                end
+            end
+        end
+    else
+        stop_native(e,s)
     end
+
     animation(e,s,moving and "Walk_Loop" or "Idle")
-    place_object(e,s)
 end
 
 function bs_city_extra_exit(e)
+    local s=actors[e]
+    if s then stop_native(e,s) end
     actors[e]=nil
 end
