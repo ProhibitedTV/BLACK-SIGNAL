@@ -15,7 +15,7 @@ if ($Deploy -and (Get-Process GameGuruMAX -ErrorAction SilentlyContinue)) { thro
 if ($LASTEXITCODE -ne 0) { throw 'Installed asset dependency check failed.' }
 if (-not $Candidate) {
     $Candidate=Join-Path $repo "_fpm_generated\$name-polish-v12-$stamp.fpm"
-    & $PythonPath -B (Join-Path $PSScriptRoot 'fpm_polish_city_v12_lighting.py') --source $source --output $Candidate
+    & $PythonPath -B (Join-Path $PSScriptRoot 'fpm_polish_city_v12_elevated.py') --source $source --output $Candidate
     if ($LASTEXITCODE -ne 0) { throw 'Incremental export failed.' }
 }
 $Candidate=(Resolve-Path -LiteralPath $Candidate).Path
@@ -64,5 +64,5 @@ foreach ($t in $targets) {
 }
 Copy-Item -LiteralPath $receipt -Destination $previous -Force
 Copy-Item -LiteralPath ([IO.Path]::ChangeExtension($Candidate,'.report.json')) -Destination (Join-Path $repo 'gameguru\buildplans\district12-v12-layout.json') -Force
-Write-Host "Applied native-review fixes and restrained lighting pass. SHA256: $hash"
+Write-Host "Applied native-review fixes, restrained lighting, and elevated filming spaces. SHA256: $hash"
 Write-Host "Backup: $backup"
