@@ -1,19 +1,9 @@
 #!/usr/bin/env python3
 """Inspect GameGuru MAX v316 relationship data in one or two FPM files.
 
-This tool exists for reverse-engineering *native editor-authored* relationships such
-as Character -> Flag -> Flag patrol graphs.  It is deliberately read-only and does
-not assign semantics to the v316 fields until a manually-authored MAX reference map
-proves them.
-
-Typical workflow:
-
-  python tools/fpm_analyze_relationships.py baseline.fpm reference-with-flags.fpm \
-      --report-json build/flag-relationship-diff.json
-
-The second map should be a copy of the baseline saved by GameGuru MAX after adding a
-small native patrol graph in Visual Logic.  The report highlights new entities and
-records whose v316 relationship payload changed.
+This tool is for reverse-engineering editor-authored relationship graphs such as
+Character -> Flag -> Flag patrols. It is deliberately read-only and keeps the
+currently opaque v316 fields raw until a native MAX save proves their semantics.
 """
 from __future__ import annotations
 
@@ -30,14 +20,7 @@ RELATION_PAYLOAD_BYTES = 7 * 4 + 2 * 4 + RELATION_SLOT_COUNT * (4 + 3 * 4)
 
 
 def _skip_to_v316(raw: bytes, version: int, record_index: int) -> tuple[BinaryReader, int]:
-    """Mirror the ELE reader only through the v316 relationship payload.
-
-    Keeping this separate from the canonical parser lets us inspect the currently
-    opaque relationship fields without changing production parsing semantics.
-    """
     r = BinaryReader(raw)
-
-    # Fixed record prefix through version 101.
     r.skip_i32(3, f"entity {record_index} maintype/bank/static")
     r.skip_f32(6, f"entity {record_index} transform")
     r.crlf_string(f"entity {record_index} name")
@@ -60,48 +43,30 @@ def _skip_to_v316(raw: bytes, version: int, record_index: int) -> tuple[BinaryRe
         r.skip_i32(6, f"entity {record_index} v102 weapon")
         r.skip_f32(2, f"entity {record_index} v102 throw")
         r.skip_i32(12, f"entity {record_index} v102 spawn/flags")
-    if version >= 103:
-        r.skip_i32(9, f"entity {record_index} v103 physics")
-    if version >= 104:
-        r.skip_i32(1, f"entity {record_index} v104 phyalways")
-    if version >= 105:
-        r.skip_i32(6, f"entity {record_index} v105 random spawn")
-    if version >= 106:
-        r.skip_i32(2, f"entity {record_index} v106 spawn lifecycle")
-    if version >= 107:
-        r.skip_i32(1, f"entity {record_index} v107 light index")
-    if version >= 199:
-        r.skip_i32(17, f"entity {record_index} v199 placeholders")
-    if version >= 200:
-        r.skip_i32(6, f"entity {record_index} v200 placeholders")
-    if version >= 217:
-        r.skip_i32(17, f"entity {record_index} v217 particle")
-    if version >= 218:
-        r.skip_i32(1, f"entity {record_index} v218 particle animated")
-    if version >= 301:
-        r.skip_strings(4, f"entity {record_index} v301 AI names")
-    if version >= 303:
-        r.skip_i32(1, f"entity {record_index} v303 animspeed")
-    if version >= 304:
-        r.skip_f32(1, f"entity {record_index} v304 conerange")
+    if version >= 103: r.skip_i32(9, f"entity {record_index} v103 physics")
+    if version >= 104: r.skip_i32(1, f"entity {record_index} v104 phyalways")
+    if version >= 105: r.skip_i32(6, f"entity {record_index} v105 random spawn")
+    if version >= 106: r.skip_i32(2, f"entity {record_index} v106 spawn lifecycle")
+    if version >= 107: r.skip_i32(1, f"entity {record_index} v107 light index")
+    if version >= 199: r.skip_i32(17, f"entity {record_index} v199 placeholders")
+    if version >= 200: r.skip_i32(6, f"entity {record_index} v200 placeholders")
+    if version >= 217: r.skip_i32(17, f"entity {record_index} v217 particle")
+    if version >= 218: r.skip_i32(1, f"entity {record_index} v218 particle animated")
+    if version >= 301: r.skip_strings(4, f"entity {record_index} v301 AI names")
+    if version >= 303: r.skip_i32(1, f"entity {record_index} v303 animspeed")
+    if version >= 304: r.skip_f32(1, f"entity {record_index} v304 conerange")
     if version >= 305:
         r.skip_f32(3, f"entity {record_index} v305 scale xyz")
         r.skip_i32(2, f"entity {record_index} v305 range/dropoff")
-    if version >= 306:
-        r.skip_i32(1, f"entity {record_index} v306 violent")
-    if version >= 307:
-        r.skip_i32(1, f"entity {record_index} v307 explodeheight")
-    if version >= 308:
-        r.skip_i32(1, f"entity {record_index} v308 spotlighting")
-    if version >= 309:
-        r.skip_i32(1, f"entity {record_index} v309 lodmodifier")
+    if version >= 306: r.skip_i32(1, f"entity {record_index} v306 violent")
+    if version >= 307: r.skip_i32(1, f"entity {record_index} v307 explodeheight")
+    if version >= 308: r.skip_i32(1, f"entity {record_index} v308 spotlighting")
+    if version >= 309: r.skip_i32(1, f"entity {record_index} v309 lodmodifier")
     if version >= 310:
         r.skip_i32(5, f"entity {record_index} v310 occlusion/parent")
         r.skip_strings(3, f"entity {record_index} v310 soundsets")
-    if version >= 311:
-        r.skip_f32(1, f"entity {record_index} v311 lootpercentage")
-    if version >= 312:
-        r.skip_i32(1, f"entity {record_index} v312 parent index")
+    if version >= 311: r.skip_f32(1, f"entity {record_index} v311 lootpercentage")
+    if version >= 312: r.skip_i32(1, f"entity {record_index} v312 parent index")
     if version >= 313:
         r.skip_strings(1, f"entity {record_index} v313 voiceset")
         r.skip_i32(1, f"entity {record_index} v313 voicerate")
@@ -112,9 +77,7 @@ def _skip_to_v316(raw: bytes, version: int, record_index: int) -> tuple[BinaryRe
         r.skip_i32(1, f"entity {record_index} v314 material reserved")
         r.skip_strings(6, f"entity {record_index} v314 textures")
         r.skip_f32(5, f"entity {record_index} v314 material scalars")
-    if version >= 315:
-        r.skip_i32(1, f"entity {record_index} v315 light probe")
-
+    if version >= 315: r.skip_i32(1, f"entity {record_index} v315 light probe")
     return r, r.offset
 
 
@@ -131,10 +94,7 @@ def relationship_payload(raw: bytes, version: int, record_index: int) -> dict[st
         slots.append({"slot": i, "value": value, "ids": ids})
     end = r.offset
     if end - start != RELATION_PAYLOAD_BYTES:
-        raise FpmError(
-            f"Unexpected v316 payload size for entity {record_index}: {end-start} "
-            f"(expected {RELATION_PAYLOAD_BYTES})"
-        )
+        raise FpmError(f"Unexpected v316 payload size for entity {record_index}: {end-start}")
     return {
         "offset": start,
         "bytes": end - start,
@@ -150,40 +110,34 @@ def _interesting(payload: dict[str, Any] | None) -> bool:
         return False
     if any(payload["header_i32"]):
         return True
-    if any(abs(v) > 1e-6 for v in payload["ranges_f32"] if math.isfinite(v)):
+    if any(math.isfinite(v) and abs(v) > 1e-6 for v in payload["ranges_f32"]):
         return True
-    for slot in payload["slots"]:
-        if any(slot["ids"]) or abs(slot["value"]) > 1e-6:
-            return True
-    return False
+    return any(any(s["ids"]) or abs(s["value"]) > 1e-6 for s in payload["slots"])
 
 
-def inspect_fpm(path: Path, include_all: bool = False) -> dict[str, Any]:
+def inspect_fpm(path: Path, include_all: bool = True) -> dict[str, Any]:
     with FpmArchive(path) as archive:
         ent = parse_map_ent(archive.read("map.ent"))
         ele = archive.read("map.ele")
         parsed = parse_map_ele(ele, ent["entries"])
-
     rows = []
     for entity in parsed["entities"]:
-        raw = ele[entity["record_start_offset"] : entity["record_end_offset"]]
+        raw = ele[entity["record_start_offset"]:entity["record_end_offset"]]
         rel = relationship_payload(raw, parsed["version"], entity["record_index"])
         if include_all or _interesting(rel):
-            rows.append(
-                {
-                    "record_index": entity["record_index"],
-                    "name": entity.get("name"),
-                    "asset": entity.get("asset"),
-                    "aimain": entity.get("aimain"),
-                    "position": entity.get("position"),
-                    "relationship": rel,
-                }
-            )
+            rows.append({
+                "record_index": entity["record_index"],
+                "name": entity.get("name"),
+                "asset": entity.get("asset"),
+                "aimain": entity.get("aimain"),
+                "position": entity.get("position"),
+                "relationship": rel,
+            })
     return {
         "fpm": str(path.resolve()),
         "version": parsed["version"],
         "entity_count": parsed["entity_count"],
-        "interesting_entity_count": len(rows),
+        "interesting_entity_count": sum(_interesting(r.get("relationship")) for r in rows),
         "entities": rows,
     }
 
@@ -192,42 +146,22 @@ def _entity_map(report: dict[str, Any]) -> dict[int, dict[str, Any]]:
     return {int(row["record_index"]): row for row in report["entities"]}
 
 
-def compare_reports(base: dict[str, Any], reference: dict[str, Any], include_all: bool) -> dict[str, Any]:
-    # For a clean capture, the manually edited map should preserve the baseline
-    # prefix and append only the character/flag reference entities.  We still
-    # compare by record index and make no stronger assumption than that.
-    b = _entity_map(base)
-    r = _entity_map(reference)
+def compare_reports(base: dict[str, Any], reference: dict[str, Any]) -> dict[str, Any]:
+    b, r = _entity_map(base), _entity_map(reference)
     changed = []
     for index in sorted(set(b) | set(r)):
-        left = b.get(index)
-        right = r.get(index)
+        left, right = b.get(index), r.get(index)
         if left is None:
             changed.append({"kind": "new", "record_index": index, "reference": right})
-            continue
-        if right is None:
+        elif right is None:
             changed.append({"kind": "missing", "record_index": index, "baseline": left})
-            continue
-        lrel = left.get("relationship")
-        rrel = right.get("relationship")
-        if lrel != rrel or left.get("name") != right.get("name") or left.get("asset") != right.get("asset"):
-            changed.append(
-                {
-                    "kind": "changed",
-                    "record_index": index,
-                    "baseline": left,
-                    "reference": right,
-                }
-            )
-    if not include_all:
-        # Include appended records even if their v316 payload happens to be zero so
-        # flag asset/name/marker evidence is not hidden.
-        base_count = int(base["entity_count"])
-        known = {row["record_index"] for row in changed}
-        for row in reference["entities"]:
-            if row["record_index"] > base_count and row["record_index"] not in known:
-                changed.append({"kind": "new", "record_index": row["record_index"], "reference": row})
-        changed.sort(key=lambda row: row["record_index"])
+        elif (
+            left.get("relationship") != right.get("relationship")
+            or left.get("name") != right.get("name")
+            or left.get("asset") != right.get("asset")
+            or left.get("aimain") != right.get("aimain")
+        ):
+            changed.append({"kind": "changed", "record_index": index, "baseline": left, "reference": right})
     return {
         "baseline": base["fpm"],
         "reference": reference["fpm"],
@@ -239,18 +173,28 @@ def compare_reports(base: dict[str, Any], reference: dict[str, Any], include_all
     }
 
 
+def _filtered(report: dict[str, Any], appended_after: int | None = None) -> dict[str, Any]:
+    rows = [
+        row for row in report["entities"]
+        if _interesting(row.get("relationship")) or (appended_after is not None and row["record_index"] > appended_after)
+    ]
+    return {**report, "entities": rows}
+
+
+def _active_slots(row: dict[str, Any]) -> list[dict[str, Any]]:
+    rel = row.get("relationship") or {}
+    return [s for s in rel.get("slots", []) if any(s["ids"]) or abs(s["value"]) > 1e-6]
+
+
 def print_single(report: dict[str, Any]) -> None:
     print("BLACK SIGNAL - GameGuru MAX v316 relationship inspection")
     print(f"FPM: {report['fpm']}")
-    print(f"ELE v{report['version']} | entities={report['entity_count']} | relationship rows={report['interesting_entity_count']}")
+    print(f"ELE v{report['version']} | entities={report['entity_count']}")
     for row in report["entities"]:
         rel = row.get("relationship") or {}
-        active = [slot for slot in rel.get("slots", []) if any(slot["ids"]) or abs(slot["value"]) > 1e-6]
-        print(
-            f"  #{row['record_index']} {row.get('name')!r} asset={row.get('asset')!r} "
-            f"aimain={row.get('aimain')!r} header={rel.get('header_i32')} ranges={rel.get('ranges_f32')}"
-        )
-        for slot in active:
+        print(f"  #{row['record_index']} {row.get('name')!r} asset={row.get('asset')!r} aimain={row.get('aimain')!r}")
+        print(f"      header={rel.get('header_i32')} ranges={rel.get('ranges_f32')}")
+        for slot in _active_slots(row):
             print(f"      slot {slot['slot']}: value={slot['value']:.6g} ids={slot['ids']}")
 
 
@@ -258,49 +202,39 @@ def print_diff(diff: dict[str, Any]) -> None:
     print("BLACK SIGNAL - native MAX relationship capture diff")
     print(f"Baseline:  {diff['baseline']}")
     print(f"Reference: {diff['reference']}")
-    print(
-        f"Entities: {diff['baseline_entity_count']} -> {diff['reference_entity_count']} "
-        f"(delta {diff['entity_count_delta']:+d})"
-    )
-    print(f"Changed/new relationship records: {diff['changed_record_count']}")
-    for row in diff["changed_records"]:
-        side = row.get("reference") or row.get("baseline") or {}
-        rel = side.get("relationship") or {}
-        active = [slot for slot in rel.get("slots", []) if any(slot["ids"]) or abs(slot["value"]) > 1e-6]
-        print(
-            f"  {row['kind'].upper():7s} #{row['record_index']} {side.get('name')!r} "
-            f"asset={side.get('asset')!r} aimain={side.get('aimain')!r} "
-            f"header={rel.get('header_i32')} ranges={rel.get('ranges_f32')}"
-        )
-        for slot in active:
+    print(f"Entities: {diff['baseline_entity_count']} -> {diff['reference_entity_count']} (delta {diff['entity_count_delta']:+d})")
+    print(f"Changed/new records: {diff['changed_record_count']}")
+    for item in diff["changed_records"]:
+        row = item.get("reference") or item.get("baseline") or {}
+        rel = row.get("relationship") or {}
+        print(f"  {item['kind'].upper():7s} #{item['record_index']} {row.get('name')!r} asset={row.get('asset')!r} aimain={row.get('aimain')!r}")
+        print(f"      header={rel.get('header_i32')} ranges={rel.get('ranges_f32')}")
+        for slot in _active_slots(row):
             print(f"      slot {slot['slot']}: value={slot['value']:.6g} ids={slot['ids']}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("baseline", type=Path, help="Baseline FPM, or the only FPM when no reference is supplied")
-    parser.add_argument("reference", type=Path, nargs="?", help="MAX-saved copy containing native Character/Flag links")
-    parser.add_argument("--all", action="store_true", help="Include entities whose v316 payload appears empty")
+    parser.add_argument("baseline", type=Path)
+    parser.add_argument("reference", type=Path, nargs="?")
+    parser.add_argument("--all", action="store_true", help="Print/store every entity, not only relationship/appended records")
     parser.add_argument("--report-json", type=Path)
     args = parser.parse_args()
-
     try:
-        base = inspect_fpm(args.baseline, include_all=args.all)
+        base = inspect_fpm(args.baseline, include_all=True)
         if args.reference:
             ref = inspect_fpm(args.reference, include_all=True)
+            diff = compare_reports(base, ref)
             report = {
-                "baseline_report": base,
-                "reference_report": ref if args.all else {
-                    **ref,
-                    "entities": [row for row in ref["entities"] if _interesting(row.get("relationship")) or row["record_index"] > base["entity_count"]],
-                },
-                "diff": compare_reports(base, ref, include_all=args.all),
+                "baseline_report": base if args.all else _filtered(base),
+                "reference_report": ref if args.all else _filtered(ref, appended_after=int(base["entity_count"])),
+                "diff": diff,
             }
-            print_diff(report["diff"])
+            print_diff(diff)
         else:
-            report = base
-            print_single(report)
-
+            shown = base if args.all else _filtered(base)
+            report = shown
+            print_single(shown)
         if args.report_json:
             args.report_json.parent.mkdir(parents=True, exist_ok=True)
             args.report_json.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
